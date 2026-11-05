@@ -87,6 +87,7 @@ class Heli:
     yaw_lag = 0.0
     servo_tau = 0.0
     turb = 0.0            # rad/s^2 std of random roll/pitch moments (0 = calm)
+    turb_hz = 20.0        # their bandwidth (first-order)
     servo_xy = None
     Lfa1s, Mfb1s = 1.0477, -1.0057
     Lflt, Lflg, Mflt, Mflg = 0.2375, -0.0286, 0.0344, 0.2292
@@ -206,7 +207,7 @@ class Heli:
         q_dot = a1s * self.Ma1s + self.Mu * u + self.Mv * v
         if self.turb > 0 and not self.on_ground:
             # turbulence: band-limited (first order, 20 Hz) random moments, seeded
-            a = dt * 2 * math.pi * 20.0
+            a = dt * 2 * math.pi * self.turb_hz
             scale = self.turb * math.sqrt(2 / a)        # keeps the filtered std at turb
             for i in range(3):
                 self.turb_state[i] += (self.rng.gauss(0.0, scale) - self.turb_state[i]) * a
@@ -270,8 +271,9 @@ class Stratos200(Heli):
       hover          logs:          collective 0.636, throttle 0.47 at 15.2 V, tail 0.215
     Closed-loop identification (rf-heli-model-fit/scripts/sweep_replay.py, replaying the
     flight's sticks through the SITL with the real config and gains, with turbulence):
-      flap/body stiffness Lb1s = Ma1s = 1400 (mode at 5.95 Hz), tf = 0.05 s - reproduces
-      the real heli's ~5.9 Hz roll/pitch whirl in frequency and amplitude (turb=5).
+      flap/body stiffness Lb1s 1400 (roll mode 5.95 Hz), Ma1s 2000, tf 0.05 s - with
+      turbulence 4.3 rad/s^2 at 5 Hz (turb=4.3, turb_hz=5) the replay matches the real
+      heli's ~5.9 Hz whirl: 4-8 Hz roll 5.55 vs 5.56, pitch 3.78 vs 3.52 deg/s.
     Not identifiable: cross coupling and speed derivatives (off, see below).
     """
     motor_fit = (987.74, 16.843, 7.003e-4, 1.101e-2, 2.0)
@@ -288,7 +290,8 @@ class Stratos200(Heli):
     # roll on their own, so they are off. Plain translational drag stays.
     Lu = Lv = Mu = Mv = Nv = 0.0
 
-    def __init__(self, Lb1s=1400.0, Ma1s=1400.0, tf=0.05, servo_tau=0.0, turb=0.0, **kw):
+    def __init__(self, Lb1s=1400.0, Ma1s=2000.0, tf=0.05, servo_tau=0.0, turb=0.0, turb_hz=5.0, **kw):
+        self.turb_hz = turb_hz
         self.turb = turb
         self.servo_tau = servo_tau
         self.Lb1s, self.Ma1s = Lb1s, Ma1s
