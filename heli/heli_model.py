@@ -73,8 +73,17 @@ class Heli:
     Xu, Yv, Yp, Zw = -0.2270, -0.1852, 0.2303, -0.5910
     Nr, Nw, Nv = -2.0131, 5.7574, 1.7258
     Ncol, Nped, Zcol = -32.4616, 63.0040, -22.3239
-    # rotor flapping (first order)
+    # rotor flapping (first order); tf_inv_roll/pitch default to tf_inv
     tf_inv = 1.0 / 0.0353
+    tf_inv_roll = tf_inv_pitch = None
+    # optional fitted rotor law (A, B, k0, k1, n): dw/dt = A u V - B w - w^2 (k0 + k1 |c|^n)
+    motor_fit = None
+    # main rotor torque reaction on yaw, rad/s^2 at hover (motorized tails); scales with drag
+    torque_yaw = 0.0
+    motor_poles = 2
+    tail_motor = False
+    tail_tau = 0.035
+    yaw_lag = 0.0
     Lfa1s, Mfb1s = 1.0477, -1.0057
     Lflt, Lflg, Mflt, Mflg = 0.2375, -0.0286, 0.0344, 0.2292
 
@@ -106,6 +115,15 @@ class Heli:
         self.shaft_hover = self.k_d * self.nominal_w ** 3 * drag_shape(self.coll_hover)
         self.hover_power = hover_power_w
         self.used_ah = 0.0
+        if self.motor_fit:
+            A, B, k0, k1, n = self.motor_fit
+            self.drag_shape = lambda c: k0 + k1 * abs(c) ** n
+            self.shaft_hover = self.nominal_w ** 3 * self.drag_shape(self.coll_hover)
+        if self.tf_inv_roll is None:
+            self.tf_inv_roll = self.tf_inv
+        if self.tf_inv_pitch is None:
+            self.tf_inv_pitch = self.tf_inv
+        self.ground = True
         self.reset()
 
     def reset(self):
@@ -141,8 +159,13 @@ class Heli:
         coll = self.coll_scale * collective + self.coll_offset
 
         # rotor speed
-        q_motor = max(0.0, self.A * throttle - self.B * self.w) if throttle > 0.02 else 0.0
-        q_drag = self.k_d * self.w * self.w * self.drag_shape(coll)
+        if self.motor_fit:
+            A, B = self.motor_fit[:2]
+            q_motor = max(0.0, A * throttle * self.vbat - B * self.w) if throttle > 0.02 else 0.0
+            q_drag = self.w * self.w * self.drag_shape(coll)
+        else:
+            q_motor = max(0.0, self.A * throttle - self.B * self.w) if throttle > 0.02 else 0.0
+            q_drag = self.k_d * self.w * self.w * self.drag_shape(coll)
         self.w = max(0.0, self.w + (q_motor - q_drag) * dt)
         rr = (self.w / self.nominal_w) ** 2        # thrust and control power scale with rpm^2
 
@@ -158,8 +181,9 @@ class Heli:
 
         # flapping (tip path plane), driven by cyclic and body rates
         b1s, a1s = self.tpp
-        b1s_dot = -p - self.tf_inv * b1s + self.tf_inv * rr * (self.Lfa1s * a1s + self.Lflt * ctrl_x + self.Lflg * ctrl_y)
-        a1s_dot = -q_ - self.tf_inv * a1s + self.tf_inv * rr * (self.Mfb1s * b1s + self.Mflt * ctrl_x + self.Mflg * ctrl_y)
+        ti_r, ti_p = self.tf_inv_roll, self.tf_inv_pitch
+        b1s_dot = -p - ti_r * b1s + ti_r * rr * (self.Lfa1s * a1s + self.Lflt * ctrl_x + self.Lflg * ctrl_y)
+        a1s_dot = -q_ - ti_p * a1s + ti_p * rr * (self.Mfb1s * b1s + self.Mflt * ctrl_x + self.Mflg * ctrl_y)
         b1s += b1s_dot * dt
         a1s += a1s_dot * dt
         self.tpp = [b1s, a1s]
@@ -167,8 +191,17 @@ class Heli:
         # rotational acceleration, body
         p_dot = b1s * self.Lb1s + self.Lu * u + self.Lv * v
         q_dot = a1s * self.Ma1s + self.Mu * u + self.Mv * v
-        r_dot = (self.Nv * v + self.Nr * r + rr * self.Nped * yaw_cmd + self.Nw * w_
+        if self.tail_motor:
+            # a tail motor has its own rpm (no rpm^2 scaling) and spins up with a lag
+            self.yaw_lag += (yaw_cmd - self.yaw_lag) * dt / self.tail_tau
+            yaw_power, yaw_cmd = self.Nped, self.yaw_lag
+        else:
+            yaw_power = rr * self.Nped
+        r_dot = (self.Nv * v + self.Nr * r + yaw_power * yaw_cmd + self.Nw * w_
                  + rr * self.Ncol * (coll - self.coll_hover))
+        if self.torque_yaw:
+            # main rotor drag torque reacts on the fuselage; the tail cancels it in hover
+            r_dot += self.torque_yaw * q_drag * self.nominal_w / self.shaft_hover
 
         # specific force (aero), body
         fx = -G * a1s + self.Xu * u
@@ -199,7 +232,54 @@ class Heli:
         self.q = qnorm(tuple(a + b for a, b in zip(self.q, qmul(self.q, dq))))
         self.specific_force = (fx, fy, fz)
 
-        if self.pos[2] > 0:       # touched down
+        if self.pos[2] > 0 and self.ground:       # touched down
             self.pos[2] = 0.0
             self.on_ground = True
             self.vel = [0.0, 0.0, 0.0]
+
+
+class Stratos200(Heli):
+    """
+    SAB Goblin-style 200-size direct-drive heli (the user's Stratos 200 in a Bo105
+    fuselage), fitted from its blackbox logs in rf-heli-model-fit/:
+      rotor law      fit_rotor.py:  dw/dt = A u V - B w - w^2 (k0 + k1 c^2), R^2 0.994
+      rate gains     fit_axis.py:   roll 5.07, pitch 4.74 rad/s per mixer input (0.5-3 Hz)
+      yaw            fit_yaw.py + 0.5-8 Hz regression: tail motor up = nose right, 66 rad/s^2
+                     per unit, 35 ms motor lag, weak damping; main torque nose left (CW rotor)
+      hover          logs:          collective 0.636, throttle 0.47 at 15.2 V, tail 0.215
+    Not identifiable from those (gentle) flights: the flap/body stiffness Lb1s/Ma1s and
+    tf, the cross coupling, and the speed derivatives (kept from the Blade 360).
+    """
+    motor_fit = (987.74, 16.843, 7.003e-4, 1.101e-2, 2.0)
+    motor_poles = 24
+    tail_motor = True
+    Zcol = -G / 0.636
+    Ncol, Nw = 0.0, 0.0
+    # bridge yaw input = tail motor, yaw_cmd = sign_yaw (-1) * motor: Nped < 0 gives nose right
+    Nped, Nr = -66.0, -0.5
+    Lfa1s = Mfb1s = 0.0
+    Lflg = Mflt = 0.0
+    # speed-coupled moments (flapback, dihedral, weathervane) cannot be identified without
+    # velocity in the logs; the Blade 360 values made the drifting open-loop replay yaw and
+    # roll on their own, so they are off. Plain translational drag stays.
+    Lu = Lv = Mu = Mv = Nv = 0.0
+
+    def __init__(self, Lb1s=1500.0, Ma1s=1500.0, tf=0.03, **kw):
+        self.Lb1s, self.Ma1s = Lb1s, Ma1s
+        self.tf_inv_roll = self.tf_inv_pitch = 1.0 / tf
+        # steady rate per input = Lflt / tf (flapping model at hover)
+        self.Lflt, self.Mflg = 5.07 * tf, 4.74 * tf
+        self.torque_yaw = -66.0 * 0.215          # CW main rotor: reaction turns the nose left
+        args = dict(nominal_rpm=3600.0, gear_ratio=1.0, hover_throttle=0.47, pack_cells=4,
+                    pack_ah=0.85, pack_r=0.05, hover_power_w=50.0, cyclic_scale=1.0, yaw_scale=1.0)
+        args.update(kw)
+        super().__init__(**args)
+
+    @property
+    def tail_rpm(self):
+        return 14340.0 * math.sqrt(max(self.tail_throttle, 0.0) / 0.215)
+
+    tail_throttle = 0.0
+
+
+MODELS = {'blade360': Heli, 'stratos200': Stratos200}

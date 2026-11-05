@@ -27,7 +27,9 @@ import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from heli_model import Heli, euler   # noqa: E402
+from heli_model import MODELS, euler  # noqa: E402
+from configs import load_dump         # noqa: E402
+import csv                            # noqa: E402
 from swash import Swash               # noqa: E402
 from esc import Hw4Esc                # noqa: E402
 
@@ -80,25 +82,34 @@ def wait_for(path, text, timeout):
     return False
 
 
-def cli(port, commands):
+def cli(port, commands, timeout=3.0):
+    """Enter the CLI and run commands one by one, each up to its '# ' prompt."""
     s = socket.create_connection(('127.0.0.1', port), timeout=3)
-    s.settimeout(0.3)
+    s.settimeout(0.05)
     out = b''
 
-    def drain(t):
+    def until_prompt(t):
         nonlocal out
+        mark = len(out)
         end = time.time() + t
         while time.time() < end:
             try:
-                d = s.recv(4096)
+                d = s.recv(65536)
                 if not d:
                     return
                 out += d
+                if b'\n# ' in out[mark:] or out[mark:].endswith(b'# '):
+                    return
             except socket.timeout:
                 pass
-    s.sendall(b'#\r\n'); drain(1.0)
+    s.sendall(b'#\r\n'); until_prompt(timeout)
+    cli.rejected = []
     for c in commands:
-        s.sendall(c.encode() + b'\r\n'); drain(1.0)
+        mark = len(out)
+        s.sendall(c.encode() + b'\r\n')
+        until_prompt(1.0 if c == 'save' else timeout)
+        if b'ERROR' in out[mark:] or b'Invalid' in out[mark:]:
+            cli.rejected.append(c)
     s.close()
     return out.decode(errors='replace')
 
@@ -111,6 +122,48 @@ def start_sitl(elf, rundir, name, lockstep):
     proc = subprocess.Popen([elf], cwd=rundir, stdout=log, stderr=subprocess.STDOUT,
                             stdin=subprocess.DEVNULL, env=env)
     return proc, log
+
+
+REPLAY_LEAD = 8.0     # s of calibration and arming before the recorded sticks start
+REPLAY_TAIL = 3.0     # s disarmed after them: the blackbox closes its log and the flash drains
+
+
+def load_sticks(path):
+    """Recorded sticks: rows t, roll, pitch, yaw, collective, throttle (rcCommand units)."""
+    rows = []
+    with open(path) as f:
+        for r in csv.DictReader(f):
+            rows.append(tuple(float(r[k]) for k in ('t', 'roll', 'pitch', 'yaw', 'coll', 'thr')))
+    return rows
+
+
+def replay_rc(sticks, t):
+    """RC frame at sim time t: hold neutral, arm at 5 s, then the recording from REPLAY_LEAD on."""
+    arm = 1900 if 5.0 <= t and sticks[0][0] + t - REPLAY_LEAD <= sticks[-1][0] else 1000
+    tr = sticks[0][0] + t - REPLAY_LEAD
+    if tr < sticks[0][0]:
+        return 1000, 1500 - 500, arm, 1000, 1500, 1500, 1500
+    lo, hi = 0, len(sticks) - 1
+    while lo < hi:                         # last row at or before tr
+        mid = (lo + hi + 1) // 2
+        if sticks[mid][0] <= tr:
+            lo = mid
+        else:
+            hi = mid - 1
+    _, r, p, y, c, thr = sticks[lo]
+    return 1000 + thr, 1500 + c, arm, 1000, 1500 + r, 1500 + p, 1500 + y
+
+
+def save_blackbox(flash, out):
+    """Copy the used part of the SITL's file-backed flash (erased bytes are 0xFF)."""
+    try:
+        data = open(flash, 'rb').read()
+    except OSError:
+        print('no blackbox flash file')
+        return
+    end = len(data.rstrip(bytes([0xFF])))
+    open(out, 'wb').write(data[:end])
+    print('blackbox: %d bytes -> %s' % (end, out))
 
 
 def schedule(t, governor=False, acro=False):
@@ -153,6 +206,8 @@ def main():
                          '(default), or from the stabilized mixer inputs')
     ap.add_argument('--cli', action='append', default=[], metavar='COMMAND',
                     help='extra CLI command before save (repeatable), e.g. "set swash_type = CP135"')
+    ap.add_argument('--cli-file', metavar='FILE',
+                    help='extra CLI commands, one per line, after the dump and the bridge setup')
     ap.add_argument('--acro', action='store_true', help='fly the stick doublets in acro (no angle mode)')
     ap.add_argument('--esc', choices=('none', 'hw4'), default='none',
                     help='hw4: HobbyWing V4 telemetry from the model on UART3 (TCP 5763). The '
@@ -160,30 +215,58 @@ def main():
                          'source and does not take serial ESC telemetry')
     ap.add_argument('--governor', type=int, default=0, metavar='RPM',
                     help='fly with the ELECTRIC governor holding this headspeed')
+    ap.add_argument('--model', choices=sorted(MODELS), default='blade360')
+    ap.add_argument('--set', action='append', default=[], metavar='NAME=VALUE',
+                    help='model constructor argument, e.g. Lb1s=1200 (repeatable)')
+    ap.add_argument('--dump', metavar='CLI_DUMP',
+                    help='apply a real CLI dump first (board and radio settings filtered, see configs.py)')
+    ap.add_argument('--replay', metavar='STICKS_CSV',
+                    help='fly recorded sticks (t,roll,pitch,yaw,coll,thr as rcCommand) instead of the script')
+    ap.add_argument('--bbl', metavar='OUT',
+                    help='save the SITL blackbox (file-backed flash) here after the flight')
     a = ap.parse_args()
     elf = os.path.abspath(a.elf)
     rundir = tempfile.mkdtemp(prefix='heli-bridge-')
+
+    # The firmware's stabilized mixer inputs follow Betaflight's sensor frame (X forward,
+    # Y left, Z up): positive roll is right wing down, as in the model's FRD, but positive
+    # pitch is nose down and positive yaw is nose left - the opposite of FRD q and r.
+    kw = {}
+    for item in a.set:
+        k, v = item.split('=', 1)
+        kw[k] = float(v)
+    heli = MODELS[a.model](sign_roll=1.0, sign_pitch=-1.0, sign_yaw=-1.0, **kw)
+    sticks = load_sticks(a.replay) if a.replay else None
+    seconds = (REPLAY_LEAD + sticks[-1][0] - sticks[0][0] + REPLAY_TAIL) if sticks else a.seconds
 
     # first start writes defaults; then configure over the CLI (save reboots)
     subprocess.run([elf], cwd=rundir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
     proc, log = start_sitl(elf, rundir, 'config', False)
     wait_for(os.path.join(rundir, 'config.log'), 'bind port 5761', 15)
-    commands = ['aux 0 0 0 1700 2100 0 0', 'aux 1 1 1 1700 2100 0 0', 'set motor_poles = %d' % MOTOR_POLES]
+    commands = load_dump(a.dump) if a.dump else ['set motor_poles = %d' % heli.motor_poles]
+    # the bridge's radio: MSP RX, channels AETRC123, ARM on AUX1, angle mode on AUX2
+    commands += ['feature -RX_SERIAL', 'feature RX_MSP', 'map AETRC123',
+                 'aux 0 0 0 1700 2100 0 0', 'aux 1 1 1 1700 2100 0 0']
+    if a.bbl:
+        # each run starts on fresh flash: log from its start, no ring-buffer erasing
+        commands += ['set blackbox_mode = ARMED', 'set blackbox_rolling_erase = OFF', 'set blackbox_initial_erase_kb = 0']
     if a.governor:
         commands += ['feature GOVERNOR', 'set gov_mode = ELECTRIC', 'set main_rotor_gear_ratio = 1,10',
                      'set gov_headspeed = %d' % a.governor]
     if a.esc == 'hw4':
         commands += ['feature ESC_SENSOR', 'serial 2 1024 115200 57600 0 115200',
                      'set esc_sensor_protocol = HOBBYWINGV4']
+    if a.cli_file:
+        a.cli = [ln.strip() for ln in open(a.cli_file) if ln.strip() and not ln.startswith('#')] + a.cli
+    t_cli = time.time()
     out_cli = cli(5761, commands + a.cli + ['save'])
-    if 'Invalid' in out_cli or 'ERROR' in out_cli:
-        print(out_cli)
+    bad = cli.rejected
+    print('CLI: %d commands in %.0f s%s' % (len(commands) + len(a.cli) + 1, time.time() - t_cli,
+                                            (', %d rejected:' % len(bad)) if bad else ''))
+    for ln in bad[:20]:
+        print('   ', ln.strip())
     proc.wait(15); log.close()
 
-    # The firmware's stabilized mixer inputs follow Betaflight's sensor frame (X forward,
-    # Y left, Z up): positive roll is right wing down, as in the model's FRD, but positive
-    # pitch is nose down and positive yaw is nose left - the opposite of FRD q and r.
-    heli = Heli(sign_roll=1.0, sign_pitch=-1.0, sign_yaw=-1.0)
     out = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     out.bind(('127.0.0.1', 9002)); out.settimeout(0.05)
     fdm = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -211,14 +294,17 @@ def main():
         msp.send(msp_frame(MSP_ACC_CALIBRATION))
 
         ctrl = (0.0, 0.0, 0.0, 0.0, 0.0)    # throttle, roll, pitch, yaw, collective
-        steps = int(a.seconds / DT)
+        steps = int(seconds / DT)
         rc_every = int(0.02 / DT)
         timeouts = 0
         t0 = time.time()
         for n in range(steps):
             t = n * DT
             if n % rc_every == 0:
-                thr, coll, arm, angle, r, p, y = schedule(t, bool(a.governor), a.acro)
+                if sticks:
+                    thr, coll, arm, angle, r, p, y = replay_rc(sticks, t)
+                else:
+                    thr, coll, arm, angle, r, p, y = schedule(t, bool(a.governor), a.acro)
                 ch = [int(round(v)) for v in (r, p, thr, y, coll, arm, angle, 1000)]
                 msp.send(msp_frame(MSP_SET_RAW_RC, struct.pack('<8H', *ch)))
                 if n == int(30.0 / DT):
@@ -235,12 +321,20 @@ def main():
                     pass
 
             heli.step(DT, *ctrl)
+            if (sticks and heli.ground and heli.w > 0.95 * heli.nominal_w
+                    and ctrl[4] > 0.9 * heli.coll_hover):
+                # The replayed collective is open loop: the pilot held height on the real
+                # heli, here thrust only roughly matches the weight. Release the heli from the
+                # ground once it is light on its skids; heave damping keeps the drift small.
+                heli.ground = False
+                heli.on_ground = False
             if esc and n % esc_every == 0:
-                esc.send(esc_every * DT, ctrl[0], heli.motor_rpm * MOTOR_POLES / 2, heli.vbat, heli.ibat)
+                esc.send(esc_every * DT, ctrl[0], heli.motor_rpm * heli.motor_poles / 2, heli.vbat, heli.ibat)
             pressure = 101325.0 * (1 - 2.25577e-5 * (-heli.pos[2])) ** 5.25588
             pkt = struct.pack('<28d', t, *heli.rates, *heli.specific_force, *heli.q,
                               *heli.vel, *heli.pos,
-                              heli.motor_rpm, 0, 0, 0,
+                              heli.motor_rpm * heli.motor_poles / 2,
+                              (heli.tail_rpm * 6 if heli.tail_motor else 0), 0, 0,
                               pressure, 3.3, 40.0, 8.0, 5.0, heli.vbat, heli.ibat)
             fdm.sendto(pkt, ('127.0.0.1', 9003))
             try:
@@ -251,16 +345,19 @@ def main():
                     if a.controls == 'servos':
                         servo_us = struct.unpack_from('<8f', d, 16)
                         roll_, pitch_, yaw_, coll_ = swash.decode(servo_us)
+                        if heli.tail_motor:
+                            yaw_ = motor[1]       # motorized tail: the tail motor is the yaw input
                         if min(servo_us[:4]) > 0 and t >= 8.0:     # servos live, armed
                             decode_n += 1
-                            for i, v in enumerate((roll_, pitch_, yaw_, coll_)):
+                            for i, v in enumerate((roll_, pitch_, mix[2] if heli.tail_motor else yaw_, coll_)):
                                 e = abs(v - mix[i])
                                 decode_sq[i] += e * e
                                 if e > decode_err[i]:
                                     decode_err[i], decode_at[i] = e, (t, v, mix[i])
                         ctrl = (motor[0], roll_, pitch_, yaw_, coll_)
                     else:
-                        ctrl = (motor[0], mix[0], mix[1], mix[2], mix[3])
+                        ctrl = (motor[0], mix[0], mix[1], motor[1] if heli.tail_motor else mix[2], mix[3])
+                    heli.tail_throttle = motor[1]
             except socket.timeout:
                 timeouts += 1
 
@@ -270,7 +367,7 @@ def main():
                              math.degrees(yaw), heli.rotor_rpm, ctrl[0], ctrl[4], ctrl[1], ctrl[2],
                              heli.vbat, heli.ibat, *heli.rates))
         real = time.time() - t0
-        print('%.0f s simulated in %.0f s real, %d steps without reply' % (a.seconds, real, timeouts))
+        print('%.0f s simulated in %.0f s real, %d steps without reply' % (seconds, real, timeouts))
         i = -1
         while True:
             i = msp_rx.find(b'$M>', i + 1)
@@ -305,6 +402,8 @@ def main():
             proc.kill()
         log.close()
 
+    if a.bbl:
+        save_blackbox(os.path.join(rundir, 'blackbox_flash.bin'), a.bbl)
     hdr = 't,alt_m,climb_ms,roll_deg,pitch_deg,yaw_deg,rotor_rpm,throttle,mix_coll,mix_roll,mix_pitch,vbat,ibat,p,q,r'
     if a.log:
         with open(a.log, 'w') as f:
