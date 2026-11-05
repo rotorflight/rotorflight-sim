@@ -36,6 +36,7 @@ MSP_SET_RAW_RC = 200
 MSP_ACC_CALIBRATION = 205
 MSP_MOTOR_TELEMETRY = 139
 MSP_STATUS = 101
+MSP_RAW_IMU = 102
 ARMING_FLAG_NAMES = [
     "NOGYRO", "FAILSAFE", "RXLOSS", "BADRX", "BOXFAILSAFE", "GOVERNOR", "RPM_SIGNAL",
     "THROTTLE", "ANGLE", "BOOTGRACE", "NOPREARM", "LOAD", "CALIB", "CLI", "CMS", "BST",
@@ -112,12 +113,12 @@ def start_sitl(elf, rundir, name, lockstep):
     return proc, log
 
 
-def schedule(t, governor=False):
+def schedule(t, governor=False, acro=False):
     """Scripted pilot: returns (throttle, collective, aux1 arm, aux2 angle, roll, pitch, yaw) in us.
     Without the governor the throttle stick ramps to 65 % (the model's hover throttle at
     nominal headspeed); with it the stick goes to 100 % and the governor spools up."""
     arm = 1900 if 6.0 <= t < 34.0 else 1000
-    angle = 1900
+    angle = 1000 if acro else 1900
     thr = 1000
     if 8.0 <= t < 34.0:
         thr = 2000 if governor else 1000 + min(1.0, (t - 8.0) / 4.0) * 650
@@ -129,8 +130,16 @@ def schedule(t, governor=False):
             coll = 1500 + 330                                    # 1 s punch: loads the governor
     elif 26.0 <= t < 33.0:
         coll = 1500 + 195                                        # descend and land
-    roll = 1500 + (150 if 21.0 <= t < 22.0 else 0)              # roll right for 1 s
-    pitch = 1500 + (150 if 23.0 <= t < 24.0 else 0)             # pitch stick for 1 s
+    if acro:
+        # doublets: 0.5 s one way, hold 1 s, 0.5 s back - the attitude must be held in
+        # between and come back level
+        def doublet(t0):
+            return 150 if t0 <= t < t0 + 0.5 else -150 if t0 + 1.5 <= t < t0 + 2.0 else 0
+        roll = 1500 + doublet(20.5)
+        pitch = 1500 + doublet(23.0)
+    else:
+        roll = 1500 + (150 if 21.0 <= t < 22.0 else 0)          # roll right for 1 s
+        pitch = 1500 + (150 if 23.0 <= t < 24.0 else 0)         # pitch stick for 1 s
     return thr, coll, arm, angle, roll, pitch, 1500
 
 
@@ -144,6 +153,7 @@ def main():
                          '(default), or from the stabilized mixer inputs')
     ap.add_argument('--cli', action='append', default=[], metavar='COMMAND',
                     help='extra CLI command before save (repeatable), e.g. "set swash_type = CP135"')
+    ap.add_argument('--acro', action='store_true', help='fly the stick doublets in acro (no angle mode)')
     ap.add_argument('--esc', choices=('none', 'hw4'), default='none',
                     help='hw4: HobbyWing V4 telemetry from the model on UART3 (TCP 5763). The '
                          'frequency sensor stays on: the ELECTRIC governor needs a fast rpm '
@@ -194,6 +204,8 @@ def main():
         esc_every = int(0.02 / DT)
         msp_rx = b''
         at30 = (0.0, 0.0, 0.0)
+        imu_probe = {int(float(x) / DT) for x in os.environ.get('IMU_AT', '').split(',') if x}
+        imu_model = []
         decode_err, decode_at, decode_sq, decode_n = [0.0] * 4, [None] * 4, [0.0] * 4, 0
         time.sleep(1.0)
         msp.send(msp_frame(MSP_ACC_CALIBRATION))
@@ -206,7 +218,7 @@ def main():
         for n in range(steps):
             t = n * DT
             if n % rc_every == 0:
-                thr, coll, arm, angle, r, p, y = schedule(t, bool(a.governor))
+                thr, coll, arm, angle, r, p, y = schedule(t, bool(a.governor), a.acro)
                 ch = [int(round(v)) for v in (r, p, thr, y, coll, arm, angle, 1000)]
                 msp.send(msp_frame(MSP_SET_RAW_RC, struct.pack('<8H', *ch)))
                 if n == int(30.0 / DT):
@@ -214,6 +226,9 @@ def main():
                     at30 = (heli.motor_rpm, heli.vbat, heli.ibat)
                 if n in (int(5.0 / DT), int(7.0 / DT)):
                     msp.send(msp_frame(MSP_STATUS))
+                if n in imu_probe:
+                    msp.send(msp_frame(MSP_RAW_IMU))
+                    imu_model.append((t, *(math.degrees(x) for x in heli.rates)))
                 try:
                     msp_rx += msp.recv(4096)      # replies, parsed after the flight
                 except (BlockingIOError, OSError):
@@ -267,6 +282,11 @@ def main():
                 armed = struct.unpack_from('<I', msp_rx, i + 5 + 6)[0] & 1
                 print('MSP_STATUS: armed %d, blockers %s' % (armed, [ARMING_FLAG_NAMES[b] if b < len(
                     ARMING_FLAG_NAMES) else str(b) for b in range(32) if flags >> b & 1]))
+            if cmd == MSP_RAW_IMU and len(msp_rx) >= i + 5 + size and imu_model:
+                gx, gy, gz = struct.unpack_from('<3h', msp_rx, i + 5 + 6)
+                tm, mp, mq, mr = imu_model.pop(0)
+                print('MSP_RAW_IMU at %.1f s: firmware gyro %+d %+d %+d deg/s, model p q r %+.1f %+.1f %+.1f'
+                      % (tm, gx, gy, gz, mp, mq, mr))
             if cmd == MSP_MOTOR_TELEMETRY and len(msp_rx) >= i + 5 + size:
                 rpm, _err, volt, curr, _cons, temp, _t2 = struct.unpack_from('<IHHHHHH', msp_rx, i + 6)
                 print('MSP_MOTOR_TELEMETRY at 30 s: motor rpm %d, %.2f V, %.2f A, %.1f C (model %.0f rpm, %.2f V, %.2f A)'
