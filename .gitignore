@@ -1,0 +1,8 @@
+*.csv
+__pycache__/
+*.png
+*.bbl
+*.npy
+*.npz
+fitting/data/
+fitting/replay/
