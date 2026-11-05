@@ -29,10 +29,20 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from heli_model import Heli, euler   # noqa: E402
 from swash import Swash               # noqa: E402
+from esc import Hw4Esc                # noqa: E402
 
 DT = 250e-6
 MSP_SET_RAW_RC = 200
 MSP_ACC_CALIBRATION = 205
+MSP_MOTOR_TELEMETRY = 139
+MSP_STATUS = 101
+ARMING_FLAG_NAMES = [
+    "NOGYRO", "FAILSAFE", "RXLOSS", "BADRX", "BOXFAILSAFE", "GOVERNOR", "RPM_SIGNAL",
+    "THROTTLE", "ANGLE", "BOOTGRACE", "NOPREARM", "LOAD", "CALIB", "CLI", "CMS", "BST",
+    "MSP", "PARALYZE", "GPS", "RESCUE_SW", "RPMFILTER", "REBOOT_REQD", "DSHOT_BBANG",
+    "NO_ACC_CAL", "MOTOR_PROTO", "OVERRIDE", "ARMSWITCH",
+]
+MOTOR_POLES = 2
 
 
 def msp_frame(cmd, payload=b''):
@@ -134,6 +144,10 @@ def main():
                          '(default), or from the stabilized mixer inputs')
     ap.add_argument('--cli', action='append', default=[], metavar='COMMAND',
                     help='extra CLI command before save (repeatable), e.g. "set swash_type = CP135"')
+    ap.add_argument('--esc', choices=('none', 'hw4'), default='none',
+                    help='hw4: HobbyWing V4 telemetry from the model on UART3 (TCP 5763). The '
+                         'frequency sensor stays on: the ELECTRIC governor needs a fast rpm '
+                         'source and does not take serial ESC telemetry')
     ap.add_argument('--governor', type=int, default=0, metavar='RPM',
                     help='fly with the ELECTRIC governor holding this headspeed')
     a = ap.parse_args()
@@ -144,10 +158,13 @@ def main():
     subprocess.run([elf], cwd=rundir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
     proc, log = start_sitl(elf, rundir, 'config', False)
     wait_for(os.path.join(rundir, 'config.log'), 'bind port 5761', 15)
-    commands = ['aux 0 0 0 1700 2100 0 0', 'aux 1 1 1 1700 2100 0 0', 'set motor_poles = 2']
+    commands = ['aux 0 0 0 1700 2100 0 0', 'aux 1 1 1 1700 2100 0 0', 'set motor_poles = %d' % MOTOR_POLES]
     if a.governor:
         commands += ['feature GOVERNOR', 'set gov_mode = ELECTRIC', 'set main_rotor_gear_ratio = 1,10',
                      'set gov_headspeed = %d' % a.governor]
+    if a.esc == 'hw4':
+        commands += ['feature ESC_SENSOR', 'serial 2 1024 115200 57600 0 115200',
+                     'set esc_sensor_protocol = HOBBYWINGV4']
     out_cli = cli(5761, commands + a.cli + ['save'])
     if 'Invalid' in out_cli or 'ERROR' in out_cli:
         print(out_cli)
@@ -169,6 +186,14 @@ def main():
         swash = Swash.from_msp(lambda cmd: msp_request(msp, cmd))
         print(swash.describe())
         msp.setblocking(False)
+        esc = None
+        if a.esc == 'hw4':
+            esc_sock = socket.create_connection(('127.0.0.1', 5763), timeout=3)
+            esc_sock.setblocking(False)
+            esc = Hw4Esc(esc_sock)
+        esc_every = int(0.02 / DT)
+        msp_rx = b''
+        at30 = (0.0, 0.0, 0.0)
         decode_err, decode_at, decode_sq, decode_n = [0.0] * 4, [None] * 4, [0.0] * 4, 0
         time.sleep(1.0)
         msp.send(msp_frame(MSP_ACC_CALIBRATION))
@@ -184,12 +209,19 @@ def main():
                 thr, coll, arm, angle, r, p, y = schedule(t, bool(a.governor))
                 ch = [int(round(v)) for v in (r, p, thr, y, coll, arm, angle, 1000)]
                 msp.send(msp_frame(MSP_SET_RAW_RC, struct.pack('<8H', *ch)))
+                if n == int(30.0 / DT):
+                    msp.send(msp_frame(MSP_MOTOR_TELEMETRY))
+                    at30 = (heli.motor_rpm, heli.vbat, heli.ibat)
+                if n in (int(5.0 / DT), int(7.0 / DT)):
+                    msp.send(msp_frame(MSP_STATUS))
                 try:
-                    msp.recv(4096)          # drain replies
+                    msp_rx += msp.recv(4096)      # replies, parsed after the flight
                 except (BlockingIOError, OSError):
                     pass
 
             heli.step(DT, *ctrl)
+            if esc and n % esc_every == 0:
+                esc.send(esc_every * DT, ctrl[0], heli.motor_rpm * MOTOR_POLES / 2, heli.vbat, heli.ibat)
             pressure = 101325.0 * (1 - 2.25577e-5 * (-heli.pos[2])) ** 5.25588
             pkt = struct.pack('<28d', t, *heli.rates, *heli.specific_force, *heli.q,
                               *heli.vel, *heli.pos,
@@ -224,12 +256,27 @@ def main():
                              heli.vbat, heli.ibat, *heli.rates))
         real = time.time() - t0
         print('%.0f s simulated in %.0f s real, %d steps without reply' % (a.seconds, real, timeouts))
+        i = -1
+        while True:
+            i = msp_rx.find(b'$M>', i + 1)
+            if i < 0 or len(msp_rx) < i + 5:
+                break
+            size, cmd = msp_rx[i + 3], msp_rx[i + 4]
+            if cmd == MSP_STATUS and len(msp_rx) >= i + 5 + size:
+                flags = struct.unpack_from('<I', msp_rx, i + 5 + 17)[0]
+                armed = struct.unpack_from('<I', msp_rx, i + 5 + 6)[0] & 1
+                print('MSP_STATUS: armed %d, blockers %s' % (armed, [ARMING_FLAG_NAMES[b] if b < len(
+                    ARMING_FLAG_NAMES) else str(b) for b in range(32) if flags >> b & 1]))
+            if cmd == MSP_MOTOR_TELEMETRY and len(msp_rx) >= i + 5 + size:
+                rpm, _err, volt, curr, _cons, temp, _t2 = struct.unpack_from('<IHHHHHH', msp_rx, i + 6)
+                print('MSP_MOTOR_TELEMETRY at 30 s: motor rpm %d, %.2f V, %.2f A, %.1f C (model %.0f rpm, %.2f V, %.2f A)'
+                      % (rpm, volt / 1000, curr / 1000, temp / 10, *at30))
         if a.controls == 'servos':
             print('inverse mixing vs mixer inputs, max |diff| roll %.4f pitch %.4f yaw %.4f coll %.4f'
                   % tuple(decode_err))
             print('  rms roll %.4f pitch %.4f yaw %.4f coll %.4f; worst (t, decoded, mixer): %s'
                   % (*(math.sqrt(q / max(decode_n, 1)) for q in decode_sq),
-                     [tuple(round(x, 3) for x in w) for w in decode_at]))
+                     [tuple(round(x, 3) for x in w) if w else None for w in decode_at]))
     finally:
         proc.terminate()
         try:
@@ -250,7 +297,10 @@ def main():
             continue
         print('t %5.1f  alt %6.2f m  climb %+5.2f  roll %+6.1f  pitch %+6.1f  rpm %5.0f  thr %.2f  coll %+.2f'
               % (r[0], r[1], r[2], r[3], r[4], r[6], r[7], r[8]))
-    shutil.rmtree(rundir, ignore_errors=True)
+    if os.environ.get('KEEP'):
+        print('run directory kept:', rundir)
+    else:
+        shutil.rmtree(rundir, ignore_errors=True)
 
 
 if __name__ == '__main__':
