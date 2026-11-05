@@ -178,8 +178,9 @@ gains and rates.
 ```sh
 node <skill>/bbl.js decode OMP_M7R_<date>.bbl -o data/m7r
 python -I scripts/m7r_fit.py data/m7r.0.npy                  # open-loop fits
-python -I scripts/m7r_inputs.py data/m7r.0.npy replay/m7r    # CLI file + sticks for the replay
-python -I scripts/m7r_sweep.py <elf> data/m7r.0.npy replay/m7r replay/m7r/sweep L=700,1500 tf=0.05,0.1
+python -I scripts/m7r_profiles.py data/m7r.0.npy               # gains of profiles 2 and 3
+python -I scripts/m7r_inputs.py data/m7r.0.npy replay/m7r [1|2|3]   # CLI file + sticks per profile
+python -I scripts/m7r_sweep.py [-p 1|2|3] <elf> data/m7r.0.npy replay/m7r replay/m7r/sweep L=700,1500 tf=0.05,0.1
 ```
 
 - **Rotor law**: R^2 0.73 in the volts form (the Stratos 0.994): the analog ESC has a
@@ -211,6 +212,23 @@ python -I scripts/m7r_sweep.py <elf> data/m7r.0.npy replay/m7r replay/m7r/sweep 
   the Stratos, real disturbances are missing). Yaw tracking 11.1 vs 9.3 deg/s, yaw mixer
   -21.3 vs -21.4 %.
 
+- **3D profiles**: the header holds profile 1 only. `m7r_profiles.py` takes profiles 2
+  and 3 from the logged PID terms - each term against its input, as a ratio to profile 1
+  (which gives back its header gains within 1-2). Rates and stop gains are profile 1's;
+  roll D rises to ~32, yaw P falls to 71 / 61, collective rate 114. The replays (preset,
+  `--hold-alt 10`, which divides its correction by the rotor axis' upward share so it
+  holds inverted too) fly 3D including inverted hover; scored above 1 m (55 % of them -
+  open-loop sticks lose the heli in the fast parts the pilot corrected by eye):
+
+| profile | roll err | roll 1.5-3 Hz | pitch err | pitch 1.5-3 Hz | yaw err | throttle |
+|---|---|---|---|---|---|---|
+| 2, 1800 rpm sim / real | 8.2 / 7.9 | 4.2 / 4.1 | 5.4 / 9.1 | 2.6 / 4.7 | 5.5 / 6.0 | 61.1 / 60.6 % |
+| 3, 2000 rpm sim / real | 6.7 / 7.8 | 4.5 / 4.6 | 12.1 / 14.4 | 9.4 / 9.6 | 4.1 / 5.5 | 70.6 / 73.4 % |
+
+  The throttle at three headspeeds confirms the rotor law. `m7r_sweep.py` runs a replay
+  up to three times: some long replays go wrong in the SITL (outputs freeze or the
+  blackbox ends early or stays empty, a lockstep problem still open in the firmware).
+
 Found on the way: the SITL read a 12S pack as 36.3 V - its emulated ADC clipped at the
 generic scale's full range; fixed in rotorflight-firmware#596 (scale 250, 82.5 V).
 
@@ -221,5 +239,5 @@ generic scale's full range; fixed in rotorflight-firmware#596 (scale 250, 82.5 V
 - pitch at other headspeeds (sim 5.9 Hz vs real 4.9 Hz at 3300)
 - a test flight with sharp roll/pitch/collective inputs, for control power, the flap time
   constant and the collective sensitivity
-- M7R: the 3D profiles (1800/2000 rpm) through the replay; its yaw fit; gear ratio and motor
+- M7R: its yaw fit; gear ratio and motor
   poles (not in a 4.6 log header)

@@ -27,7 +27,7 @@ import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from heli_model import MODELS, euler  # noqa: E402
+from heli_model import MODELS, euler, body_to_earth  # noqa: E402
 from configs import load_dump         # noqa: E402
 import csv                            # noqa: E402
 from swash import Swash               # noqa: E402
@@ -307,7 +307,8 @@ def main():
     ap.add_argument('--hold-alt', type=float, default=0.0, metavar='M',
                     help='with --replay: a slow virtual pilot (PID on height, ~0.3 Hz, at most +-150 us) '
                          'adds to the recorded collective and holds the model near this height - the model '
-                         'lacks translational lift, so open-loop collective drifts in forward flight')
+                         'lacks translational lift, so open-loop collective drifts in forward flight; '
+                         'divided by the upward share of the rotor axis, so it also holds tilted and inverted')
     ap.add_argument('--bbl', metavar='OUT',
                     help='save the SITL blackbox (file-backed flash) here after the flight')
     a = ap.parse_args()
@@ -389,6 +390,7 @@ def main():
         msp.send(msp_frame(MSP_ACC_CALIBRATION))
 
         ctrl = (0.0, 0.0, 0.0, 0.0, 0.0)    # throttle, roll, pitch, yaw, collective
+        last_ctrl, ctrl_since, frozen = None, 0.0, 0.0   # a stalled SITL keeps replying stale outputs
         hold_i = 0.0
         steps = int(seconds / DT)
         rc_every = int(0.02 / DT)
@@ -406,7 +408,12 @@ def main():
                         err = a.hold_alt - (-heli.pos[2])
                         hold_i = min(80.0, max(-80.0, hold_i + 2.0 * err * rc_every * DT))
                         corr = 27.0 * err - 19.0 * (-heli.vel[2]) + hold_i
-                        coll += max(-150.0, min(150.0, corr))
+                        # positive collective lifts along the rotor axis: a vertical force
+                        # takes 1/up of it (up = the axis' upward share, -1 inverted), faded
+                        # to 0 through knife edge where the rotor cannot lift
+                        up = -body_to_earth(heli.q, (0.0, 0.0, -1.0))[2]
+                        k = 1.0 / up if abs(up) >= 0.5 else up / 0.25
+                        coll += max(-150.0, min(150.0, corr * k))
                 elif pilot:
                     thr, coll, arm, angle, r, p, y, aux3 = pilot.rc(t, heli)
                 else:
@@ -466,6 +473,10 @@ def main():
                     heli.tail_throttle = motor[1]
             except socket.timeout:
                 timeouts += 1
+            if ctrl != last_ctrl or ctrl[0] <= 0.0:
+                last_ctrl, ctrl_since = ctrl, t
+            else:
+                frozen = max(frozen, t - ctrl_since)
 
             if n % int(float(os.environ.get('LOG_EVERY', '0.1')) / DT) == 0:
                 roll, pitch, yaw = euler(heli.q)
@@ -474,6 +485,8 @@ def main():
                              heli.vbat, heli.ibat, *heli.rates))
         real = time.time() - t0
         print('%.0f s simulated in %.0f s real, %d steps without reply' % (seconds, real, timeouts))
+        if frozen >= 5.0:
+            print('WARNING: FC outputs unchanged for %.1f s with the motor running - the SITL stalled?' % frozen)
         i = -1
         while True:
             i = msp_rx.find(b'$M>', i + 1)

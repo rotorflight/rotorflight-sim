@@ -41,7 +41,13 @@ collective are set to the Blade 360 model (600 / 450; it hovers at 0.44). With
 
 `--hold-alt M` adds a slow virtual pilot (PID on height, ~0.3 Hz, at most +-150 us) to the
 replayed collective: the model has no translational lift, so the recorded collective of a
-cruising flight lets it sink or climb away. It leaves the attitude loops alone.
+cruising flight lets it sink or climb away. It leaves the attitude loops alone. The
+correction is divided by the rotor axis' upward share (a tilted rotor needs more collective
+for the same vertical force), fades to 0 through knife edge and flips sign inverted, so 3D
+replays hold height too.
+
+The bridge warns when the FC outputs stay exactly unchanged for 5 s with the motor running:
+the SITL then stalled (rare; open in the firmware) and the run should not be scored.
 
 `--replay` takes a recorded flight's sticks (`t,roll,pitch,yaw,coll,thr` in rcCommand
 units) and `--bbl` keeps the SITL's own blackbox, so a replay can be compared with the
