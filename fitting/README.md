@@ -130,11 +130,48 @@ within 10 deg/s RMS of the real one (real signal 35 deg/s RMS). The model is a l
 sluggish in pitch - likely the flap time constant, which the whirl damping pins. A test
 flight with sharp roll and pitch inputs would settle it.
 
-## Predictive check, and what is left
+## Predictive check
 
 Same model and turbulence, each flight's own gains: roll whirl 4-8 Hz real 10.7 (D 12) ->
 6.2 (D 120) deg/s, sim 6.4 -> 4.9. Right direction, about half the size (x0.77 vs x0.57):
-the sim can rank gain changes for the whirl, not yet size them. Open:
-- a less damped mode and lower-band turbulence (see the spectra)
-- the whirl scales with rotor speed (0.09 per rev at 3300 rpm, 0.10 at 3600), so Lb1s
-  should scale with rpm^2 - it does not yet
+the sim can rank gain changes for the whirl, not yet size them.
+
+## Rotor speed
+
+With the same gains, the whirl sits at 4.94 Hz at 3300 rpm (flights 160146_11/12) and
+6.05 Hz at 3600 - +22 % for +9 % rpm - and the heli hovers on more collective at 3300
+(0.70-0.73) than thrust ~ rpm^2 x collective allows (0.757 from 0.636 at 3600).
+
+- **Thrust**: blade element with induced inflow (`thrust_inflow`): the hover collective
+  goes as a/wr^2 + b/wr; the two headspeeds give a 0.18, b 0.46, so inflow carries most of
+  the hover pitch. Around hover this makes collective ~1.55x more powerful than the linear
+  law (2.4 vs 1.6 g per unit). The baro vario cannot confirm it: regressing vertical
+  acceleration on collective gives 1.3-3.8 g, R^2 ~0.1.
+- **Flap/body mode** (`stiff_rpm_exp`, `tf_rpm_exp`), replaying 160146_11 (3300 rpm, 34 s
+  airborne, `turb=4.3`):
+
+| stiffness ~ rpm^k, tf ~ 1/rpm^m | roll centroid | pitch centroid | roll 4-8 Hz |
+|---|---|---|---|
+| real | 4.94 Hz | 4.88 Hz | 10.4 deg/s |
+| k 0, m 0 (fixed) | 5.94 | 6.26 | 6.6 |
+| k 0, m 1 | 5.99 | 6.56 | 6.8 |
+| k 2, m 0 | 5.09 | 5.85 | 6.8 |
+| **k 2, m 1** (preset) | 5.13 | 5.89 | 7.1 |
+| k 4, m 0 | 4.58 | 5.45 | 7.0 |
+
+  k = 2 (hub stiffness from centrifugal and thrust terms) puts the roll mode within 4 %;
+  tf barely matters. Pitch stays high and the amplitude low at 3300. At 3600 the preset
+  is unchanged: flight 180641 replays at 4-8 Hz roll 5.85 / pitch 3.70 deg/s (real 5.93 /
+  3.77), tracking error 6.95 / 5.13 (real 7.17 / 5.23).
+
+`scripts/compare_replay.py` aligns sim and real by cross-correlating the stick motion over
+any offset, so a replay can start anywhere in the flight - start it before the spool-up:
+arming mid-flight with the throttle up leaves the rotor stopped.
+
+## Open
+
+- a less damped mode and lower-band turbulence (the real peak is sharper; the whirl's
+  amplitude at 3300 rpm and the effect of D gain are both undersized)
+- pitch at other headspeeds (sim 5.9 Hz vs real 4.9 Hz at 3300)
+- a test flight with sharp roll/pitch/collective inputs, for control power, the flap time
+  constant and the collective sensitivity

@@ -77,6 +77,15 @@ class Heli:
     # rotor flapping (first order); tf_inv_roll/pitch default to tf_inv
     tf_inv = 1.0 / 0.0353
     tf_inv_roll = tf_inv_pitch = None
+    # rotor-speed scaling of the flap/body mode, relative to nominal_rpm:
+    # Lb1s, Ma1s x (w/w_n)^stiff_rpm_exp, flap time constant x (w_n/w)^tf_rpm_exp
+    # (a Lock-number rotor: tf ~ 1/w). 0 = fixed
+    stiff_rpm_exp = 0.0
+    tf_rpm_exp = 0.0
+    # optional blade-element thrust with induced inflow, (K, ki): thrust in g
+    #   n = K (w/w_n)^2 (coll/3 - lambda/2),  lambda = ki sqrt(n) / (w/w_n)
+    # so the hover collective goes as 3/(K wr^2) + 1.5 ki/wr. None = thrust ~ wr^2 coll (Zcol)
+    thrust_inflow = None
     # optional fitted rotor law (A, B, k0, k1, n): dw/dt = A u V - B w - w^2 (k0 + k1 |c|^n)
     motor_fit = None
     # main rotor torque reaction on yaw, rad/s^2 at hover (motorized tails); scales with drag
@@ -159,6 +168,14 @@ class Heli:
     def motor_rpm(self):
         return self.rotor_rpm * self.gear
 
+    def thrust_g(self, coll, w=None):
+        """Blade-element thrust in g at collective coll (thrust_inflow), closed form in sqrt(n)."""
+        K, ki = self.thrust_inflow
+        wr = (self.w if w is None else w) / self.nominal_w
+        A, B = K * wr * wr / 3.0, K * wr * ki / 2.0
+        s = (-B + math.sqrt(B * B + 4.0 * A * abs(coll))) / 2.0
+        return math.copysign(s * s, coll)
+
     def step(self, dt, throttle, roll, pitch, yaw, collective):
         throttle = max(0.0, min(1.0, throttle))
         ctrl_x = self.sign_roll * self.cyclic_scale * roll
@@ -182,6 +199,9 @@ class Heli:
             q_drag = self.k_d * self.w * self.w * self.drag_shape(coll)
         self.w = max(0.0, self.w + (q_motor - q_drag) * dt)
         rr = (self.w / self.nominal_w) ** 2        # thrust and control power scale with rpm^2
+        wr = max(self.w / self.nominal_w, 0.2)
+        ks = wr ** self.stiff_rpm_exp if self.stiff_rpm_exp else 1.0
+        kt = wr ** self.tf_rpm_exp if self.tf_rpm_exp else 1.0
 
         # pack: motor power from torque * speed (inertia-normalised units -> watts)
         power = self.hover_power * q_motor * self.w / self.shaft_hover + 2.0   # + electronics
@@ -195,7 +215,7 @@ class Heli:
 
         # flapping (tip path plane), driven by cyclic and body rates
         b1s, a1s = self.tpp
-        ti_r, ti_p = self.tf_inv_roll, self.tf_inv_pitch
+        ti_r, ti_p = self.tf_inv_roll * kt, self.tf_inv_pitch * kt
         b1s_dot = -p - ti_r * b1s + ti_r * rr * (self.Lfa1s * a1s + self.Lflt * ctrl_x + self.Lflg * ctrl_y)
         a1s_dot = -q_ - ti_p * a1s + ti_p * rr * (self.Mfb1s * b1s + self.Mflt * ctrl_x + self.Mflg * ctrl_y)
         b1s += b1s_dot * dt
@@ -203,8 +223,8 @@ class Heli:
         self.tpp = [b1s, a1s]
 
         # rotational acceleration, body
-        p_dot = b1s * self.Lb1s + self.Lu * u + self.Lv * v
-        q_dot = a1s * self.Ma1s + self.Mu * u + self.Mv * v
+        p_dot = b1s * self.Lb1s * ks + self.Lu * u + self.Lv * v
+        q_dot = a1s * self.Ma1s * ks + self.Mu * u + self.Mv * v
         if self.turb > 0 and not self.on_ground:
             # turbulence: band-limited (first order, 20 Hz) random moments, seeded
             a = dt * 2 * math.pi * self.turb_hz
@@ -228,7 +248,10 @@ class Heli:
         # specific force (aero), body
         fx = -G * a1s + self.Xu * u
         fy = G * b1s + self.Yv * v + self.Yp * p
-        fz = self.Zcol * coll * rr + self.Zw * w_
+        if self.thrust_inflow:
+            fz = -G * self.thrust_g(coll) + self.Zw * w_
+        else:
+            fz = self.Zcol * coll * rr + self.Zw * w_
 
         # ground: held until the rotor lifts more than the weight
         accel_e = body_to_earth(self.q, (fx, fy, fz))
@@ -271,18 +294,27 @@ class Stratos200(Heli):
       yaw            tail motor up = nose right, 66 rad/s^2 per unit, 35 ms motor lag,
                      weak damping; main rotor torque nose left (CW rotor)
       hover          collective 0.636, throttle 0.47 at 15.2 V, tail 0.215
+      thrust         blade element with induced inflow, from the hover collective at
+                     3600 rpm (0.64) and 3300 rpm (0.715): a/wr^2 + b/wr, a 0.18, b 0.46
     Closed-loop identification, replaying the flight's sticks through the SITL with the
     heli's own configuration and gains:
       flap/body stiffness Lb1s 1400 (roll mode 5.95 Hz), Ma1s 2000, tf 0.05 s - with
       turbulence 4.3 rad/s^2 at 5 Hz (turb=4.3, turb_hz=5) the replay matches the real
-      heli's ~5.9 Hz roll/pitch whirl: 4-8 Hz roll 5.55 vs 5.56, pitch 3.78 vs 3.52 deg/s.
+      heli's ~5.9 Hz roll/pitch whirl: 4-8 Hz roll 5.85 vs 5.93, pitch 3.70 vs 3.77 deg/s.
       A sharp pitch input is tracked within 10 deg/s RMS, about 10 % slower to peak.
+      Stiffness ~ rpm^2 and tf ~ 1/rpm: at 3300 rpm the replay whirls at 5.1 Hz (real
+      4.94; 5.9 without the scaling), with too little amplitude (7 vs 10 deg/s roll).
     Not identifiable from those flights: cross coupling and speed derivatives (off).
+    Fly it with the heli's CLI dump (--dump): the scripted flight's default configuration
+    does not set up the motorized tail.
     """
     motor_fit = (987.74, 16.843, 7.003e-4, 1.101e-2, 2.0)
     motor_poles = 24
     tail_motor = True
     Zcol = -G / 0.636
+    # hover collective 0.70-0.73 at 3300 rpm, 0.636-0.646 at 3600: a/wr^2 + b/wr with
+    # a 0.180, b 0.460 - induced inflow carries most of the hover pitch
+    thrust_inflow = (3.0 / 0.1798, 0.4597 / 1.5)
     Ncol, Nw = 0.0, 0.0
     # bridge yaw input = tail motor, yaw_cmd = sign_yaw (-1) * motor: Nped < 0 gives nose right
     Nped, Nr = -66.0, -0.5
@@ -293,7 +325,9 @@ class Stratos200(Heli):
     # roll on their own, so they are off. Plain translational drag stays.
     Lu = Lv = Mu = Mv = Nv = 0.0
 
-    def __init__(self, Lb1s=1400.0, Ma1s=2000.0, tf=0.05, servo_tau=0.0, turb=0.0, turb_hz=5.0, **kw):
+    def __init__(self, Lb1s=1400.0, Ma1s=2000.0, tf=0.05, servo_tau=0.0, turb=0.0, turb_hz=5.0,
+                 stiff_rpm_exp=2.0, tf_rpm_exp=1.0, **kw):
+        self.stiff_rpm_exp, self.tf_rpm_exp = stiff_rpm_exp, tf_rpm_exp
         self.turb_hz = turb_hz
         self.turb = turb
         self.servo_tau = servo_tau

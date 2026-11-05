@@ -50,16 +50,13 @@ def align(real, sim):
         # stick motion, not level: the collective step at spool-up would dominate
         return np.diff(sum(np.interp(tt, L.t, L.c('rcCommand[%d]' % i)) for i in (0, 1, 3)))
     r, s = sig(real), sig(sim)
-    best, lag = -np.inf, 0.0
-    for k in range(-2000, 2001):            # +-20 s
-        a = r[max(0, -k):len(r) - max(0, k)] if k < 0 else r[:max(0, len(s) - k)]
-        b = s[max(0, k):max(0, k) + len(a)] if k >= 0 else s[:len(a)]
-        n = min(len(a), len(b))
-        if n < 1000:
-            continue
-        v = np.dot(a[:n], b[:n]) / n
-        if v > best:
-            best, lag = v, k * 0.01
+    # full cross-correlation (FFT): any offset, normalised by the overlap, >= 10 s of it
+    from scipy.signal import correlate
+    xc = correlate(s, r, mode='full', method='fft')
+    ks = np.arange(-(len(r) - 1), len(s))
+    overlap = np.minimum(len(s), ks + len(r)) - np.maximum(0, ks)
+    xc = np.where(overlap >= 1000, xc / np.maximum(overlap, 1), -np.inf)
+    lag = ks[np.argmax(xc)] * 0.01
     return lag
 
 
