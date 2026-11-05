@@ -47,7 +47,8 @@ for the same vertical force), fades to 0 through knife edge and flips sign inver
 replays hold height too.
 
 The bridge warns when the FC outputs stay exactly unchanged for 5 s with the motor running:
-the SITL then stalled (rare; open in the firmware) and the run should not be scored.
+the SITL then stalled and the run should not be scored (a lockstep scheduler stall, fixed in
+rotorflight-firmware#596).
 
 `--replay` takes a recorded flight's sticks (`t,roll,pitch,yaw,coll,thr` in rcCommand
 units) and `--bbl` keeps the SITL's own blackbox, so a replay can be compared with the

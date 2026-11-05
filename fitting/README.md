@@ -227,7 +227,8 @@ python -I scripts/m7r_sweep.py [-p 1|2|3] <elf> data/m7r.0.npy replay/m7r replay
 
   The throttle at three headspeeds confirms the rotor law. `m7r_sweep.py` runs a replay
   up to three times: some long replays go wrong in the SITL (outputs freeze or the
-  blackbox ends early or stays empty, a lockstep problem still open in the firmware).
+  blackbox ends early or stays empty - a lockstep scheduler stall, fixed in
+  rotorflight-firmware#596).
 
 Found on the way: the SITL read a 12S pack as 36.3 V - its emulated ADC clipped at the
 generic scale's full range; fixed in rotorflight-firmware#596 (scale 250, 82.5 V).

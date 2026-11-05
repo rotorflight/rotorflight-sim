@@ -67,7 +67,7 @@ def run(elf, params, tries=3):
     sim = bblog.load(npy) if os.path.exists(npy) else None
     end = sim.t[-1] + LAG if sim is not None else -1.0
     if end < T1 and tries > 1:
-        # some long replays go wrong in the SITL (rf-sitl-plan TODO, lockstep stall): the
+        # older SITL builds stall in lockstep (fixed in rotorflight-firmware#596): the
         # outputs freeze and the blackbox ends early, or the blackbox stays empty
         print('%s: SITL blackbox ends at real %.1f s, before %.1f - run again' % (tag, end, T1), flush=True)
         for f in (bbl, npy, npy[:-4] + '.json', bbl[:-4] + '.log', bbl[:-4] + '.csv'):
