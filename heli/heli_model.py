@@ -262,19 +262,22 @@ class Heli:
 
 class Stratos200(Heli):
     """
-    SAB Goblin-style 200-size direct-drive heli (the user's Stratos 200 in a Bo105
-    fuselage), fitted from its blackbox logs in rf-heli-model-fit/:
-      rotor law      fit_rotor.py:  dw/dt = A u V - B w - w^2 (k0 + k1 c^2), R^2 0.994
-      rate gains     fit_axis.py:   roll 5.07, pitch 4.74 rad/s per mixer input (0.5-3 Hz)
-      yaw            fit_yaw.py + 0.5-8 Hz regression: tail motor up = nose right, 66 rad/s^2
-                     per unit, 35 ms motor lag, weak damping; main torque nose left (CW rotor)
-      hover          logs:          collective 0.636, throttle 0.47 at 15.2 V, tail 0.215
-    Closed-loop identification (rf-heli-model-fit/scripts/sweep_replay.py, replaying the
-    flight's sticks through the SITL with the real config and gains, with turbulence):
+    A 200-size direct-drive heli with a motorized tail (a Stratos 200 in a scale
+    fuselage), fitted from its blackbox logs (Rotorflight 4.7, 3600 rpm, 4S):
+      rotor law      dw/dt = A u V - B w - w^2 (k0 + k1 c^2), from motor volts against
+                     headspeed and collective (R^2 0.994)
+      rate gains     roll 5.07, pitch 4.74 rad/s per mixer input (0.5-3 Hz, setpoint as
+                     instrument for the closed-loop flight data)
+      yaw            tail motor up = nose right, 66 rad/s^2 per unit, 35 ms motor lag,
+                     weak damping; main rotor torque nose left (CW rotor)
+      hover          collective 0.636, throttle 0.47 at 15.2 V, tail 0.215
+    Closed-loop identification, replaying the flight's sticks through the SITL with the
+    heli's own configuration and gains:
       flap/body stiffness Lb1s 1400 (roll mode 5.95 Hz), Ma1s 2000, tf 0.05 s - with
       turbulence 4.3 rad/s^2 at 5 Hz (turb=4.3, turb_hz=5) the replay matches the real
-      heli's ~5.9 Hz whirl: 4-8 Hz roll 5.55 vs 5.56, pitch 3.78 vs 3.52 deg/s.
-    Not identifiable: cross coupling and speed derivatives (off, see below).
+      heli's ~5.9 Hz roll/pitch whirl: 4-8 Hz roll 5.55 vs 5.56, pitch 3.78 vs 3.52 deg/s.
+      A sharp pitch input is tracked within 10 deg/s RMS, about 10 % slower to peak.
+    Not identifiable from those flights: cross coupling and speed derivatives (off).
     """
     motor_fit = (987.74, 16.843, 7.003e-4, 1.101e-2, 2.0)
     motor_poles = 24

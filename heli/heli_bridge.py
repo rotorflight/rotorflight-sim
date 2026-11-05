@@ -208,6 +208,8 @@ def main():
                     help='extra CLI command before save (repeatable), e.g. "set swash_type = CP135"')
     ap.add_argument('--cli-file', metavar='FILE',
                     help='extra CLI commands, one per line, after the dump and the bridge setup')
+    ap.add_argument('--check', action='store_true',
+                    help='judge the scripted angle-mode flight against fixed bounds; exit 1 on a failure')
     ap.add_argument('--acro', action='store_true', help='fly the stick doublets in acro (no angle mode)')
     ap.add_argument('--esc', choices=('none', 'hw4'), default='none',
                     help='hw4: HobbyWing V4 telemetry from the model on UART3 (TCP 5763). The '
@@ -272,6 +274,7 @@ def main():
     fdm = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     proc, log = start_sitl(elf, rundir, 'fly', True)
     rows = []
+    timeouts, steps = 0, 1
     try:
         wait_for(os.path.join(rundir, 'fly.log'), 'bind port 5761', 15)
         msp = socket.create_connection(('127.0.0.1', 5761), timeout=3)
@@ -420,6 +423,43 @@ def main():
         print('run directory kept:', rundir)
     else:
         shutil.rmtree(rundir, ignore_errors=True)
+    if a.check:
+        sys.exit(0 if check_flight(rows, timeouts, steps, a.governor) else 1)
+
+
+def check_flight(rows, timeouts, steps, governor):
+    """The scripted angle-mode flight (schedule()): lift off at 18 s, roll stick 21-22 s,
+    pitch stick 23-24 s, collective punch 24-25 s, descend from 26 s. Fixed bounds."""
+    def at(t):
+        return min(rows, key=lambda r: abs(r[0] - t))
+
+    def span(t0, t1, col):
+        return [r[col] for r in rows if t0 <= r[0] <= t1]
+
+    ROLL, PITCH, ALT, RPM, R = 3, 4, 1, 6, 15
+    checks = [
+        ('lift-off: altitude above 1 m at 24 s', at(24)[ALT] > 1.0, '%.1f m' % at(24)[ALT]),
+        ('roll stick: bank 8-30 deg', 8 <= max(span(21, 22.5, ROLL)) <= 30, '%.1f deg' % max(span(21, 22.5, ROLL))),
+        ('roll stick released: back within 3 deg at 23 s', abs(at(23)[ROLL]) < 3, '%.1f deg' % at(23)[ROLL]),
+        ('pitch stick: 8-30 deg', 8 <= max(abs(v) for v in span(23, 24.5, PITCH)) <= 30,
+         '%.1f deg' % max(abs(v) for v in span(23, 24.5, PITCH))),
+        ('pitch stick released: back within 3 deg at 25.5 s', abs(at(25.5)[PITCH]) < 3, '%.1f deg' % at(25.5)[PITCH]),
+        ('no attitude excursion beyond 35 deg in flight',
+         max(abs(v) for v in span(18, 33, ROLL) + span(18, 33, PITCH)) < 35,
+         '%.1f deg' % max(abs(v) for v in span(18, 33, ROLL) + span(18, 33, PITCH))),
+        ('yaw held: |r| below 1 rad/s', max(abs(v) for v in span(18, 33, R)) < 1.0,
+         '%.2f rad/s' % max(abs(v) for v in span(18, 33, R))),
+        ('lockstep: under 1 % of steps without reply', timeouts <= steps // 100, '%d of %d' % (timeouts, steps)),
+    ]
+    if governor:
+        dev = max(abs(v - governor) for v in span(20, 33, RPM)) / governor
+        checks.append(('governor: headspeed within 3 %% of %d rpm, 20-33 s' % governor, dev < 0.03,
+                       '%.1f %%' % (100 * dev)))
+    ok = True
+    for name, passed, detail in checks:
+        print('%s %s (%s)' % ('PASS' if passed else 'FAIL', name, detail))
+        ok &= passed
+    return ok
 
 
 if __name__ == '__main__':
