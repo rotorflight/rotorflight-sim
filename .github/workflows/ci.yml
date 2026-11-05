@@ -1,0 +1,91 @@
+name: CI
+
+# Builds the firmware SITL and flies the hover checks against it: tests changes to the
+# models here, and - on the schedule - catches firmware regressions between releases.
+
+on:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+  schedule:
+    - cron: '17 3 */2 * *'
+  workflow_dispatch:
+    inputs:
+      firmware_repo:
+        description: 'Firmware repository'
+        required: false
+      firmware_ref:
+        description: 'Firmware branch, tag or commit'
+        required: false
+
+env:
+  # The lockstep SITL is in rotorflight/rotorflight-firmware#596; switch to
+  # rotorflight/rotorflight-firmware master once it is merged.
+  FIRMWARE_REPO: ${{ inputs.firmware_repo || 'NightHawk32/rotorflight-firmware' }}
+  FIRMWARE_REF: ${{ inputs.firmware_ref || 'feature/sitl-build' }}
+
+jobs:
+
+  linux:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Check out firmware
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ env.FIRMWARE_REPO }}
+        ref: ${{ env.FIRMWARE_REF }}
+        path: firmware
+
+    - name: Build SITL
+      working-directory: firmware
+      run: |
+        make arm_sdk_install
+        make TARGET=SITL
+        git log -1 --format='firmware %H %s'
+
+    - name: Hover check (angle mode)
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --check
+
+    - name: Hover check with the governor
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --governor 2100 --check
+
+  windows:
+
+    runs-on: windows-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Check out firmware
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ env.FIRMWARE_REPO }}
+        ref: ${{ env.FIRMWARE_REF }}
+        path: firmware
+
+    - name: Set up MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MSYS
+        update: false
+        install: make curl unzip git
+
+    - name: Build SITL
+      shell: msys2 {0}
+      working-directory: firmware
+      run: |
+        make arm_sdk_install mingw_sdk_install
+        make TARGET=SITL
+
+    - name: Hover check (angle mode)
+      run: python heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --check
+
+    - name: Hover check with the governor
+      run: python heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --governor 2100 --check
