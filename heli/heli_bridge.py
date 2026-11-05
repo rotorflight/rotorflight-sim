@@ -28,6 +28,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from heli_model import Heli, euler   # noqa: E402
+from swash import Swash               # noqa: E402
 
 DT = 250e-6
 MSP_SET_RAW_RC = 200
@@ -40,6 +41,20 @@ def msp_frame(cmd, payload=b''):
     for b in body:
         ck ^= b
     return b'$M<' + body + bytes([ck])
+
+
+def msp_request(sock, cmd, timeout=3.0):
+    """Blocking MSP v1 request on a blocking socket; returns the reply payload."""
+    sock.sendall(msp_frame(cmd))
+    buf, end = b'', time.time() + timeout
+    while time.time() < end:
+        buf += sock.recv(4096)
+        i = buf.find(b'$M>')
+        if i >= 0 and len(buf) >= i + 6 + buf[i + 3] and buf[i + 4] == cmd:
+            return buf[i + 5:i + 5 + buf[i + 3]]
+        if i >= 0 and len(buf) >= i + 6 + buf[i + 3]:
+            buf = buf[i + 6 + buf[i + 3]:]
+    raise RuntimeError('no MSP reply to %d' % cmd)
 
 
 def wait_for(path, text, timeout):
@@ -114,6 +129,11 @@ def main():
     ap.add_argument('elf')
     ap.add_argument('--seconds', type=float, default=36.0)
     ap.add_argument('--log', default=None)
+    ap.add_argument('--controls', choices=('servos', 'mixer'), default='servos',
+                    help='drive the model from the servo outputs through inverse swash mixing '
+                         '(default), or from the stabilized mixer inputs')
+    ap.add_argument('--cli', action='append', default=[], metavar='COMMAND',
+                    help='extra CLI command before save (repeatable), e.g. "set swash_type = CP135"')
     ap.add_argument('--governor', type=int, default=0, metavar='RPM',
                     help='fly with the ELECTRIC governor holding this headspeed')
     a = ap.parse_args()
@@ -128,7 +148,7 @@ def main():
     if a.governor:
         commands += ['feature GOVERNOR', 'set gov_mode = ELECTRIC', 'set main_rotor_gear_ratio = 1,10',
                      'set gov_headspeed = %d' % a.governor]
-    out_cli = cli(5761, commands + ['save'])
+    out_cli = cli(5761, commands + a.cli + ['save'])
     if 'Invalid' in out_cli or 'ERROR' in out_cli:
         print(out_cli)
     proc.wait(15); log.close()
@@ -145,7 +165,11 @@ def main():
     try:
         wait_for(os.path.join(rundir, 'fly.log'), 'bind port 5761', 15)
         msp = socket.create_connection(('127.0.0.1', 5761), timeout=3)
+        # before the first FDM packet the firmware still runs on host time and answers
+        swash = Swash.from_msp(lambda cmd: msp_request(msp, cmd))
+        print(swash.describe())
         msp.setblocking(False)
+        decode_err, decode_at, decode_sq, decode_n = [0.0] * 4, [None] * 4, [0.0] * 4, 0
         time.sleep(1.0)
         msp.send(msp_frame(MSP_ACC_CALIBRATION))
 
@@ -177,7 +201,19 @@ def main():
                 if len(d) >= 68:
                     motor = struct.unpack_from('<4f', d, 0)
                     mix = struct.unpack_from('<5f', d, 48)
-                    ctrl = (motor[0], mix[0], mix[1], mix[2], mix[3])
+                    if a.controls == 'servos':
+                        servo_us = struct.unpack_from('<8f', d, 16)
+                        roll_, pitch_, yaw_, coll_ = swash.decode(servo_us)
+                        if min(servo_us[:4]) > 0 and t >= 8.0:     # servos live, armed
+                            decode_n += 1
+                            for i, v in enumerate((roll_, pitch_, yaw_, coll_)):
+                                e = abs(v - mix[i])
+                                decode_sq[i] += e * e
+                                if e > decode_err[i]:
+                                    decode_err[i], decode_at[i] = e, (t, v, mix[i])
+                        ctrl = (motor[0], roll_, pitch_, yaw_, coll_)
+                    else:
+                        ctrl = (motor[0], mix[0], mix[1], mix[2], mix[3])
             except socket.timeout:
                 timeouts += 1
 
@@ -188,6 +224,12 @@ def main():
                              heli.vbat, heli.ibat, *heli.rates))
         real = time.time() - t0
         print('%.0f s simulated in %.0f s real, %d steps without reply' % (a.seconds, real, timeouts))
+        if a.controls == 'servos':
+            print('inverse mixing vs mixer inputs, max |diff| roll %.4f pitch %.4f yaw %.4f coll %.4f'
+                  % tuple(decode_err))
+            print('  rms roll %.4f pitch %.4f yaw %.4f coll %.4f; worst (t, decoded, mixer): %s'
+                  % (*(math.sqrt(q / max(decode_n, 1)) for q in decode_sq),
+                     [tuple(round(x, 3) for x in w) for w in decode_at]))
     finally:
         proc.terminate()
         try:
