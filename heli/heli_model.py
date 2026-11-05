@@ -21,6 +21,7 @@ Only the Python standard library is used.
 """
 
 import math
+import random
 
 G = 9.80665
 
@@ -84,6 +85,9 @@ class Heli:
     tail_motor = False
     tail_tau = 0.035
     yaw_lag = 0.0
+    servo_tau = 0.0
+    turb = 0.0            # rad/s^2 std of random roll/pitch moments (0 = calm)
+    servo_xy = None
     Lfa1s, Mfb1s = 1.0477, -1.0057
     Lflt, Lflg, Mflt, Mflg = 0.2375, -0.0286, 0.0344, 0.2292
 
@@ -124,6 +128,9 @@ class Heli:
         if self.tf_inv_pitch is None:
             self.tf_inv_pitch = self.tf_inv
         self.ground = True
+        self.servo_xy = [0.0, 0.0]
+        self.turb_state = [0.0, 0.0, 0.0]
+        self.rng = random.Random(1)
         self.reset()
 
     def reset(self):
@@ -155,6 +162,12 @@ class Heli:
         throttle = max(0.0, min(1.0, throttle))
         ctrl_x = self.sign_roll * self.cyclic_scale * roll
         ctrl_y = self.sign_pitch * self.cyclic_scale * pitch
+        if self.servo_tau > 0:
+            # cyclic servos follow with a first-order lag (the firmware only applies its speed limit)
+            k = dt / (self.servo_tau + dt)
+            self.servo_xy[0] += (ctrl_x - self.servo_xy[0]) * k
+            self.servo_xy[1] += (ctrl_y - self.servo_xy[1]) * k
+            ctrl_x, ctrl_y = self.servo_xy
         yaw_cmd = self.sign_yaw * self.yaw_scale * yaw
         coll = self.coll_scale * collective + self.coll_offset
 
@@ -191,6 +204,14 @@ class Heli:
         # rotational acceleration, body
         p_dot = b1s * self.Lb1s + self.Lu * u + self.Lv * v
         q_dot = a1s * self.Ma1s + self.Mu * u + self.Mv * v
+        if self.turb > 0 and not self.on_ground:
+            # turbulence: band-limited (first order, 20 Hz) random moments, seeded
+            a = dt * 2 * math.pi * 20.0
+            scale = self.turb * math.sqrt(2 / a)        # keeps the filtered std at turb
+            for i in range(3):
+                self.turb_state[i] += (self.rng.gauss(0.0, scale) - self.turb_state[i]) * a
+            p_dot += self.turb_state[0]
+            q_dot += self.turb_state[1]
         if self.tail_motor:
             # a tail motor has its own rpm (no rpm^2 scaling) and spins up with a lag
             self.yaw_lag += (yaw_cmd - self.yaw_lag) * dt / self.tail_tau
@@ -247,8 +268,11 @@ class Stratos200(Heli):
       yaw            fit_yaw.py + 0.5-8 Hz regression: tail motor up = nose right, 66 rad/s^2
                      per unit, 35 ms motor lag, weak damping; main torque nose left (CW rotor)
       hover          logs:          collective 0.636, throttle 0.47 at 15.2 V, tail 0.215
-    Not identifiable from those (gentle) flights: the flap/body stiffness Lb1s/Ma1s and
-    tf, the cross coupling, and the speed derivatives (kept from the Blade 360).
+    Closed-loop identification (rf-heli-model-fit/scripts/sweep_replay.py, replaying the
+    flight's sticks through the SITL with the real config and gains, with turbulence):
+      flap/body stiffness Lb1s = Ma1s = 1400 (mode at 5.95 Hz), tf = 0.05 s - reproduces
+      the real heli's ~5.9 Hz roll/pitch whirl in frequency and amplitude (turb=5).
+    Not identifiable: cross coupling and speed derivatives (off, see below).
     """
     motor_fit = (987.74, 16.843, 7.003e-4, 1.101e-2, 2.0)
     motor_poles = 24
@@ -264,7 +288,9 @@ class Stratos200(Heli):
     # roll on their own, so they are off. Plain translational drag stays.
     Lu = Lv = Mu = Mv = Nv = 0.0
 
-    def __init__(self, Lb1s=1500.0, Ma1s=1500.0, tf=0.03, **kw):
+    def __init__(self, Lb1s=1400.0, Ma1s=1400.0, tf=0.05, servo_tau=0.0, turb=0.0, **kw):
+        self.turb = turb
+        self.servo_tau = servo_tau
         self.Lb1s, self.Ma1s = Lb1s, Ma1s
         self.tf_inv_roll = self.tf_inv_pitch = 1.0 / tf
         # steady rate per input = Lflt / tf (flapping model at hover)
