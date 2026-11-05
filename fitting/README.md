@@ -168,6 +168,52 @@ With the same gains, the whirl sits at 4.94 Hz at 3300 rpm (flights 160146_11/12
 any offset, so a replay can start anywhere in the flight - start it before the spool-up:
 arming mid-flight with the throttle up leaves the rotor stopped.
 
+## OMP M7R (700 class, servo tail): `scripts/m7r_*.py`
+
+One 333 s sport flight (Rotorflight 4.6, Nexus XR, 12S, analog ESC under the governor,
+1500 rpm cruise / 1800 and 2000 rpm 3D / autorotation profiles), no CLI dump. The
+rotorflight-presets repository has no M7 preset; the replay uses the log header's own
+gains and rates.
+
+```sh
+node <skill>/bbl.js decode OMP_M7R_<date>.bbl -o data/m7r
+python -I scripts/m7r_fit.py data/m7r.0.npy                  # open-loop fits
+python -I scripts/m7r_inputs.py data/m7r.0.npy replay/m7r    # CLI file + sticks for the replay
+python -I scripts/m7r_sweep.py <elf> data/m7r.0.npy replay/m7r replay/m7r/sweep L=700,1500 tf=0.05,0.1
+```
+
+- **Rotor law**: R^2 0.73 in the volts form (the Stratos 0.994): the analog ESC has a
+  throttle response of its own. Through the replay it holds: 47.7 % throttle at 49.2 V in
+  the sim, 51.1 % at 45.5 V in the log - the same motor volts.
+- **Rate gains** at 1500 / 1800 / 2000 rpm: roll 5.1 / 6.7 / 7.9 (~rpm^1.5), pitch
+  5.8 / 5.9 / 6.3 (~rpm^0.5) rad/s per mixer input, coherence 0.9+. On average ~rpm, as
+  flapping theory gives with stiffness ~rpm^2 and tf ~1/rpm - the model's former rpm^2 on
+  the cyclic input made it ~rpm^3, so `ctrl_rpm_exp` (0 here; the older presets keep 2).
+- **Hover**: collective 0.346 at 1500 rpm (cruise). The 3D profiles' calm moments (0.280 at
+  1800, 0.179 over 3 s at 2000) mix in forward flight and fit no single thrust law; the
+  preset takes the Stratos' inflow share (72 %), which gives 0.273 at 1800.
+- **Servo tail**: 38 rad/s^2 per unit at 1500 rpm (R^2 0.68 in the cruise flying; the 3D
+  parts fit poorly), damping -2 /s.
+- **Pack**: 12S, 50.4 V full, 47 mOhm, ~4.5 Ah.
+- **Replay** of the cruise profile (real 242-318 s) with `--hold-alt 10`, scored where the
+  sim flies above 1 m - the flap/body sweep:
+
+| Lb1s = Ma1s, tf | roll err | pitch err | roll 1.5-3 Hz | pitch 1.5-3 Hz |
+|---|---|---|---|---|
+| real | 4.7 | 4.1 | 2.2 | 1.9 |
+| 300, 0.05 (no height hold) | 9.1 | 7.8 | 6.5 | 3.4 |
+| **700, 0.05** (preset) | 4.8 | 3.6 | 3.0 | 2.3 |
+| 700, 0.10 | 12.8 | 3.4 | 2.0 | 1.9 |
+| 1500, 0.05 | 2.5 | 3.0 | 1.0 | 1.6 |
+| 3000, 0.05 | 2.0 | 2.7 | 0.6 | 1.4 |
+
+  Softer rings at 2.3 Hz; stiffer tracks better than the real heli in calm air (as with
+  the Stratos, real disturbances are missing). Yaw tracking 11.1 vs 9.3 deg/s, yaw mixer
+  -21.3 vs -21.4 %.
+
+Found on the way: the SITL read a 12S pack as 36.3 V - its emulated ADC clipped at the
+generic scale's full range; fixed in rotorflight-firmware#596 (scale 250, 82.5 V).
+
 ## Open
 
 - a less damped mode and lower-band turbulence (the real peak is sharper; the whirl's
@@ -175,3 +221,5 @@ arming mid-flight with the throttle up leaves the rotor stopped.
 - pitch at other headspeeds (sim 5.9 Hz vs real 4.9 Hz at 3300)
 - a test flight with sharp roll/pitch/collective inputs, for control power, the flap time
   constant and the collective sensitivity
+- M7R: the 3D profiles (1800/2000 rpm) through the replay; its yaw fit; gear ratio and motor
+  poles (not in a 4.6 log header)

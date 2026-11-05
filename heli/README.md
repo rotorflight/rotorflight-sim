@@ -7,7 +7,7 @@ library is used.
 
 | File | |
 |---|---|
-| `heli_model.py` | the model. `Heli`: a Blade 360 (derivatives from ArduPilot's `SIM_Helicopter`, after Walker & Tischler, VFS 2021). `Stratos200`: a 200-size direct-drive heli with a motorized tail, fitted from its blackbox logs (see the class docstring) |
+| `heli_model.py` | the model. `Heli`: a Blade 360 (derivatives from ArduPilot's `SIM_Helicopter`, after Walker & Tischler, VFS 2021). `Stratos200`: a 200-size direct-drive heli with a motorized tail, fitted from its blackbox logs. `M7R`: a 700-class heli with a servo tail (OMP M7R, 12S), fitted from one sport flight. See the class docstrings |
 | `heli_bridge.py` | starts the SITL, configures it over the CLI, runs the lockstep loop, flies a scripted flight or replays recorded sticks |
 | `swash.py` | inverse swash mixing: servo pulses back to roll/pitch/collective, from the servo and mixer configuration read over MSP, so the model feels servo travel, speed limits and the cyclic ring |
 | `esc.py` | HobbyWing V4 telemetry from the model on UART3 (`--esc hw4`) |
@@ -38,6 +38,10 @@ it must be upright (tilt under 30 deg) within 2 s, level (under 15 deg) from 3 s
 longer sinking (above -0.5 m/s) from 2.5 s, and never below 2 m. Climb and hover
 collective are set to the Blade 360 model (600 / 450; it hovers at 0.44). With
 `rescue_mode = OFF` the heli falls inverted into the ground and the check fails.
+
+`--hold-alt M` adds a slow virtual pilot (PID on height, ~0.3 Hz, at most +-150 us) to the
+replayed collective: the model has no translational lift, so the recorded collective of a
+cruising flight lets it sink or climb away. It leaves the attitude loops alone.
 
 `--replay` takes a recorded flight's sticks (`t,roll,pitch,yaw,coll,thr` in rcCommand
 units) and `--bbl` keeps the SITL's own blackbox, so a replay can be compared with the

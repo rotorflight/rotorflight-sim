@@ -73,7 +73,10 @@ def metrics(L, t0, t1):
         out[ax + '_peak_hz'] = f[wide][np.argmax(P[wide])]
         out[ax + '_psd'] = (f, P)
     out['throttle'] = np.median(L.c('motor[0]')[m]) / 10
-    out['tail'] = np.median(L.c('motor[1]')[m]) / 10
+    try:
+        out['tail'] = np.median(L.c('motor[1]')[m]) / 10       # motorized tail, %
+    except ValueError:
+        out['tail'] = np.median(L.c('mixer[2]')[m]) / 10       # servo tail: yaw mixer, %
     out['hs_std'] = np.std(L.c('headspeed')[m])
     out['volts'] = np.median(L.c('Vbat')[m]) / 100
     return out

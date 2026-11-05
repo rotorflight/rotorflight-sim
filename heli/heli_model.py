@@ -82,6 +82,10 @@ class Heli:
     # (a Lock-number rotor: tf ~ 1/w). 0 = fixed
     stiff_rpm_exp = 0.0
     tf_rpm_exp = 0.0
+    # rotor-speed exponent of the cyclic input to the flapping (2: control power ~ rpm^2,
+    # the original model). With stiffness ~ rpm^2 and tf ~ 1/rpm, 0 is the consistent
+    # choice: flapping per cyclic does not depend on rpm, the rate per cyclic goes ~ rpm
+    ctrl_rpm_exp = 2.0
     # optional blade-element thrust with induced inflow, (K, ki): thrust in g
     #   n = K (w/w_n)^2 (coll/3 - lambda/2),  lambda = ki sqrt(n) / (w/w_n)
     # so the hover collective goes as 3/(K wr^2) + 1.5 ki/wr. None = thrust ~ wr^2 coll (Zcol)
@@ -216,8 +220,9 @@ class Heli:
         # flapping (tip path plane), driven by cyclic and body rates
         b1s, a1s = self.tpp
         ti_r, ti_p = self.tf_inv_roll * kt, self.tf_inv_pitch * kt
-        b1s_dot = -p - ti_r * b1s + ti_r * rr * (self.Lfa1s * a1s + self.Lflt * ctrl_x + self.Lflg * ctrl_y)
-        a1s_dot = -q_ - ti_p * a1s + ti_p * rr * (self.Mfb1s * b1s + self.Mflt * ctrl_x + self.Mflg * ctrl_y)
+        kc = rr if self.ctrl_rpm_exp == 2.0 else wr ** self.ctrl_rpm_exp
+        b1s_dot = -p - ti_r * b1s + ti_r * kc * (self.Lfa1s * a1s + self.Lflt * ctrl_x + self.Lflg * ctrl_y)
+        a1s_dot = -q_ - ti_p * a1s + ti_p * kc * (self.Mfb1s * b1s + self.Mflt * ctrl_x + self.Mflg * ctrl_y)
         b1s += b1s_dot * dt
         a1s += a1s_dot * dt
         self.tpp = [b1s, a1s]
@@ -348,4 +353,64 @@ class Stratos200(Heli):
     tail_throttle = 0.0
 
 
-MODELS = {'blade360': Heli, 'stratos200': Stratos200}
+class M7R(Heli):
+    """
+    A 700-class heli with a servo tail (OMP M7R, 12S, analog ESC under the governor),
+    fitted from one 333 s sport flight (Rotorflight 4.6, 1500/1800/2000 rpm profiles):
+      rotor law      dw/dt = A u V - B w - w^2 (k0 + k1 c^2) (R^2 0.73 in the volts form;
+                     the analog ESC adds a throttle response of its own)
+      rate gains     roll 6.8, pitch 5.7 rad/s per mixer input (0.3-4 Hz, coherence
+                     0.9+, setpoint as instrument)
+                     at 1500/1800/2000 rpm roll 5.1/6.7/7.9 (~rpm^1.5), pitch 5.8/5.9/6.3
+                     (~rpm^0.5): ~rpm on average, as flapping theory has it with stiffness
+                     ~rpm^2 and tf ~1/rpm (ctrl_rpm_exp 0)
+      yaw            servo tail 38 rad/s^2 per unit at 1500 rpm (55 at 1800, x rpm^2; R^2
+                     0.68 in the cruise flying, the 3D parts fit poorly), damping -2 /s,
+                     hover tail trim -0.26..-0.28 at all headspeeds, against the main
+                     rotor torque
+      hover          collective 0.346 at 1500 rpm (cruise profile, 39 s upright with calm
+                     sticks); the inflow law with the Stratos' inflow share (72 %) gives
+                     0.273 at 1800 - the 1800 rpm 3D profile's calm moments read 0.280.
+                     Without velocity in the log, forward flight cannot be told from hover
+      pack           12S, 50.4 V full, 47 mOhm, ~4.5 Ah (4.9 V over 2.66 Ah)
+    Closed-loop identification, replaying the cruise profile (1500 rpm, real 242-318 s)
+    through the SITL with the header's gains and rates, collective rate 122 and a slow
+    height hold (--hold-alt; the open-loop collective drifts without translational lift):
+      flap/body      Lb1s = Ma1s 700, tf 0.05 s: roll / pitch tracking error 4.8 / 3.6
+                     deg/s (real 4.7 / 4.1), 1.5-3 Hz 3.0 / 2.3 (2.2 / 1.9). Softer (300)
+                     rings at 2.3 Hz, stiffer (1500+) tracks better than the real heli in
+                     the sim's calm air; tf 0.1 leaves a slow roll error
+      yaw            tracking error 11.0 vs 9.3 deg/s; the torque term matches the yaw
+                     mixer's median in that flying (-0.21)
+      throttle       47.7 % at 49.2 V vs 51.1 % at 45.5 V: the same motor volts
+    Not in the log: gear ratio and motor poles (10 and 10 here: they only set the eRPM
+    the SITL sees, the bridge configures the same), speed derivatives (off).
+    """
+    motor_fit = (3.05, 0.3667, 4.907e-4, 5.248e-4, 2.0)
+    motor_poles = 10
+    ctrl_rpm_exp = 0.0
+    Zcol = -G / 0.273
+    thrust_inflow = (3.0 / 0.0765, 0.197 / 1.5)
+    Ncol, Nw = 0.0, 0.0
+    Nped, Nr = 55.0, -2.0
+    Lfa1s = Mfb1s = 0.0
+    Lflg = Mflt = 0.0
+    Lu = Lv = Mu = Mv = Nv = 0.0
+
+    def __init__(self, Lb1s=700.0, Ma1s=700.0, tf=0.05, servo_tau=0.0, turb=0.0, turb_hz=2.5,
+                 stiff_rpm_exp=2.0, tf_rpm_exp=1.0, **kw):
+        self.stiff_rpm_exp, self.tf_rpm_exp = stiff_rpm_exp, tf_rpm_exp
+        self.turb, self.turb_hz, self.servo_tau = turb, turb_hz, servo_tau
+        self.Lb1s, self.Ma1s = Lb1s, Ma1s
+        self.tf_inv_roll = self.tf_inv_pitch = 1.0 / tf
+        self.Lflt, self.Mflg = 6.8 * tf, 5.7 * tf
+        # main rotor torque against the tail trim: the yaw mixer sits at -0.21 (median of
+        # the replayed cruise flying, collective precomp included)
+        self.torque_yaw = -55.0 * 0.20
+        args = dict(nominal_rpm=1800.0, gear_ratio=10.0, hover_throttle=0.6, pack_cells=12,
+                    pack_ah=4.5, pack_r=0.047, hover_power_w=1150.0, cyclic_scale=1.0, yaw_scale=1.0)
+        args.update(kw)
+        super().__init__(**args)
+
+
+MODELS = {'blade360': Heli, 'stratos200': Stratos200, 'm7r': M7R}

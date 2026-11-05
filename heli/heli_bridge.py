@@ -304,6 +304,10 @@ def main():
                     help='apply a real CLI dump first (board and radio settings filtered, see configs.py)')
     ap.add_argument('--replay', metavar='STICKS_CSV',
                     help='fly recorded sticks (t,roll,pitch,yaw,coll,thr as rcCommand) instead of the script')
+    ap.add_argument('--hold-alt', type=float, default=0.0, metavar='M',
+                    help='with --replay: a slow virtual pilot (PID on height, ~0.3 Hz, at most +-150 us) '
+                         'adds to the recorded collective and holds the model near this height - the model '
+                         'lacks translational lift, so open-loop collective drifts in forward flight')
     ap.add_argument('--bbl', metavar='OUT',
                     help='save the SITL blackbox (file-backed flash) here after the flight')
     a = ap.parse_args()
@@ -385,6 +389,7 @@ def main():
         msp.send(msp_frame(MSP_ACC_CALIBRATION))
 
         ctrl = (0.0, 0.0, 0.0, 0.0, 0.0)    # throttle, roll, pitch, yaw, collective
+        hold_i = 0.0
         steps = int(seconds / DT)
         rc_every = int(0.02 / DT)
         timeouts = 0
@@ -395,6 +400,13 @@ def main():
                 aux3 = 1000
                 if sticks:
                     thr, coll, arm, angle, r, p, y = replay_rc(sticks, t)
+                    if a.hold_alt and t >= REPLAY_LEAD:
+                        # us of collective per m/s^2 ~ 1 / (dn/dc * g * mixer per us); gains for
+                        # ~2 rad/s, damped. The integral takes the steady thrust offset.
+                        err = a.hold_alt - (-heli.pos[2])
+                        hold_i = min(80.0, max(-80.0, hold_i + 2.0 * err * rc_every * DT))
+                        corr = 27.0 * err - 19.0 * (-heli.vel[2]) + hold_i
+                        coll += max(-150.0, min(150.0, corr))
                 elif pilot:
                     thr, coll, arm, angle, r, p, y, aux3 = pilot.rc(t, heli)
                 else:
