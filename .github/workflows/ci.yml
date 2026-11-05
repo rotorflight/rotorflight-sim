@@ -55,6 +55,9 @@ jobs:
     - name: Hover check with the governor
       run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --governor 2100 --check
 
+    - name: Rescue check
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --rescue --check
+
   windows:
 
     runs-on: windows-latest
@@ -89,3 +92,6 @@ jobs:
 
     - name: Hover check with the governor
       run: python heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --governor 2100 --check
+
+    - name: Rescue check
+      run: python heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --rescue --check

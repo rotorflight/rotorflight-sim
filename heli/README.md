@@ -19,6 +19,7 @@ library is used.
 python3 heli/heli_bridge.py <rotorflight_SITL.elf>            # scripted angle-mode hover
 python3 heli/heli_bridge.py <rotorflight_SITL.elf> --governor 2100 --check
 python3 heli/heli_bridge.py <rotorflight_SITL.elf> --acro      # stick doublets in acro
+python3 heli/heli_bridge.py <rotorflight_SITL.elf> --rescue --check   # rescue from inverted
 python3 heli/heli_bridge.py <rotorflight_SITL.elf> --model stratos200 \
         --dump <cli dump> --cli-file <flown settings> --replay <sticks.csv> --bbl sim.bbl
 ```
@@ -29,6 +30,14 @@ at 34 s. `--check` judges it against fixed bounds (lift-off, both stick inputs r
 deg and come back within 3 deg, no excursion beyond 35 deg, yaw held, lockstep replies,
 and with `--governor` headspeed within 3 %) and exits 1 on a failure - the closed-loop
 regression gate CI runs. A board-alignment error, for example, fails it.
+
+`--rescue` tests Rotorflight's rescue (`rescue_mode = CLIMB`, flip on, switch on AUX3):
+climb to ~25 m in angle mode, roll inverted in acro at full stick and hold inverted hover
+collective, centre the sticks, and switch rescue on half a second later. With `--check`
+it must be upright (tilt under 30 deg) within 2 s, level (under 15 deg) from 3 s, no
+longer sinking (above -0.5 m/s) from 2.5 s, and never below 2 m. Climb and hover
+collective are set to the Blade 360 model (600 / 450; it hovers at 0.44). With
+`rescue_mode = OFF` the heli falls inverted into the ground and the check fails.
 
 `--replay` takes a recorded flight's sticks (`t,roll,pitch,yaw,coll,thr` in rcCommand
 units) and `--bbl` keeps the SITL's own blackbox, so a replay can be compared with the

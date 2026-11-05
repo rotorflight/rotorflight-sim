@@ -196,6 +196,83 @@ def schedule(t, governor=False, acro=False):
     return thr, coll, arm, angle, roll, pitch, 1500
 
 
+class RescuePilot:
+    """Scripted rescue test: climb in angle mode, roll inverted in acro, let go, rescue.
+
+    Reacts to the model's attitude: the roll stick is held until the heli is inverted
+    (whatever the rate profile), the sticks are centred, and the rescue switch (AUX3)
+    goes on half a second later and stays on for RESCUE_HOLD s."""
+    CLIMB_END = 27.0          # angle-mode climb 18-27 s
+    RESCUE_HOLD = 6.0
+
+    def __init__(self):
+        self.t_inverted = None    # sticks released, heli inverted
+        self.t_rescue = None      # rescue switch on
+        self.t_end = None         # rescue off, angle mode, descend
+
+    def rc(self, t, heli):
+        arm = 1900 if t >= 6.0 and (self.t_end is None or t < self.t_end + 8.0) else 1000
+        thr = 1000 + min(1.0, max(0.0, (t - 8.0) / 4.0)) * 650 if t >= 8.0 else 1000
+        coll, angle, roll, aux3 = 1500 - 150, 1900, 1500, 1000
+        if 18.0 <= t < self.CLIMB_END:
+            coll = 1500 + 260                                      # climb to height
+        elif t >= self.CLIMB_END and self.t_inverted is None:
+            angle = 1000                                           # acro
+            bank = abs(math.degrees(euler(heli.q)[0]))
+            coll = 1500 + (215 if bank < 90 else -215)            # hover collective, either way up
+            if bank < 150:
+                roll = 1500 + 500                                  # full roll until inverted
+            else:
+                self.t_inverted = t
+        if self.t_inverted is not None:
+            coll, angle = 1500 - 215, 1000                         # inverted hover, sticks centred
+            if self.t_rescue is None and t >= self.t_inverted + 0.5:
+                self.t_rescue = t
+            if self.t_rescue is not None and t < self.t_rescue + self.RESCUE_HOLD:
+                # rescue on, the pilot lets go: collective centred (rescue adds 1/4 of it)
+                coll, aux3 = 1500, 1900
+            elif self.t_rescue is not None:
+                if self.t_end is None:
+                    self.t_end = t
+                coll, angle = 1500 + 195, 1900                     # angle mode, descend
+        return thr, coll, arm, angle, roll, 1500, 1500, aux3
+
+
+def check_rescue(rows, timeouts, steps, pilot):
+    """The rescue test (RescuePilot): fixed bounds after the rescue switch."""
+    ROLL, PITCH, ALT, CLIMB = 3, 4, 1, 2
+    if pilot.t_rescue is None:
+        print('FAIL rescue: the heli never reached inverted flight')
+        return False
+    tr, hold = pilot.t_rescue, pilot.RESCUE_HOLD
+
+    def span(t0, t1, col):
+        return [r[col] for r in rows if tr + t0 <= r[0] <= tr + t1]
+
+    def tilt(r):
+        return max(abs(r[ROLL]), abs(r[PITCH]))
+    up = next((r[0] - tr for r in rows if r[0] >= tr and tilt(r) < 30), None)
+    alt0, roll0 = span(0, 0.1, ALT)[0], span(0, 0.1, ROLL)[0]
+    level = max(tilt(r) for r in rows if tr + 3 <= r[0] <= tr + hold)
+    climb = min(span(2.5, hold, CLIMB))
+    low = min(span(0, hold, ALT))
+    checks = [
+        ('inverted at the rescue switch: |roll| above 120 deg', abs(roll0) > 120, '%.0f deg' % roll0),
+        ('height for the test: above 8 m at the rescue switch', alt0 > 8.0, '%.1f m' % alt0),
+        ('upright: tilt below 30 deg within 2 s', up is not None and up < 2.0,
+         'after %.2f s' % up if up is not None else 'never'),
+        ('level: tilt below 15 deg from 3 s to the end of rescue', level < 15, '%.1f deg' % level),
+        ('climbing: vertical speed above -0.5 m/s from 2.5 s', climb > -0.5, '%.2f m/s' % climb),
+        ('no ground contact: altitude above 2 m during rescue', low > 2.0, '%.1f m (from %.1f m)' % (low, alt0)),
+        ('lockstep: under 1 % of steps without reply', timeouts <= steps // 100, '%d of %d' % (timeouts, steps)),
+    ]
+    ok = True
+    for name, passed, detail in checks:
+        print('%s %s (%s)' % ('PASS' if passed else 'FAIL', name, detail))
+        ok &= passed
+    return ok
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('elf')
@@ -211,6 +288,9 @@ def main():
     ap.add_argument('--check', action='store_true',
                     help='judge the scripted angle-mode flight against fixed bounds; exit 1 on a failure')
     ap.add_argument('--acro', action='store_true', help='fly the stick doublets in acro (no angle mode)')
+    ap.add_argument('--rescue', action='store_true',
+                    help='rescue test: climb, roll inverted in acro, rescue on AUX3 (rescue_mode CLIMB); '
+                         'with --check, judged against fixed bounds')
     ap.add_argument('--esc', choices=('none', 'hw4'), default='none',
                     help='hw4: HobbyWing V4 telemetry from the model on UART3 (TCP 5763). The '
                          'frequency sensor stays on: the ELECTRIC governor needs a fast rpm '
@@ -240,6 +320,9 @@ def main():
     heli = MODELS[a.model](sign_roll=1.0, sign_pitch=-1.0, sign_yaw=-1.0, **kw)
     sticks = load_sticks(a.replay) if a.replay else None
     seconds = (REPLAY_LEAD + sticks[-1][0] - sticks[0][0] + REPLAY_TAIL) if sticks else a.seconds
+    pilot = RescuePilot() if a.rescue else None
+    if pilot and a.seconds == ap.get_default('seconds'):
+        seconds = 46.0
 
     # first start writes defaults; then configure over the CLI (save reboots)
     subprocess.run([elf], cwd=rundir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
@@ -249,6 +332,11 @@ def main():
     # the bridge's radio: MSP RX, channels AETRC123, ARM on AUX1, angle mode on AUX2
     commands += ['feature -RX_SERIAL', 'feature RX_MSP', 'map AETRC123',
                  'aux 0 0 0 1700 2100 0 0', 'aux 1 1 1 1700 2100 0 0']
+    if a.rescue:
+        # 53: RESCUE's permanent id. Climb and hover collective per heli: the Blade 360 model
+        # hovers at 0.44 (the defaults 450/350 are below it)
+        commands += ['aux 2 53 2 1700 2100 0 0', 'set rescue_mode = CLIMB',
+                     'set rescue_climb_collective = 600', 'set rescue_hover_collective = 450']
     if a.bbl:
         # each run starts on fresh flash: log from its start, no ring-buffer erasing
         commands += ['set blackbox_mode = ARMED', 'set blackbox_rolling_erase = OFF', 'set blackbox_initial_erase_kb = 0']
@@ -304,11 +392,14 @@ def main():
         for n in range(steps):
             t = n * DT
             if n % rc_every == 0:
+                aux3 = 1000
                 if sticks:
                     thr, coll, arm, angle, r, p, y = replay_rc(sticks, t)
+                elif pilot:
+                    thr, coll, arm, angle, r, p, y, aux3 = pilot.rc(t, heli)
                 else:
                     thr, coll, arm, angle, r, p, y = schedule(t, bool(a.governor), a.acro)
-                ch = [int(round(v)) for v in (r, p, thr, y, coll, arm, angle, 1000)]
+                ch = [int(round(v)) for v in (r, p, thr, y, coll, arm, angle, aux3)]
                 msp.send(msp_frame(MSP_SET_RAW_RC, struct.pack('<8H', *ch)))
                 if n == int(30.0 / DT):
                     msp.send(msp_frame(MSP_MOTOR_TELEMETRY))
@@ -423,7 +514,18 @@ def main():
         print('run directory kept:', rundir)
     else:
         shutil.rmtree(rundir, ignore_errors=True)
+    if pilot:
+        print('rescue: inverted at %s s, switch on at %s s' % (
+            '%.2f' % pilot.t_inverted if pilot.t_inverted else '-',
+            '%.2f' % pilot.t_rescue if pilot.t_rescue else '-'))
+        for r in rows:
+            if pilot.t_rescue and pilot.t_rescue - 0.5 <= r[0] <= pilot.t_rescue + 6.0 \
+                    and int(round(r[0] * 10)) % 5 == 0:
+                print('  t %5.1f  alt %6.2f m  climb %+5.2f  roll %+7.1f  pitch %+6.1f  coll %+.2f'
+                      % (r[0], r[1], r[2], r[3], r[4], r[8]))
     if a.check:
+        if pilot:
+            sys.exit(0 if check_rescue(rows, timeouts, steps, pilot) else 1)
         sys.exit(0 if check_flight(rows, timeouts, steps, a.governor) else 1)
 
 
