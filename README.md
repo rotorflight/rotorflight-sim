@@ -8,6 +8,7 @@ can be flown without a heli.
 | Folder | |
 |---|---|
 | [`heli/`](heli/README.md) | rigid-body helicopter with rotor flapping, a DC-motor rotor-speed model and the pack; drives from the firmware's servo outputs through inverse swash mixing; scripted flights, stick replay of real logs, and the hover check (`--check`). Python standard library only |
+| [`TODO.md`](TODO.md) | where the sim goes next: size presets from one physical model, gyro noise and vibration, a fitting pipeline for more helis, forward flight, autorotation |
 | [`fitting/`](fitting/README.md) | fitting a heli preset from blackbox logs, and validating it by replaying the real flight through the SITL |
 
 ## Quick start
