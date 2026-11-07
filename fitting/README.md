@@ -272,6 +272,40 @@ a 5 s gate per headspeed. These sport flights pass it at one headspeed each: M6 
 headspeed has 0-3 s of hover - the inflow law needs a flight that hovers at two
 headspeeds (manoeuvre card).
 
+## Flap/body dynamics from sharp inputs (`scripts/fit_flap.py`)
+
+```sh
+FIT_DATA_DIR=<decoded logs> python -I scripts/fit_flap.py helis/omp_m7r/heli.json --plot flap.png   # -> helis/omp_m7r/flap.json
+```
+
+The sport flights hold many sharp roll and pitch inputs (setpoint swinging by > 150 deg/s
+within 0.3 s). Around each, 0.3 s before to 1.2 s after, the model's first-order flapping
+on a rigid body - p' = L b, b' = -p - b/tf + K u(t - d), u the mixer's cyclic - is fitted
+by output error to the gyro, per axis and headspeed. The mixer is what reaches the rotor,
+so this holds in closed loop too. VAF 0.92-0.99:
+
+| heli | axis, rpm | events | K rad/s | L 1/s^2 | tf s | mode |
+|---|---|---|---|---|---|---|
+| M7R | roll 1800 | 9 | 6.77 | 1823 | 0.021 | 5.7 Hz |
+| M7R | pitch 1800 / 2100 | 33 / 8 | 5.54 / 6.92 | 404 / 571 | 0.070 / 0.047 | 3.0 / 3.4 Hz |
+| M6 | roll 2200 | 4 | 8.20 | 1448 | 0.025 | 5.2 Hz |
+| M6 | pitch 1900 / 2200 | 3 / 6 | 4.85 / 6.25 | 383 / 521 | 0.054 / 0.041 | 2.7 / 3.1 Hz |
+| M5 | roll 2200 | 5 | 8.15 | 1987 | 0.015 | 4.9 Hz |
+| M5 | pitch 1900 / 2200 | 21 / 13 | 5.21 / 6.20 | 424 / 332 | 0.069 / 0.058 | 3.1 / 2.6 Hz |
+
+- K matches the spectral rate gains of `fit_heli.py` (M7R roll 6.77 vs 6.74).
+- Pitch is ~4x softer than roll on every heli (L ~400 vs 1450-2000): the pitch inertia is
+  a few times the roll inertia, the rotor the same.
+- Across headspeed, the pitch stiffness follows rpm^2 on the M7R (x1.41 for 1800->2100,
+  rpm^2 says x1.36) and the M6 (x1.36 vs x1.34); tf falls a little faster than 1/rpm. The
+  M5 does not follow (fewer events at 2200, more 3D).
+- Across size, the pitch stiffness is about the same (~400) from the M5 to the M7R.
+- The delay comes out at 0: it is absorbed in tf, which is therefore longer than the
+  flapping alone.
+
+The M7R preset (L 700 / 700, tf 0.05, from the closed-loop replay sweep) sits between the
+roll and pitch values; a replay with per-axis values is the next check.
+
 ## Gyro chip noise (`scripts/allan.py`)
 
 ```sh
