@@ -105,9 +105,12 @@ heli and gives back a preset with its validation:
       roll/pitch/collective doublets, frequency sweeps, a few seconds of each headspeed,
       piros, an autorotation if the heli does them). Logs stay out of the repository unless
       the owner agrees
-- [ ] Test flights the current fits are missing: sharp roll/pitch/collective inputs (control
-      power, flap time constant, collective sensitivity), on a 380-550 class heli as well,
-      so the scaling rests on three sizes
+- [x] Control power and flap/body dynamics from sharp inputs (`fit_flap.py`): the OMP sport
+      flights hold them - per axis and headspeed on three sizes (M5, M6, M7R)
+- [ ] Use them: per-axis L and tf in the presets, checked by replay (`m7r_sweep.py`); the
+      joint fit across sizes once the geometry is known
+- [ ] Test flights the current fits are missing: collective doublets (collective
+      sensitivity, heave damping), hover at two headspeeds, an airborne autorotation
 
 ## 4. Forward flight
 
