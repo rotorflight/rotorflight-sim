@@ -268,7 +268,7 @@ class AutoPilot:
         arm = 1900 if t >= 6.0 and (self.t_land is None or t < self.t_land + 3.0) else 1000
         thr = 2000 if t >= 8.0 else 1000
         coll = 1500 - 150
-        alt = -heli.pos[2]
+        alt = heli.altitude
         climb = -heli.vel[2]
         if self.CLIMB_START <= t < self.CLIMB_END:
             coll = 1500 + 330
@@ -573,7 +573,7 @@ def main():
                     if a.hold_alt and t >= REPLAY_LEAD:
                         # us of collective per m/s^2 ~ 1 / (dn/dc * g * mixer per us); gains for
                         # ~2 rad/s, damped. The integral takes the steady thrust offset.
-                        err = a.hold_alt - (-heli.pos[2])
+                        err = a.hold_alt - heli.altitude
                         hold_i = min(80.0, max(-80.0, hold_i + 2.0 * err * rc_every * DT))
                         corr = 27.0 * err - 19.0 * (-heli.vel[2]) + hold_i
                         # positive collective lifts along the rotor axis: a vertical force
@@ -611,10 +611,10 @@ def main():
                 heli.on_ground = False
             if esc and n % esc_every == 0:
                 esc.send(esc_every * DT, ctrl[0], heli.motor_rpm * heli.motor_poles / 2, heli.vbat, heli.ibat)
-            pressure = 101325.0 * (1 - 2.25577e-5 * (-heli.pos[2])) ** 5.25588
+            pressure = 101325.0 * (1 - 2.25577e-5 * heli.altitude) ** 5.25588
             gyro, force = sensors.step(DT, heli.rates, heli.specific_force, heli.w)
             pkt = struct.pack('<28d', t, *gyro, *force, *heli.q,
-                              *heli.vel, *heli.pos,
+                              *heli.vel, heli.pos[0], heli.pos[1], -heli.altitude,
                               heli.motor_rpm * heli.motor_poles / 2,
                               (heli.tail_rpm * 6 if heli.tail_motor else 0), 0, 0,
                               pressure, 3.3, 40.0, 8.0, 5.0, heli.vbat, heli.ibat)
@@ -649,7 +649,7 @@ def main():
 
             if n % int(float(os.environ.get('LOG_EVERY', '0.1')) / DT) == 0:
                 roll, pitch, yaw = euler(heli.q)
-                rows.append((t, -heli.pos[2], -heli.vel[2], math.degrees(roll), math.degrees(pitch),
+                rows.append((t, heli.altitude, -heli.vel[2], math.degrees(roll), math.degrees(pitch),
                              math.degrees(yaw), heli.rotor_rpm, ctrl[0], ctrl[4], ctrl[1], ctrl[2],
                              heli.vbat, heli.ibat, *heli.rates))
         real = time.time() - t0

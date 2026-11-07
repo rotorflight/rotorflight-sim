@@ -164,6 +164,16 @@ class Heli:
     rotor_radius = 0.36
     hub_height = 0.25
     inflow_tau = None      # s, lag of the induced velocity; None: Pitt-Peters 0.849 R / (4 v_hover)
+    # skids: four contact points (front/rear x left/right) below the centre of gravity, each
+    # a spring and damper normal to the ground and Coulomb friction along it. Sizes as
+    # fractions of the rotor radius (typical RC proportions), the body's radii of gyration
+    # likewise (the model has no inertias of its own: moments are per unit inertia).
+    # None = from rotor_radius
+    skid_x = skid_y = cg_height = None
+    gyration = None        # (roll, pitch, yaw) radii of gyration, m
+    skid_deflection = 0.01  # m, static deflection under the weight (sets the stiffness)
+    skid_zeta = 0.6        # damping ratio of the bounce
+    skid_mu = 0.6          # friction coefficient (grass, skid tubes)
 
     def __init__(self, nominal_rpm=2100.0, gear_ratio=10.0, hover_throttle=0.65, load_fraction=0.85,
                  pack_cells=6, pack_ah=2.2, pack_r=0.02, hover_power_w=400.0,
@@ -201,6 +211,21 @@ class Heli:
             self.tf_inv_roll = self.tf_inv
         if self.tf_inv_pitch is None:
             self.tf_inv_pitch = self.tf_inv
+        R = self.rotor_radius
+        self.skid_x = self.skid_x or 0.35 * R
+        self.skid_y = self.skid_y or 0.22 * R
+        self.cg_height = self.cg_height or 0.30 * R
+        self.gyration = self.gyration or (0.22 * R, 0.33 * R, 0.30 * R)
+        self.skid_points = [(sx * self.skid_x, sy * self.skid_y, self.cg_height)
+                            for sx in (1, -1) for sy in (1, -1)]
+        # the rest of the airframe, so a heli that tips over lies on its side: rotor head,
+        # nose, tail rotor
+        self.skid_points += [(0.0, 0.0, self.cg_height - self.hub_height),
+                             (0.35 * R, 0.0, 0.1 * R), (-1.15 * R, 0.0, -0.1 * R)]
+        # per contact point and unit mass: the weight spread over four points at the static
+        # deflection, damping for skid_zeta of the vertical bounce
+        self.skid_k = G / (4 * self.skid_deflection)
+        self.skid_c = self.skid_zeta * 2 * math.sqrt(4 * self.skid_k) / 4
         self.ground = True
         self.touchdown_speed = 0.0
         self.touchdown_rpm = 0.0
@@ -212,7 +237,8 @@ class Heli:
         self.reset()
 
     def reset(self):
-        self.pos = [0.0, 0.0, 0.0]        # NED, m (z down; 0 = ground)
+        # centre of gravity, NED, m (z down; the ground is z = 0): resting on the skids
+        self.pos = [0.0, 0.0, -(self.cg_height - self.skid_deflection)]
         self.vel = [0.0, 0.0, 0.0]        # NED, m/s
         self.q = (1.0, 0.0, 0.0, 0.0)     # body -> NED
         self.rates = [0.0, 0.0, 0.0]      # FRD body, rad/s
@@ -221,6 +247,8 @@ class Heli:
         self.n = 0.0                      # rotor thrust, g (along -z body)
         self.vi = 0.0                     # induced velocity, m/s
         self.on_ground = True
+        self.air_time = 0.0
+        self.anchors = {}
         self.specific_force = (0.0, 0.0, -G)
         self.vbat = self.pack_voltage(0.0)
         self.ibat = 0.0
@@ -256,9 +284,72 @@ class Heli:
         lam = ki * inflow / (self.v_hover * wr)
         return K * wr * wr * (coll / 3.0 - lam / 2.0)
 
+    @property
+    def altitude(self):
+        """Height of the centre of gravity above its level resting position, m: the skid
+        clearance while the heli is level, not when it is tilted (rolled 90 deg on its side
+        it reads slightly below zero). The FDM packet, the baro and the checks use it."""
+        return -self.pos[2] - self.cg_height + self.skid_deflection
+
+    def set_altitude(self, alt):
+        self.pos[2] = -(alt + self.cg_height - self.skid_deflection)
+
     def height(self):
         """Rotor hub above the ground, m."""
-        return -self.pos[2] + self.hub_height
+        return self.altitude + self.hub_height
+
+    def contact(self):
+        """Skid contact: returns (force in earth axes per unit mass, moment in body axes per
+        unit inertia, touching). Spring and damper on each point's depth below the ground.
+        Friction sticks and slips: each touching point is tied to an anchor on the ground by
+        a spring and damper along it, capped at mu times the normal force - beyond that the
+        anchor slides along. So a steady push (the tail on the ground) is held without
+        creeping, and a hard one slides."""
+        fe = [0.0, 0.0, 0.0]
+        mb = [0.0, 0.0, 0.0]
+        if -self.pos[2] > self.cg_height + self.skid_x + self.skid_y + self.hub_height:
+            self.anchors = {}
+            return fe, mb, False                 # no point can reach the ground
+        touching = False
+        p, q_, r = self.rates
+        anchors = {}
+        for k, rb in enumerate(self.skid_points):
+            re = body_to_earth(self.q, rb)
+            depth = self.pos[2] + re[2]
+            if depth <= 0.0:
+                continue
+            touching = True
+            # point velocity: CG velocity + omega x r (body), in earth axes
+            wxr = (q_ * rb[2] - r * rb[1], r * rb[0] - p * rb[2], p * rb[1] - q_ * rb[0])
+            we = body_to_earth(self.q, wxr)
+            vp = [self.vel[i] + we[i] for i in range(3)]
+            fn = max(0.0, self.skid_k * depth + self.skid_c * vp[2])
+            px, py = self.pos[0] + re[0], self.pos[1] + re[1]
+            ax, ay = self.anchors.get(k, (px, py))
+            tx = -self.skid_k * (px - ax) - self.skid_c * vp[0]
+            ty = -self.skid_k * (py - ay) - self.skid_c * vp[1]
+            cap = self.skid_mu * fn
+            mag = math.hypot(tx, ty)
+            if mag > cap:
+                # slipping: friction at its limit, the anchor follows to where the spring
+                # alone would give that limit
+                sc = cap / mag
+                tx, ty = tx * sc, ty * sc
+                ex, ey = px - ax, py - ay
+                el = math.hypot(ex, ey)
+                lim = cap / self.skid_k
+                if el > lim:
+                    ax, ay = px - ex / el * lim, py - ey / el * lim
+            anchors[k] = (ax, ay)
+            f = (tx, ty, -fn)
+            for i in range(3):
+                fe[i] += f[i]
+            fb = earth_to_body(self.q, f)
+            tau = (rb[1] * fb[2] - rb[2] * fb[1], rb[2] * fb[0] - rb[0] * fb[2], rb[0] * fb[1] - rb[1] * fb[0])
+            for i in range(3):
+                mb[i] += tau[i] / (self.gyration[i] ** 2)
+        self.anchors = anchors
+        return fe, mb, touching
 
     def update_inflow(self, dt, u, v, w_):
         """Induced velocity for the current thrust, climb and forward speed, in and out of
@@ -374,20 +465,27 @@ class Heli:
             self.n = n
             fz = -G * n + self.Zw * w_
 
-        # ground: held until the rotor lifts more than the weight
+        # skids on the ground
         accel_e = body_to_earth(self.q, (fx, fy, fz))
-        accel_e = (accel_e[0], accel_e[1], accel_e[2] + G)
-        if self.on_ground:
-            if accel_e[2] < -0.05:
-                self.on_ground = False
-            else:
-                self.vel = [0.0, 0.0, 0.0]
-                self.rates = [0.0, 0.0, 0.0]
-                self.tpp = [0.0, 0.0]
-                roll_, pitch_, yaw_ = euler(self.q)
-                self.q = qnorm((math.cos(yaw_ / 2), 0.0, 0.0, math.sin(yaw_ / 2)))   # level on its skids
-                self.specific_force = earth_to_body(self.q, (0.0, 0.0, -G))
-                return
+        accel_e = [accel_e[0], accel_e[1], accel_e[2] + G]
+        touching = False
+        if self.ground:
+            fe, mb, touching = self.contact()
+            if touching:
+                for i in range(3):
+                    accel_e[i] += fe[i]
+                p_dot += mb[0]
+                q_dot += mb[1]
+                r_dot += mb[2]
+                # the accelerometer feels the ground's push too
+                fb = earth_to_body(self.q, fe)
+                fx, fy, fz = fx + fb[0], fy + fb[1], fz + fb[2]
+        if touching and not self.on_ground and self.air_time >= 0.3:
+            # touched down after flying (a bounce off the skids does not count)
+            self.touchdown_speed = self.vel[2]
+            self.touchdown_rpm = self.rotor_rpm
+        self.air_time = 0.0 if touching else self.air_time + dt
+        self.on_ground = touching
 
         # integrate
         self.rates = [p + p_dot * dt, q_ + q_dot * dt, r + r_dot * dt]
@@ -397,13 +495,6 @@ class Heli:
         dq = (0.0, p * 0.5 * dt, q_ * 0.5 * dt, r * 0.5 * dt)
         self.q = qnorm(tuple(a + b for a, b in zip(self.q, qmul(self.q, dq))))
         self.specific_force = (fx, fy, fz)
-
-        if self.pos[2] > 0 and self.ground:       # touched down
-            self.touchdown_speed = self.vel[2]
-            self.touchdown_rpm = self.rotor_rpm
-            self.pos[2] = 0.0
-            self.on_ground = True
-            self.vel = [0.0, 0.0, 0.0]
 
 
 class Stratos200(Heli):

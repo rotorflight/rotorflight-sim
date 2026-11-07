@@ -60,6 +60,17 @@ too, 65 % inflow share of its 0.44 hover collective), and the rotor torque the c
 induced power from hover, T (v_c + v_i) - T v_h: a steep descent drives the rotor. Rotor
 size and hover induced velocity (`rotor_radius`, `v_hover`) are typical values per size.
 
+**Ground.** The heli stands on four skid contact points below its centre of gravity
+(plus the rotor head, nose and tail, for a heli that tips over), each a spring and damper
+normal to the ground (1 cm static deflection, damping ratio 0.6) and stick-slip friction
+along it (mu 0.6: a spring to an anchor on the ground, capped at mu times the normal force,
+the anchor sliding beyond). So a landing can bounce, tilt, slide or tip over (beyond
+atan(skid half-width / CG height), ~36 deg), the tail's push on the ground is held without
+creeping, and the accelerometer feels the ground. Skid sizes, CG height and the radii of
+gyration are fractions of the rotor radius. `altitude` is the centre of gravity's height
+above its level resting position - the skid clearance while level, not when tilted; the
+FDM packet, the baro and the checks use it.
+
 `--governor RPM --autorotation land` tests autorotations: climb to ~65 m, throttle stick
 to 15 % (above throttle off, below the governor's 25 % handover - the ELECTRIC governor
 enters AUTOROTATION with the motor at idle), hold the headspeed on the collective, flare

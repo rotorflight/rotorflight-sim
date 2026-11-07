@@ -131,17 +131,23 @@ autorotation bailout and the governor's autorotation handling cannot be tested.
 - [x] An autorotation check (`--autorotation land`): cut the throttle at height (governor
       AUTOROTATION), hold the headspeed on the collective, flare, land; and the bailout
       (`--autorotation bailout`, governor BAILOUT)
-- [ ] Validate the sink rate and rotor decay against a logged autorotation (the M7R's
-      autorotation profile)
+- [ ] Validate the sink rate and rotor decay against a logged autorotation. The OMP logs
+      only hold ground spin-downs, and their headspeed is the motor's: it drops to zero when
+      the one-way bearing freewheels. Needs an airborne autorotation with a rotor-side rpm
+      sensor (add it to the manoeuvre card)
 
 ## 6. Ground
 
-The heli snaps level on the ground, and touchdown zeroes its velocity.
+The heli used to snap level on the ground, and touchdown zeroed its velocity.
 
 - [x] Ground effect (thrust gain below about one rotor diameter, Cheeseman & Bennett on
       the induced velocity)
-- [ ] Skid contact: spring, damping and friction per contact point, so tilt on landing,
-      sliding, tip-over and a slope landing can happen
+- [x] Skid contact: spring, damping and stick-slip friction per contact point (four skid
+      points, plus rotor head, nose and tail so a tipped heli lies on its side), about the
+      centre of gravity: tilt on landing, sliding and tip-over happen (unit tests: drop,
+      slide, tip-over angle, stiction, yaw friction)
+- [ ] A slope landing check, and skid sizes and inertias from real helis (now fractions of
+      the rotor radius)
 - [ ] Ground resonance (stretch, needs a fuselage/hub mode)
 
 ## 7. Wind and turbulence
