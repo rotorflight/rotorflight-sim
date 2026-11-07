@@ -240,6 +240,134 @@ class RescuePilot:
         return thr, coll, arm, angle, roll, 1500, 1500, aux3
 
 
+class AutoPilot:
+    """Scripted autorotation with the ELECTRIC governor (needs --governor).
+
+    Spool up and climb in angle mode to ~40 m, then the throttle stick goes to 15 % - above
+    throttle off, below the governor's 25 % handover - and the governor enters
+    AUTOROTATION with the motor at idle. The pilot holds the rotor speed with the
+    collective (proportional on headspeed around the model's autorotation collective),
+    and flares on the collective near the ground: below FLARE_M the collective follows a
+    sink rate that falls with the height, so the rotor's energy cushions the landing.
+    With bailout=True the throttle stick goes back to 100 % at BAILOUT_M instead: the
+    governor's BAILOUT state spools the motor back up, the pilot climbs away."""
+    CLIMB_START, CLIMB_END = 18.0, 34.0
+    FLARE_M = 8.0
+    BAILOUT_M = 20.0
+    PER_US = 2.05e-3          # mixer collective per us of stick (the bridge's mapping)
+
+    def __init__(self, target_rpm, bailout=False):
+        self.target = float(target_rpm)
+        self.bailout = bailout
+        self.t_cut = None
+        self.t_flare = None
+        self.t_bailout = None
+        self.t_land = None
+
+    def rc(self, t, heli):
+        arm = 1900 if t >= 6.0 and (self.t_land is None or t < self.t_land + 3.0) else 1000
+        thr = 2000 if t >= 8.0 else 1000
+        coll = 1500 - 150
+        alt = -heli.pos[2]
+        climb = -heli.vel[2]
+        if self.CLIMB_START <= t < self.CLIMB_END:
+            coll = 1500 + 330
+        elif t >= self.CLIMB_END and self.t_bailout is None and self.t_land is None:
+            if self.t_cut is None:
+                self.t_cut = t
+            thr = 1150
+            # hold the rotor speed: more collective when it runs fast; autorotation collective
+            # of the model at its nominal rotor speed as the base
+            err = heli.rotor_rpm / self.target - 1.0
+            base = 0.35 * heli.coll_hover / self.PER_US
+            coll = 1500 + base + 900.0 * err
+            if self.bailout and alt < self.BAILOUT_M:
+                self.t_bailout = t
+            elif not self.bailout and alt < self.FLARE_M:
+                if self.t_flare is None:
+                    self.t_flare = t
+                # flare: sink rate target from 6 m/s at FLARE_M down to 0.3 m/s at the skids
+                want = -(0.3 + 5.7 * max(0.0, alt - 0.5) / self.FLARE_M)
+                coll = 1500 + base + 160.0 * (want - climb)
+            if heli.on_ground and t > self.t_cut + 1.0:
+                self.t_land = t
+            coll = max(1500 - 200, min(1500 + 450, coll))
+        if self.t_bailout is not None:
+            thr = 2000
+            coll = 1500 + 380                                       # punch out of the descent
+        if self.t_land is not None:
+            thr, coll = 1150, 1500 - 150
+        return thr, coll, arm, 1900, 1500, 1500, 1500, 1000
+
+
+def check_autorotation(rows, timeouts, steps, pilot, heli):
+    """The autorotation test (AutoPilot): fixed bounds after the throttle cut."""
+    ALT, CLIMB, ROLL, PITCH, RPM, THR = 1, 2, 3, 4, 6, 7
+    if pilot.t_cut is None:
+        print('FAIL autorotation: never cut the throttle')
+        return False
+    tc = pilot.t_cut
+
+    def span(t0, t1, col):
+        return [r[col] for r in rows if t0 <= r[0] <= t1]
+    t_end = pilot.t_bailout or pilot.t_flare or rows[-1][0]
+    rpm = span(tc + 3.0, t_end, RPM)
+    sink = span(tc + 4.0, t_end, CLIMB)
+    motor = span(tc + 2.5, t_end, THR)        # after the governor's spooldown ramp
+    checks = [
+        ('height for the test: above 25 m at the cut', span(tc, tc + 0.1, ALT)[0] > 25,
+         '%.1f m' % span(tc, tc + 0.1, ALT)[0]),
+        # the governor's AUTOROTATION output idles at ~12 % here: below the back-EMF at the
+        # rotor speed, so the motor gives no torque
+        ('governor AUTOROTATION: motor at idle (below 15 %) from 2.5 s after the cut', max(motor) < 0.15,
+         'max %.2f' % max(motor)),
+        ('rotor speed held by the airflow: 85-115 %% of %d rpm from 3 s after the cut' % pilot.target,
+         min(rpm) > 0.85 * pilot.target and max(rpm) < 1.15 * pilot.target,
+         '%.0f-%.0f rpm' % (min(rpm), max(rpm))),
+        ('steady descent: sink 3-10 m/s from 4 s after the cut', all(-10 < v < -3 for v in sink),
+         '%.1f to %.1f m/s' % (min(sink), max(sink))),
+        ('upright: tilt below 15 deg in the descent',
+         max(abs(v) for v in span(tc, t_end, ROLL) + span(tc, t_end, PITCH)) < 15,
+         '%.1f deg' % max(abs(v) for v in span(tc, t_end, ROLL) + span(tc, t_end, PITCH))),
+    ]
+    if pilot.bailout:
+        tb = pilot.t_bailout
+        if tb is None:
+            checks.append(('bailout: reached the bailout height', False, 'never'))
+        else:
+            # the airflow already holds the headspeed: the governor must bring the motor back
+            # (BAILOUT) and hold the headspeed under the punch
+            back = next((r[0] - tb for r in rows if r[0] >= tb and r[THR] > 0.4), None)
+            rpm_b = span(tb, tb + 5.0, RPM)
+            low = min(span(tb, tb + 8.0, ALT))
+            checks += [
+                ('bailout: motor back above 40 % within 2 s', back is not None and back < 2.0,
+                 'after %.2f s' % back if back is not None else 'never'),
+                ('bailout: headspeed within 5 % of the target for 5 s',
+                 max(abs(v - pilot.target) for v in rpm_b) < 0.05 * pilot.target,
+                 '%.0f-%.0f rpm' % (min(rpm_b), max(rpm_b))),
+                ('bailout: climbing within 5 s', max(span(tb + 2.0, tb + 5.0, CLIMB)) > 0.5,
+                 '%.2f m/s' % max(span(tb + 2.0, tb + 5.0, CLIMB))),
+                ('bailout: no ground contact', low > 1.0, 'lowest %.1f m' % low),
+            ]
+    else:
+        landed = pilot.t_land is not None
+        checks += [
+            ('flare and landing: touched down', landed, 'at %.1f s' % pilot.t_land if landed else 'never'),
+            ('soft landing: touchdown sink below 2 m/s', landed and heli.touchdown_speed < 2.0,
+             '%.2f m/s' % heli.touchdown_speed),
+            ('rotor speed at touchdown above 50 %', landed and heli.touchdown_rpm > 0.5 * pilot.target,
+             '%.0f rpm' % heli.touchdown_rpm),
+        ]
+    checks.append(('lockstep: under 1 % of steps without reply', timeouts <= steps // 100,
+                   '%d of %d' % (timeouts, steps)))
+    ok = True
+    for name, passed, detail in checks:
+        print('%s %s (%s)' % ('PASS' if passed else 'FAIL', name, detail))
+        ok &= passed
+    return ok
+
+
 def check_rescue(rows, timeouts, steps, pilot):
     """The rescue test (RescuePilot): fixed bounds after the rescue switch."""
     ROLL, PITCH, ALT, CLIMB = 3, 4, 1, 2
@@ -293,6 +421,10 @@ def main():
     ap.add_argument('--rescue', action='store_true',
                     help='rescue test: climb, roll inverted in acro, rescue on AUX3 (rescue_mode CLIMB); '
                          'with --check, judged against fixed bounds')
+    ap.add_argument('--autorotation', choices=('land', 'bailout'),
+                    help='autorotation test with the governor (needs --governor): climb, throttle stick to '
+                         '15 %% (governor AUTOROTATION), hold the headspeed on the collective, then flare and '
+                         'land, or bail out at 20 m (governor BAILOUT); with --check, judged against fixed bounds')
     ap.add_argument('--esc', choices=('none', 'hw4'), default='none',
                     help='hw4: HobbyWing V4 telemetry from the model on UART3 (TCP 5763). The '
                          'frequency sensor stays on: the ELECTRIC governor needs a fast rpm '
@@ -343,6 +475,12 @@ def main():
     pilot = RescuePilot() if a.rescue else None
     if pilot and a.seconds == ap.get_default('seconds'):
         seconds = 46.0
+    if a.autorotation:
+        if not a.governor:
+            ap.error('--autorotation needs --governor RPM')
+        pilot = AutoPilot(a.governor, bailout=a.autorotation == 'bailout')
+        if a.seconds == ap.get_default('seconds'):
+            seconds = 50.0
 
     # first start writes defaults; then configure over the CLI (save reboots)
     subprocess.run([elf], cwd=rundir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
@@ -574,7 +712,15 @@ def main():
         print('run directory kept:', rundir)
     else:
         shutil.rmtree(rundir, ignore_errors=True)
-    if pilot:
+    if isinstance(pilot, AutoPilot):
+        ev = [('cut', pilot.t_cut), ('flare', pilot.t_flare), ('bailout', pilot.t_bailout), ('landed', pilot.t_land)]
+        print('autorotation: ' + ', '.join('%s at %.2f s' % (k, v) for k, v in ev if v is not None))
+        t0 = (pilot.t_cut or 0) - 1.0
+        for r in rows:
+            if t0 <= r[0] and int(round(r[0] * 10)) % 10 == 0:
+                print('  t %5.1f  alt %6.2f m  climb %+6.2f  rpm %5.0f  thr %.2f  coll %+.3f'
+                      % (r[0], r[1], r[2], r[6], r[7], r[8]))
+    elif pilot:
         print('rescue: inverted at %s s, switch on at %s s' % (
             '%.2f' % pilot.t_inverted if pilot.t_inverted else '-',
             '%.2f' % pilot.t_rescue if pilot.t_rescue else '-'))
@@ -598,6 +744,8 @@ def main():
                   % (*(math.sqrt(sum(r[4 + i] ** 2 for r in fw) / len(fw)) for i in range(3)),
                      *(math.sqrt(sum(r[1 + i] ** 2 for r in fw) / len(fw)) for i in range(3))))
     if a.check:
+        if isinstance(pilot, AutoPilot):
+            sys.exit(0 if check_autorotation(rows, timeouts, steps, pilot, heli) else 1)
         if pilot:
             sys.exit(0 if check_rescue(rows, timeouts, steps, pilot) else 1)
         sys.exit(0 if check_flight(rows, timeouts, steps, a.governor, vib_rms) else 1)

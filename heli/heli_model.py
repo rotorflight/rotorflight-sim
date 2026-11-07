@@ -67,6 +67,52 @@ def euler(q):
     return roll, pitch, yaw
 
 
+def induced_velocity(vh, vc, vx):
+    """Induced velocity of a rotor (m/s, through the disk against the thrust) at hover
+    induced velocity vh for its thrust, axial climb speed vc (positive along the thrust)
+    and in-plane speed vx, by momentum theory:
+      climb / hover        vi = -vc/2 + sqrt(vc^2/4 + vh^2)
+      windmill brake       vi = -vc/2 - sqrt(vc^2/4 - vh^2)        (vc < -2 vh)
+      vortex ring          the empirical fit vi/vh = 1.15 - 1.125 x - 1.372 x^2 - 1.718 x^3
+                           - 0.655 x^4, x = vc/vh in (-2, 0) (Leishman, Principles of
+                           Helicopter Aerodynamics), where momentum theory has no solution
+      forward flight       Glauert: vi = vh^2 / sqrt(vx^2 + (vc + vi)^2), faded in over
+                           vx = 0..vh in the vortex ring range (forward speed blows the
+                           ring away)"""
+    if vh <= 0.0:
+        return 0.0
+    x = vc / vh
+    if x >= 0.0:
+        axial = -vc / 2 + math.sqrt(vc * vc / 4 + vh * vh)
+    elif x <= -2.0:
+        axial = -vc / 2 - math.sqrt(max(0.0, vc * vc / 4 - vh * vh))
+    else:
+        axial = vh * (1.15 - 1.125 * x - 1.372 * x ** 2 - 1.718 * x ** 3 - 0.655 * x ** 4)
+    if vx < 1e-3:
+        return axial
+    # Glauert by damped fixed point, from the axial value
+    vi = max(axial, 0.1 * vh)
+    for _ in range(40):
+        nxt = vh * vh / math.sqrt(vx * vx + (vc + vi) ** 2)
+        if abs(nxt - vi) < 1e-6 * vh:
+            vi = nxt
+            break
+        vi += 0.5 * (nxt - vi)
+    if -2.0 < x < 0.0 and vx < vh:
+        k = vx / vh
+        return (1 - k) * axial + k * vi
+    return vi
+
+
+def ground_effect(radius, height):
+    """Induced velocity factor in ground effect (after Cheeseman & Bennett: the same power
+    gives T/T_inf = 1 / (1 - (R / 4z)^2)): vi_ige / vi = 1 - (R / 4z)^2, at most halved
+    (z: rotor height above the ground)."""
+    height = max(height, 1e-3)
+    k = (radius / (4.0 * height)) ** 2
+    return 1.0 - min(k, 0.5)
+
+
 class Heli:
     # Blade 360 derivatives (per unit of the model's control inputs)
     Ma1s, Lb1s = 796.7, 5115.2
@@ -88,8 +134,10 @@ class Heli:
     ctrl_rpm_exp = 2.0
     # optional blade-element thrust with induced inflow, (K, ki): thrust in g
     #   n = K (w/w_n)^2 (coll/3 - lambda/2),  lambda = ki sqrt(n) / (w/w_n)
-    # so the hover collective goes as 3/(K wr^2) + 1.5 ki/wr. None = thrust ~ wr^2 coll (Zcol)
-    thrust_inflow = None
+    # so the hover collective goes as 3/(K wr^2) + 1.5 ki/wr. None = thrust ~ wr^2 coll (Zcol).
+    # Blade 360: its hover collective 0.44 (G / -Zcol) with a 65 % inflow share (the Stratos
+    # fit has 72 %, blade-element theory ~60 % for these rotors) - so it autorotates
+    thrust_inflow = (3.0 / (0.35 * 0.44), 0.65 * 0.44 / 1.5)
     # optional fitted rotor law (A, B, k0, k1, n): dw/dt = A u V - B w - w^2 (k0 + k1 |c|^n)
     motor_fit = None
     # main rotor torque reaction on yaw, rad/s^2 at hover (motorized tails); scales with drag
@@ -104,6 +152,18 @@ class Heli:
     servo_xy = None
     Lfa1s, Mfb1s = 1.0477, -1.0057
     Lflt, Lflg, Mflt, Mflg = 0.2375, -0.0286, 0.0344, 0.2292
+    # rotor inflow (momentum theory): induced velocity in hover v_hover = sqrt(W / 2 rho A),
+    # the induced share of the hover shaft power, and the rotor radius and hub height above
+    # the skids for the ground effect. The induced velocity follows climb, descent (vortex
+    # ring, windmill brake) and forward speed (Glauert): the rotor torque takes the change of
+    # induced power T (v_c + v_i) - T v_h from hover - so a steady descent drives the rotor
+    # (autorotation) - and the blade-element thrust (thrust_inflow) the change of inflow,
+    # which gives translational lift and more thrust per collective in descent
+    v_hover = 3.3          # m/s; Blade 360 ~1.1 kg on a 0.36 m rotor
+    ind_share = 0.6
+    rotor_radius = 0.36
+    hub_height = 0.25
+    inflow_tau = None      # s, lag of the induced velocity; None: Pitt-Peters 0.849 R / (4 v_hover)
 
     def __init__(self, nominal_rpm=2100.0, gear_ratio=10.0, hover_throttle=0.65, load_fraction=0.85,
                  pack_cells=6, pack_ah=2.2, pack_r=0.02, hover_power_w=400.0,
@@ -142,6 +202,10 @@ class Heli:
         if self.tf_inv_pitch is None:
             self.tf_inv_pitch = self.tf_inv
         self.ground = True
+        self.touchdown_speed = 0.0
+        self.touchdown_rpm = 0.0
+        self.ground_effect = True
+        self.inflow = True
         self.servo_xy = [0.0, 0.0]
         self.turb_state = [0.0, 0.0, 0.0]
         self.rng = random.Random(1)
@@ -154,6 +218,8 @@ class Heli:
         self.rates = [0.0, 0.0, 0.0]      # FRD body, rad/s
         self.tpp = [0.0, 0.0]             # flapping b1s (lateral), a1s (longitudinal)
         self.w = 0.0                      # rotor, rad/s
+        self.n = 0.0                      # rotor thrust, g (along -z body)
+        self.vi = 0.0                     # induced velocity, m/s
         self.on_ground = True
         self.specific_force = (0.0, 0.0, -G)
         self.vbat = self.pack_voltage(0.0)
@@ -180,6 +246,38 @@ class Heli:
         s = (-B + math.sqrt(B * B + 4.0 * A * abs(coll))) / 2.0
         return math.copysign(s * s, coll)
 
+    def thrust_g_inflow(self, coll, inflow):
+        """Blade-element thrust in g at collective coll with the total inflow through the
+        disk (v_c + v_i, m/s, along body up): n = K wr^2 (coll/3 - lambda/2), lambda =
+        ki (v_c + v_i) / (v_hover wr) - in hover v_i = v_hover sqrt(n), the law above;
+        inverted, both change sign."""
+        K, ki = self.thrust_inflow
+        wr = max(self.w / self.nominal_w, 1e-3)
+        lam = ki * inflow / (self.v_hover * wr)
+        return K * wr * wr * (coll / 3.0 - lam / 2.0)
+
+    def height(self):
+        """Rotor hub above the ground, m."""
+        return -self.pos[2] + self.hub_height
+
+    def update_inflow(self, dt, u, v, w_):
+        """Induced velocity for the current thrust, climb and forward speed, in and out of
+        ground effect, with a first-order lag (Pitt-Peters time constant by default).
+        self.vi is signed with the thrust (body up), so it goes to zero with the thrust and
+        flips with it when inverted. Returns (inflow along body up, v_c_up + v_i, and the
+        inflow along the thrust, which sets the induced power)."""
+        sgn = 1.0 if self.n >= 0 else -1.0
+        vc_up = -w_                          # body z is down; positive thrust points up the rotor axis
+        vx = math.hypot(u, v)
+        vh = self.v_hover * math.sqrt(abs(self.n))
+        target = sgn * induced_velocity(vh, vc_up * sgn, vx)
+        if self.ground_effect and self.ground:
+            target *= ground_effect(self.rotor_radius, self.height())
+        tau = self.inflow_tau or 0.849 * self.rotor_radius / (4 * self.v_hover)
+        a = min(1.0, dt / tau)
+        self.vi += (target - self.vi) * a
+        return vc_up + self.vi, sgn * (vc_up + self.vi)
+
     def step(self, dt, throttle, roll, pitch, yaw, collective):
         throttle = max(0.0, min(1.0, throttle))
         ctrl_x = self.sign_roll * self.cyclic_scale * roll
@@ -193,6 +291,10 @@ class Heli:
         yaw_cmd = self.sign_yaw * self.yaw_scale * yaw
         coll = self.coll_scale * collective + self.coll_offset
 
+        # air-relative body velocity, rotor inflow
+        u, v, w_ = earth_to_body(self.q, self.vel)
+        inflow, inflow_t = self.update_inflow(dt, u, v, w_) if self.inflow else (0.0, 0.0)
+
         # rotor speed
         if self.motor_fit:
             A, B = self.motor_fit[:2]
@@ -201,6 +303,13 @@ class Heli:
         else:
             q_motor = max(0.0, self.A * throttle - self.B * self.w) if throttle > 0.02 else 0.0
             q_drag = self.k_d * self.w * self.w * self.drag_shape(coll)
+        if self.inflow and self.w > 0.0:
+            # induced power against hover at the same thrust, T (v_c + v_i) - T v_h, as a
+            # torque (scaled from the hover shaft power's induced share). Negative in a
+            # steep descent: the airflow drives the rotor
+            vh = self.v_hover * math.sqrt(abs(self.n))
+            dp = self.ind_share * self.shaft_hover * abs(self.n) * (inflow_t - vh) / self.v_hover
+            q_drag += dp / max(self.w, 0.3 * self.nominal_w)
         self.w = max(0.0, self.w + (q_motor - q_drag) * dt)
         rr = (self.w / self.nominal_w) ** 2        # thrust and control power scale with rpm^2
         wr = max(self.w / self.nominal_w, 0.2)
@@ -213,8 +322,6 @@ class Heli:
         self.vbat = self.pack_voltage(self.ibat)
         self.used_ah += self.ibat * dt / 3600
 
-        # air-relative body velocity
-        u, v, w_ = earth_to_body(self.q, self.vel)
         p, q_, r = self.rates
 
         # flapping (tip path plane), driven by cyclic and body rates
@@ -253,10 +360,19 @@ class Heli:
         # specific force (aero), body
         fx = -G * a1s + self.Xu * u
         fy = G * b1s + self.Yv * v + self.Yp * p
-        if self.thrust_inflow:
-            fz = -G * self.thrust_g(coll) + self.Zw * w_
+        if self.thrust_inflow and self.inflow:
+            # the inflow carries the heave damping (Zw) and translational lift
+            self.n = self.thrust_g_inflow(coll, inflow)
+            fz = -G * self.n
+        elif self.thrust_inflow:
+            self.n = self.thrust_g(coll)
+            fz = -G * self.n + self.Zw * w_
         else:
-            fz = self.Zcol * coll * rr + self.Zw * w_
+            n = -(self.Zcol * coll * rr) / G
+            if self.inflow and self.ground_effect and self.ground:
+                n /= ground_effect(self.rotor_radius, self.height())
+            self.n = n
+            fz = -G * n + self.Zw * w_
 
         # ground: held until the rotor lifts more than the weight
         accel_e = body_to_earth(self.q, (fx, fy, fz))
@@ -283,6 +399,8 @@ class Heli:
         self.specific_force = (fx, fy, fz)
 
         if self.pos[2] > 0 and self.ground:       # touched down
+            self.touchdown_speed = self.vel[2]
+            self.touchdown_rpm = self.rotor_rpm
             self.pos[2] = 0.0
             self.on_ground = True
             self.vel = [0.0, 0.0, 0.0]
@@ -315,6 +433,8 @@ class Stratos200(Heli):
     """
     motor_fit = (987.74, 16.843, 7.003e-4, 1.101e-2, 2.0)
     motor_poles = 24
+    # typical 200 size (not measured): ~0.5 kg in the fuselage on a 0.21 m rotor
+    v_hover, rotor_radius, hub_height = 3.8, 0.21, 0.15
     tail_motor = True
     Zcol = -G / 0.636
     # hover collective 0.70-0.73 at 3300 rpm, 0.636-0.646 at 3600: a/wr^2 + b/wr with
@@ -389,6 +509,8 @@ class M7R(Heli):
     """
     motor_fit = (3.05, 0.3667, 4.907e-4, 5.248e-4, 2.0)
     motor_poles = 10
+    # typical 700 class (not measured): ~5.2 kg on a 0.79 m rotor
+    v_hover, rotor_radius, hub_height = 3.3, 0.79, 0.40
     ctrl_rpm_exp = 0.0
     Zcol = -G / 0.273
     thrust_inflow = (3.0 / 0.0765, 0.197 / 1.5)

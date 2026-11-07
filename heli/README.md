@@ -52,6 +52,25 @@ calm descent (26.5-32 s) and requires its difference to the model's true rates b
 3 deg/s RMS per axis. With the M7R's vibration that is 1.2 / 0.3 / 0.4 deg/s with the RPM
 filter and 9.2 / 6.1 / 4.0 without it (CI runs both).
 
+**Inflow and autorotation.** The rotor's induced velocity follows momentum theory -
+climb, vortex ring (Leishman's fit), windmill brake, forward flight (Glauert, so
+translational lift) and ground effect - with the Pitt-Peters time constant. The thrust
+takes the inflow through the blade-element law (`thrust_inflow`; the Blade 360 gets one
+too, 65 % inflow share of its 0.44 hover collective), and the rotor torque the change of
+induced power from hover, T (v_c + v_i) - T v_h: a steep descent drives the rotor. Rotor
+size and hover induced velocity (`rotor_radius`, `v_hover`) are typical values per size.
+
+`--governor RPM --autorotation land` tests autorotations: climb to ~65 m, throttle stick
+to 15 % (above throttle off, below the governor's 25 % handover - the ELECTRIC governor
+enters AUTOROTATION with the motor at idle), hold the headspeed on the collective, flare
+from 8 m and land. `--check` requires the motor at idle, the headspeed held at 85-115 %
+by the airflow, a steady 3-10 m/s sink, a touchdown below 2 m/s and the rotor above 50 %
+at touchdown. `--autorotation bailout` puts the throttle back at 20 m instead and punches
+the collective: the governor's BAILOUT state must bring the motor back within 2 s, hold
+the headspeed within 5 % and climb away without touching the ground. On the Blade 360 at
+2100 rpm: 6.0 m/s sink at 2087-2103 rpm, touchdown at 1.5 m/s; bailout motor back in
+0.06 s, climbing at 5.8 m/s, lowest point 18.5 m.
+
 `--hold-alt M` adds a slow virtual pilot (PID on height, ~0.3 Hz, at most +-150 us) to the
 replayed collective: the model has no translational lift, so the recorded collective of a
 cruising flight lets it sink or climb away. It leaves the attitude loops alone. The
