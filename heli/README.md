@@ -25,7 +25,20 @@ python3 heli/heli_bridge.py <rotorflight_SITL.elf> --acro      # stick doublets 
 python3 heli/heli_bridge.py <rotorflight_SITL.elf> --rescue --check   # rescue from inverted
 python3 heli/heli_bridge.py <rotorflight_SITL.elf> --model stratos200 \
         --dump <cli dump> --cli-file <flown settings> --replay <sticks.csv> --bbl sim.bbl
+python3 heli/heli_bridge.py <rotorflight_SITL.elf> --replay-case heli/replays/m7r_cruise --check
 ```
+
+`--model` takes a preset (`blade360`, `stratos200`, `m7r`) or a JSON parameter file that
+starts from one:
+
+```json
+{"base": "m7r",
+ "args": {"Lb1s": 900, "pack_cells": 6, "nominal_rpm": 2000},
+ "attrs": {"v_hover": 3.0, "rotor_radius": 0.69}}
+```
+
+`args` are constructor arguments, `attrs` class constants (the derivatives, `v_hover`,
+`rotor_radius`, ...); a misspelt name is refused. `--set NAME=VALUE` goes on top.
 
 The scripted flight: arm at 6 s, spool up, lift off at 18 s, a roll stick at 21 s and a
 pitch stick at 23 s in angle mode, a collective punch at 24 s, descend from 26 s, disarm
@@ -118,6 +131,26 @@ on every touchdown without saying so.
 `--replay` takes a recorded flight's sticks (`t,roll,pitch,yaw,coll,thr` in rcCommand
 units) and `--bbl` keeps the SITL's own blackbox, so a replay can be compared with the
 real flight log it came from.
+
+### Replay cases
+
+`heli/replays/<case>/` holds a recorded flight with what the real one did: `sticks.csv`,
+`tune.txt` (the flown settings) and `case.json` (model, governor, height hold, the scored
+window, the real medians and the tolerances). `--replay-case DIR` sets `--model`,
+`--governor`, `--hold-alt`, `--replay` and `--cli-file` from it, and with `--check` judges
+the flight:
+
+    python3 heli/heli_bridge.py <sitl elf> --replay-case heli/replays/m7r_cruise --check
+
+- airborne: the share of the window the sim flies above 1 m
+- upright resets after tilted touchdowns (see above)
+- throttle under the governor and the tail trim (yaw mix): medians at the airborne instants
+  against the real flight's over the window - the power and torque balance of the preset
+- lockstep: steps without a reply
+
+CI runs `m7r_cruise` (100 s of OMP M7R cruise at 1500 rpm, about 5 min). Model changes broke
+this replay twice without another check noticing: double-counted rotor power (too much
+throttle and tail) and the skid contact (the heli fell away).
 
 ## Frames
 

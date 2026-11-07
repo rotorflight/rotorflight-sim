@@ -16,6 +16,7 @@ Only the Python standard library is used.
 """
 
 import argparse
+import json
 import math
 import os
 import shutil
@@ -27,7 +28,7 @@ import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from heli_model import MODELS, euler, body_to_earth  # noqa: E402
+from heli_model import MODELS, euler, body_to_earth, load_model  # noqa: E402
 from configs import load_dump         # noqa: E402
 import csv                            # noqa: E402
 from swash import Swash               # noqa: E402
@@ -139,6 +140,12 @@ def load_sticks(path):
         for r in csv.DictReader(f):
             rows.append(tuple(float(r[k]) for k in ('t', 'roll', 'pitch', 'yaw', 'coll', 'thr')))
     return rows
+
+
+def load_case(folder):
+    """A replay case: case.json beside the recorded sticks and the flown tune."""
+    with open(os.path.join(folder, 'case.json')) as f:
+        return json.load(f)
 
 
 def replay_rc(sticks, t):
@@ -433,7 +440,9 @@ def main():
                          'source and does not take serial ESC telemetry')
     ap.add_argument('--governor', type=int, default=0, metavar='RPM',
                     help='fly with the ELECTRIC governor holding this headspeed')
-    ap.add_argument('--model', choices=sorted(MODELS), default='blade360')
+    ap.add_argument('--model', default='blade360', metavar='PRESET|FILE',
+                    help='a preset (%s) or a JSON parameter file (base preset, constructor args, '
+                         'class constants; see heli_model.load_model)' % ', '.join(sorted(MODELS)))
     ap.add_argument('--set', action='append', default=[], metavar='NAME=VALUE',
                     help='model constructor argument, e.g. Lb1s=1200 (repeatable)')
     ap.add_argument('--dump', metavar='CLI_DUMP',
@@ -464,7 +473,17 @@ def main():
                          'heli/servos.py); ideal = none')
     ap.add_argument('--bbl', metavar='OUT',
                     help='save the SITL blackbox (file-backed flash) here after the flight')
+    ap.add_argument('--replay-case', metavar='DIR',
+                    help='a recorded flight with its reference (heli/replays/<case>: case.json, '
+                         'sticks.csv, tune.txt): sets --model, --governor, --hold-alt, --replay and '
+                         '--cli-file; with --check, judged against the real flight')
     a = ap.parse_args()
+    case = None
+    if a.replay_case:
+        case = load_case(a.replay_case)
+        a.model, a.governor, a.hold_alt = case['model'], case['governor'], case['hold_alt']
+        a.replay = os.path.join(a.replay_case, 'sticks.csv')
+        a.cli_file = os.path.join(a.replay_case, 'tune.txt')
     elf = os.path.abspath(a.elf)
     rundir = tempfile.mkdtemp(prefix='heli-bridge-')
 
@@ -475,7 +494,9 @@ def main():
     for item in a.set:
         k, v = item.split('=', 1)
         kw[k] = float(v)
-    heli = MODELS[a.model](sign_roll=1.0, sign_pitch=-1.0, sign_yaw=-1.0, **kw)
+    if a.model not in MODELS and not os.path.isfile(a.model):
+        ap.error('--model: no preset or file %s (presets: %s)' % (a.model, ', '.join(sorted(MODELS))))
+    heli = load_model(a.model, sign_roll=1.0, sign_pitch=-1.0, sign_yaw=-1.0, **kw)
     sensors = Sensors(a.gyro_chip, a.vibration, seed=a.sensor_seed, vib_scale=a.vib_scale,
                       gear_ratio=heli.gear)
     if a.gyro_chip or a.vibration:
@@ -680,7 +701,7 @@ def main():
                 roll, pitch, yaw = euler(heli.q)
                 rows.append((t, heli.altitude, -heli.vel[2], math.degrees(roll), math.degrees(pitch),
                              math.degrees(yaw), heli.rotor_rpm, ctrl[0], ctrl[4], ctrl[1], ctrl[2],
-                             heli.vbat, heli.ibat, *heli.rates))
+                             heli.vbat, heli.ibat, *heli.rates, ctrl[3]))
         real = time.time() - t0
         print('%.0f s simulated in %.0f s real, %d steps without reply' % (seconds, real, timeouts))
         if sticks:
@@ -727,7 +748,7 @@ def main():
 
     if a.bbl:
         save_blackbox(os.path.join(rundir, 'blackbox_flash.bin'), a.bbl)
-    hdr = 't,alt_m,climb_ms,roll_deg,pitch_deg,yaw_deg,rotor_rpm,throttle,mix_coll,mix_roll,mix_pitch,vbat,ibat,p,q,r'
+    hdr = 't,alt_m,climb_ms,roll_deg,pitch_deg,yaw_deg,rotor_rpm,throttle,mix_coll,mix_roll,mix_pitch,vbat,ibat,p,q,r,mix_yaw'
     if a.log:
         with open(a.log, 'w') as f:
             f.write(hdr + '\n')
@@ -779,7 +800,45 @@ def main():
             sys.exit(0 if check_autorotation(rows, timeouts, steps, pilot, heli) else 1)
         if pilot:
             sys.exit(0 if check_rescue(rows, timeouts, steps, pilot) else 1)
+        if sticks:
+            if not case:
+                sys.exit('--check with a replay needs --replay-case (the reference to judge against)')
+            sys.exit(0 if check_replay(rows, timeouts, steps, replay_resets, case) else 1)
         sys.exit(0 if check_flight(rows, timeouts, steps, a.governor, vib_rms) else 1)
+
+
+def check_replay(rows, timeouts, steps, resets, case):
+    """A recorded flight replayed open loop (with the height-hold pilot): the model must
+    keep flying it, and the trim it needs - throttle under the governor, tail pitch against
+    the torque - must stay near the real flight's. Medians over the scored window, at the
+    instants the sim flies above 1 m (the real ones from the log over its whole window)."""
+    t0, t1 = case['window']
+    span = [r for r in rows if t0 <= r[0] <= t1]
+    up = [r for r in span if r[1] > 1.0]
+    share = len(up) / max(1, len(span))
+
+    def median(col):
+        v = sorted(r[col] for r in up)
+        return 100 * v[len(v) // 2] if v else float('nan')
+
+    ref, tol = case['real'], case['tolerance']
+    thr, yaw = median(7), median(16)
+    checks = [
+        ('airborne: above 1 m for %.0f %% of %g-%g s' % (100 * tol['airborne'], t0, t1),
+         share >= tol['airborne'], '%.0f %%, lowest %.1f m' % (100 * share, min(r[1] for r in span))),
+        ('upright resets after tilted touchdowns: at most %d' % tol['resets'], resets <= tol['resets'],
+         '%d' % resets),
+        ('throttle: median within %g points of the real %.1f %%' % (tol['throttle'], ref['throttle']),
+         abs(thr - ref['throttle']) <= tol['throttle'], '%.1f %%' % thr),
+        ('tail trim: median yaw mix within %g points of the real %.1f %%' % (tol['yaw_mix'], ref['yaw_mix']),
+         abs(yaw - ref['yaw_mix']) <= tol['yaw_mix'], '%.1f %%' % yaw),
+        ('lockstep: under 1 % of steps without reply', timeouts <= steps // 100, '%d of %d' % (timeouts, steps)),
+    ]
+    ok = True
+    for name, passed, detail in checks:
+        print('%s %s (%s)' % ('PASS' if passed else 'FAIL', name, detail))
+        ok &= passed
+    return ok
 
 
 VIB_RMS_MAX = 3.0     # deg/s: filtered gyro error allowed with --gyro-chip / --vibration

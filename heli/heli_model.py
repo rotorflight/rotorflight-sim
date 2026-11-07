@@ -656,3 +656,29 @@ class M7R(Heli):
 
 
 MODELS = {'blade360': Heli, 'stratos200': Stratos200, 'm7r': M7R}
+
+
+def load_model(spec, **kw):
+    """A heli from a preset name (MODELS) or a JSON parameter file:
+
+        {"base": "m7r",                      preset it starts from (default blade360)
+         "args": {"Lb1s": 900, "pack_cells": 6},   constructor arguments
+         "attrs": {"v_hover": 3.0}}          class constants (Heli's upper-case derivatives,
+                                             v_hover, rotor_radius, ...) set before __init__
+
+    Keyword arguments (the bridge's --set and frame signs) go on top of "args"."""
+    if spec in MODELS:
+        return MODELS[spec](**kw)
+    import json
+    with open(spec) as f:
+        p = json.load(f)
+    unknown = set(p) - {'base', 'args', 'attrs', 'description'}
+    if unknown:
+        raise ValueError('%s: unknown keys %s' % (spec, ', '.join(sorted(unknown))))
+    base = MODELS[p.get('base', 'blade360')]
+    attrs = p.get('attrs', {})
+    for k in attrs:
+        if not hasattr(base, k):
+            raise ValueError('%s: %s has no constant %s' % (spec, base.__name__, k))
+    cls = type(base.__name__ + 'File', (base,), dict(attrs)) if attrs else base
+    return cls(**{**p.get('args', {}), **kw})

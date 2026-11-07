@@ -15,7 +15,7 @@ from heli_model import G, MODELS, Heli, M7R, Stratos200, euler, induced_velocity
 from sensors import Sensors, available  # noqa: E402
 from wind import Wind  # noqa: E402
 from servos import Servo, Servos, TYPES  # noqa: E402
-from heli_model import LIPO_OCV  # noqa: E402
+from heli_model import LIPO_OCV, load_model  # noqa: E402
 
 DT = 250e-6
 
@@ -542,6 +542,39 @@ class SensorModel(unittest.TestCase):
                     if x > 0.1:
                         self.assertAlmostEqual(y / x, 0.64, delta=0.05)
                 self.assertEqual(self.rms(Sensors(None, heli), 0.0, 2000), [0.0, 0.0, 0.0])
+
+
+class ModelFiles(unittest.TestCase):
+    """--model takes a preset name or a JSON parameter file on top of a preset."""
+
+    def write(self, d):
+        import json, tempfile
+        f = tempfile.NamedTemporaryFile('w', suffix='.json', delete=False)
+        json.dump(d, f)
+        f.close()
+        self.addCleanup(os.remove, f.name)
+        return f.name
+
+    def test_preset_name(self):
+        self.assertIsInstance(load_model('m7r'), M7R)
+
+    def test_file_matches_preset_with_the_same_arguments(self):
+        h = load_model(self.write({'base': 'm7r', 'args': {'Lb1s': 900.0, 'pack_cells': 6}}))
+        ref = M7R(Lb1s=900.0, pack_cells=6)
+        self.assertIsInstance(h, M7R)
+        self.assertEqual((h.Lb1s, h.cells, h.nominal_w), (ref.Lb1s, ref.cells, ref.nominal_w))
+
+    def test_constants_and_keywords(self):
+        h = load_model(self.write({'base': 'm7r', 'args': {'Lb1s': 900.0}, 'attrs': {'v_hover': 2.5}}),
+                       Lb1s=800.0)
+        self.assertEqual((h.v_hover, h.Lb1s), (2.5, 800.0))     # keywords win over the file
+        self.assertEqual(M7R.v_hover, 3.3)                      # the preset is untouched
+
+    def test_typos_are_refused(self):
+        with self.assertRaises(ValueError):
+            load_model(self.write({'base': 'm7r', 'attrs': {'v_hoover': 2.5}}))
+        with self.assertRaises(ValueError):
+            load_model(self.write({'bse': 'm7r'}))
 
 
 if __name__ == '__main__':
