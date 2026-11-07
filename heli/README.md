@@ -58,15 +58,18 @@ filter and 9.2 / 6.1 / 4.0 without it (CI runs both).
 climb, vortex ring (Leishman's fit), windmill brake, forward flight (Glauert, so
 translational lift) and ground effect - with the Pitt-Peters time constant. The thrust
 takes the inflow through the blade-element law (`thrust_inflow`; the Blade 360 gets one
-too, 65 % inflow share of its 0.44 hover collective), and the rotor torque the change of
-induced power from hover, T (v_c + v_i) - T v_h: a steep descent drives the rotor. Rotor
+too, 65 % inflow share of its 0.44 hover collective). In descent the rotor torque takes
+the change of induced power from hover, T (v_c + v_i) - T v_h: a steep descent drives the
+rotor. Not in powered flight: there the rotor law (fitted from real flights for the
+presets) already holds the power, and counting the induced power again loaded the rotor
+twice. Rotor
 size and hover induced velocity (`rotor_radius`, `v_hover`) are typical values per size.
 
 **Wind.** `--wind SPEED,FROM_DEG` blows a steady wind (the heli faces north), `--gust
 SIGMA_W` adds Dryden turbulence (MIL-F-8785C at low altitude: light ~0.5, moderate ~1.5
 m/s), seeded (`heli/wind.py`). The model flies relative to the air: inflow and
-translational lift, a quadratic fuselage drag (flat-plate area 1.5 % of the disk) whose
-power loads the rotor, and the speed derivatives where a preset has them.
+translational lift, a quadratic fuselage drag (flat-plate area 1.5 % of the disk; its power
+reaches the rotor through the disk tilt and the inflow), and the speed derivatives where a preset has them.
 
 **Servos and pack.** `--servos digital|fast|analog` puts servo dynamics between the
 firmware's pulses and the swash decode: speed (0.06 / 0.04 / 0.12 s per 60 deg at 10 us
@@ -106,6 +109,11 @@ replays hold height too.
 The bridge warns when the FC outputs stay exactly unchanged for 5 s with the motor running:
 the SITL then stalled and the run should not be scored (a lockstep scheduler stall, fixed in
 rotorflight-firmware#596).
+
+Replays fly open loop and drift (the pilot corrected by eye): on the ground the model gets
+no cyclic (the pilot keeps it flat), and a heli that comes down tilted more than 20 deg is
+set back upright on its skids - the bridge prints how often. The old ground model did this
+on every touchdown without saying so.
 
 `--replay` takes a recorded flight's sticks (`t,roll,pitch,yaw,coll,thr` in rcCommand
 units) and `--bbl` keeps the SITL's own blackbox, so a replay can be compared with the

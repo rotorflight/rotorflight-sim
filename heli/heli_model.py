@@ -182,8 +182,8 @@ class Heli:
     skid_mu = 0.6          # friction coefficient (grass, skid tubes)
     # fuselage drag: equivalent flat-plate area as a fraction of the rotor disk (~0.015 for
     # RC helis). Per unit mass with the mass from v_hover (m = 2 rho A v_h^2 / g), the
-    # quadratic drag is k |V| V with k = f g / (4 v_h^2), independent of the size; its
-    # power (parasite power, D V) loads the rotor
+    # quadratic drag is k |V| V with k = f g / (4 v_h^2), independent of the size. Its power
+    # (D V) reaches the rotor through the disk tilt and the inflow, not as a term of its own
     flat_plate = 0.015
 
     def __init__(self, nominal_rpm=2100.0, gear_ratio=10.0, hover_throttle=0.65, load_fraction=0.85,
@@ -413,15 +413,18 @@ class Heli:
         else:
             q_motor = max(0.0, self.A * throttle - self.B * self.w) if throttle > 0.02 else 0.0
             q_drag = self.k_d * self.w * self.w * self.drag_shape(coll)
-        if self.inflow and self.w > 0.0:
-            # induced power against hover at the same thrust, T (v_c + v_i) - T v_h, as a
-            # torque (scaled from the hover shaft power's induced share). Negative in a
-            # steep descent: the airflow drives the rotor
+        vc_a = -w_ * (1.0 if self.n >= 0 else -1.0)      # descent along the thrust < 0
+        if self.inflow and self.w > 0.0 and vc_a < 0.0:
+            # Descent: the induced power against hover at the same thrust, T (v_c + v_i) -
+            # T v_h (axial momentum theory, as a torque scaled from the hover shaft power's
+            # induced share) - negative in a steep descent, where the airflow drives the
+            # rotor (autorotation). Only in descent: the rotor law (fitted from real flights
+            # for the presets) already holds the power of powered flight - climbs and
+            # forward flight against collective - and counting their induced power again
+            # loaded the rotor twice (replays flew on too much throttle and tail)
             vh = self.v_hover * math.sqrt(abs(self.n))
-            dp = self.ind_share * self.shaft_hover * abs(self.n) * (inflow_t - vh) / self.v_hover
-            # parasite power D V = k |V|^3 per unit mass, on the same scale (the hover
-            # induced power is g v_h per unit mass)
-            dp += self.ind_share * self.shaft_hover * self.k_par * va ** 3 / (G * self.v_hover)
+            vi_ax = induced_velocity(vh, vc_a, 0.0)
+            dp = self.ind_share * self.shaft_hover * abs(self.n) * (vc_a + vi_ax - vh) / self.v_hover
             q_drag += dp / max(self.w, 0.3 * self.nominal_w)
         self.w = max(0.0, self.w + (q_motor - q_drag) * dt)
         rr = (self.w / self.nominal_w) ** 2        # thrust and control power scale with rpm^2
@@ -634,12 +637,15 @@ class M7R(Heli):
     Lu = Lv = Mu = Mv = Nv = 0.0
 
     def __init__(self, Lb1s=700.0, Ma1s=700.0, tf=0.05, servo_tau=0.0, turb=0.0, turb_hz=2.5,
-                 stiff_rpm_exp=2.0, tf_rpm_exp=1.0, **kw):
+                 stiff_rpm_exp=2.0, tf_rpm_exp=1.0, tf_roll=None, tf_pitch=None, **kw):
         self.stiff_rpm_exp, self.tf_rpm_exp = stiff_rpm_exp, tf_rpm_exp
         self.turb, self.turb_hz, self.servo_tau = turb, turb_hz, servo_tau
         self.Lb1s, self.Ma1s = Lb1s, Ma1s
-        self.tf_inv_roll = self.tf_inv_pitch = 1.0 / tf
-        self.Lflt, self.Mflg = 6.8 * tf, 5.7 * tf
+        # per-axis flap time constants (fit_flap.py identifies them separately); the steady
+        # rate per input stays the fitted K = Lflt / tf on each axis
+        tr, tp = tf_roll or tf, tf_pitch or tf
+        self.tf_inv_roll, self.tf_inv_pitch = 1.0 / tr, 1.0 / tp
+        self.Lflt, self.Mflg = 6.8 * tr, 5.7 * tp
         # main rotor torque against the tail trim: the yaw mixer sits at -0.21 (median of
         # the replayed cruise flying, collective precomp included)
         self.torque_yaw = -55.0 * 0.20

@@ -53,8 +53,10 @@ independent of the heli) from vibration (per heli, scaled with rpm):
 - [x] **Vibration from flight logs**: `fitting/scripts/vibration.py`, order tracking of the
       logged `gyroRAW` (4.6+, any debug mode) per axis: main rotor 1-4x, tail 1-3x, motor
       1-2x and the broadband floor. Done for the OMP M5, M6 and M7R (`fitting/helis/`)
-- [ ] Vibration of the Stratos (direct drive, motorized tail), and against collective; the
-      rpm exponent (two headspeeds per heli scatter it, the model uses rpm^2)
+- [x] Vibration of the Stratos (direct drive, motorized tail): main rotor lines; its tail
+      (~4x main, varying with yaw) cannot be told from the main 4x
+- [ ] Vibration against collective; the rpm exponent (two headspeeds per heli scatter it,
+      the model uses rpm^2); motorized-tail lines in the sensor model once a heli has them
 - [x] Model: gyro and accel = true value + chip noise (white, bias walk, from the Allan fit)
       + vibration (harmonics locked to the model's rotor, tail and motor rpm, amplitudes from
       the logs). Seeded (`heli/sensors.py`, `--gyro-chip`, `--vibration`)
@@ -107,8 +109,11 @@ heli and gives back a preset with its validation:
       the owner agrees
 - [x] Control power and flap/body dynamics from sharp inputs (`fit_flap.py`): the OMP sport
       flights hold them - per axis and headspeed on three sizes (M5, M6, M7R)
-- [ ] Use them: per-axis L and tf in the presets, checked by replay (`m7r_sweep.py`); the
-      joint fit across sizes once the geometry is known
+- [x] Per-axis L and tf checked by replay on the M7R: no better than the preset (roll too
+      good, pitch worse); `tf_roll` / `tf_pitch` stay as options
+- [ ] The joint fit across sizes once the geometry is known
+- [ ] A replay regression in CI (TODO 3, Regression): the session's model changes broke the
+      M7R replay twice without a check noticing
 - [ ] Test flights the current fits are missing: collective doublets (collective
       sensitivity, heave damping), hover at two headspeeds, an airborne autorotation
 
@@ -119,8 +124,9 @@ forward flight cannot be tested.
 
 - [x] Translational lift: the induced velocity follows forward speed (Glauert), and the
       blade-element thrust its inflow
-- [x] Fuselage drag (quadratic, flat-plate area 1.5 % of the disk) and its parasite power
-      on the rotor
+- [x] Fuselage drag (quadratic, flat-plate area 1.5 % of the disk); its power reaches the
+      rotor through the disk tilt in the inflow (a separate parasite-power term counted it
+      twice)
 - [ ] Flapback, dihedral (Lv, Mu), weathervane (Nv), tail drag
 - [ ] Fit them from logs with GPS speed (blackbox GPS fields) - add a GPS-logged flight to
       the manoeuvre card
