@@ -79,14 +79,17 @@ heli and gives back a preset with its validation:
 - [ ] **Log intake**: split, de-duplicate, decode (blackbox-decode skill), check that the
       log has what the fits need (logging rate, debug mode, rpm and voltage fields, header
       gains) and say what is missing
-- [ ] **Segmentation**: label ground, spool-up, hover, cruise, 3D, inverted, autorotation
-      and stick-input segments automatically, so each fit uses the parts it can identify
+- [x] **Segmentation** (`segment.py`): ground, autorotation, inverted, aerobatic, hover and
+      cruise per sample (hover from baro vario, attitude around the roll trim and calm
+      sticks; in ground effect flagged); `fit_heli.py` takes its hover stage from it with a
+      5 s gate per headspeed
+- [ ] Spool-up and stick-input (doublet, sweep) segments
 - [ ] **Fits as stages**, each with a coherence / R^2 gate: rotor law, rate gains per
       headspeed, yaw, hover collective per headspeed (thrust law), vibration (2), then the
       closed-loop flap/body sweep by replay (`sweep_replay.py`, `m7r_sweep.py` generalised).
       Open-loop stages done in `fit_heli.py` (from the heli file, pooled over its logs, per
-      headspeed -> `fit.json`); the gates and the closed-loop sweep are open, and the hover
-      stage needs segmentation (sport flights hold no hover: its numbers are not usable)
+      headspeed -> `fit.json`); the hover stage is gated (5 s out of ground effect), the
+      other gates and the closed-loop sweep are open
 - [ ] **Joint fit across helis**: the parameters of `PhysicalHeli` (1) fitted on all helis
       together, with the geometry as known input, so each new heli refines the scaling laws
       instead of getting its own constants. Report where a heli is off the shared law
