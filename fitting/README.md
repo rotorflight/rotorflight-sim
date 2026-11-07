@@ -263,9 +263,14 @@ The rate grows ~rpm on every size - flapping theory with stiffness ~rpm^2 and tf
 as the M7R preset already has it (`ctrl_rpm_exp` 0). The closed-loop gyro peak sits at
 2.2-2.6 Hz on all three, independent of size and headspeed. The rotor law fits R^2
 0.48-0.75 in the volts form (these ESCs add a throttle response of their own). Hover
-collective and the inflow law are NOT usable from these sport flights: there is little
-hover in them, and forward flight cannot be told apart without velocity (the inflow
-fit gives an inflow share above 100 %); segmentation (TODO 3) is needed first.
+collective comes from the hover segments only (`scripts/segment.py`: ground,
+autorotation, inverted, aerobatic, hover, cruise - hover is calm sticks, level within
+5 deg around the roll trim, |baro vario| < 0.5 m/s for 1.5 s), out of ground effect
+(1.5 m above the take-off ground; it clearly needs less collective near the ground), with
+a 5 s gate per headspeed. These sport flights pass it at one headspeed each: M6 0.340 at
+1600 rpm (7 s), M7R 0.351 at 1500 rpm (8 s; the preset's hand-picked 0.346). Every other
+headspeed has 0-3 s of hover - the inflow law needs a flight that hovers at two
+headspeeds (manoeuvre card).
 
 ## Gyro chip noise (`scripts/allan.py`)
 
