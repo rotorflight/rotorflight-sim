@@ -242,6 +242,16 @@ with `bbl.js decode <file> -o $FIT_DATA_DIR/<stem>` and found by stem. So far: t
 200 and the OMP M5, M6 and M7R (Rotorflight 4.6, Nexus XR, 12S, servo tails). Their
 geometry fields are empty - needed for the physical model (TODO 1).
 
+## Log intake (`scripts/intake.py`)
+
+```sh
+FIT_DATA_DIR=<decoded logs> python -I scripts/intake.py helis/<heli>/heli.json <log.bbl> ... [--dry-run]
+```
+
+Decodes the files, skips logs the heli file already has (by content, also across files),
+reports what each log can feed and what is missing, and adds the new logs to the heli
+file. How to fly and log for it: [`../CONTRIBUTING_LOGS.md`](../CONTRIBUTING_LOGS.md).
+
 ## Open-loop fits per heli (`scripts/fit_heli.py`)
 
 ```sh

@@ -10,6 +10,7 @@ can be flown without a heli.
 | [`heli/`](heli/README.md) | rigid-body helicopter with rotor flapping, a DC-motor rotor-speed model and the pack; drives from the firmware's servo outputs through inverse swash mixing; scripted flights, stick replay of real logs, and the hover check (`--check`). Python standard library only |
 | [`TODO.md`](TODO.md) | where the sim goes next: size presets from one physical model, gyro noise and vibration, a fitting pipeline for more helis, forward flight, autorotation |
 | [`fitting/`](fitting/README.md) | fitting a heli preset from blackbox logs, and validating it by replaying the real flight through the SITL; gyro chip noise (`sensors/`) and per-heli vibration and fits (`helis/`) |
+| [`CONTRIBUTING_LOGS.md`](CONTRIBUTING_LOGS.md) | how to log a flight for the sim: setup, a manoeuvre card, the heli file, checking a log with `fitting/scripts/intake.py` |
 | [`tests/`](tests/test_model.py) | unit tests of the model alone, without the firmware (`python3 -m unittest discover -s tests`) |
 
 ## Quick start

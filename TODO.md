@@ -76,9 +76,10 @@ heli and gives back a preset with its validation:
       version, CLI dump, and the list of logs with their headspeed and profile. Replaces
       the hard-coded flight lists in `common.py` and `fit_cyclic.py`. Started for the
       Stratos and the OMP M5, M6, M7R; their geometry fields are still empty (see 1)
-- [ ] **Log intake**: split, de-duplicate, decode (blackbox-decode skill), check that the
-      log has what the fits need (logging rate, debug mode, rpm and voltage fields, header
-      gains) and say what is missing
+- [x] **Log intake** (`intake.py`): decode, de-duplicate (by content, across files),
+      check what each log can feed (rate, gyroRAW, headspeed, power, baro, gains, hover per
+      headspeed, sharp inputs, airborne autorotation, GPS), say what is missing, and add
+      the logs to the heli file
 - [x] **Segmentation** (`segment.py`): ground, autorotation, inverted, aerobatic, hover and
       cruise per sample (hover from baro vario, attitude around the roll trim and calm
       sticks; in ground effect flagged); `fit_heli.py` takes its hover stage from it with a
@@ -99,7 +100,7 @@ heli and gives back a preset with its validation:
 - [ ] **Regression**: a small set of public, short log excerpts and their expected scores,
       replayed in CI (scheduled run, it is slow), so a model change that worsens a fitted
       heli shows up
-- [ ] **Contributing logs**: a page on how to log a flight for the sim - blackbox rate and
+- [x] **Contributing logs** (`CONTRIBUTING_LOGS.md`): a page on how to log a flight for the sim - blackbox rate and
       debug mode, CLI dump, the heli description, and a manoeuvre card (hover, sharp
       roll/pitch/collective doublets, frequency sweeps, a few seconds of each headspeed,
       piros, an autorotation if the heli does them). Logs stay out of the repository unless
