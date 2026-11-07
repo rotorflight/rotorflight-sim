@@ -24,6 +24,8 @@ tail type. New sizes should come from parameters, not from a fitting campaign.
 - [ ] The `Stratos200` and `M7R` fits as calibration points: `PhysicalHeli` with their
       geometry must come out near the fitted values. First check: the Stratos' Lb1s 1400 at
       3600 rpm scaled by rpm^2 gives ~350 at 1800 rpm, the M7R fit says 700
+- [ ] Rotor radius and hover induced velocity (`rotor_radius`, `v_hover`, used by the
+      inflow model) are typical values per size for now, not measured
 - [ ] Geometry and inertias of the fitted helis (blade length, chord and mass, mass, roll and
       pitch inertia, hub dampers) in their heli files - without them neither check above can
       run. The OMP M5, M6 and M7R logs (`fitting/helis/*/fit.json`) already show the rate per
@@ -108,8 +110,9 @@ heli and gives back a preset with its validation:
 No translational lift and the speed derivatives are off: replays need `--hold-alt`, and
 forward flight cannot be tested.
 
-- [ ] Translational lift (inflow with forward speed), flapback, dihedral (Lv, Mu),
-      weathervane (Nv), fuselage and tail drag
+- [x] Translational lift: the induced velocity follows forward speed (Glauert), and the
+      blade-element thrust its inflow
+- [ ] Flapback, dihedral (Lv, Mu), weathervane (Nv), fuselage and tail drag, parasite power
 - [ ] Fit them from logs with GPS speed (blackbox GPS fields) - add a GPS-logged flight to
       the manoeuvre card
 - [ ] Replays without `--hold-alt` hold height in cruise; a forward-flight and a piro check
@@ -119,17 +122,24 @@ forward flight cannot be tested.
 The rotor only loses speed to drag; upward airflow never drives it. Rotorflight's
 autorotation bailout and the governor's autorotation handling cannot be tested.
 
-- [ ] Rotor torque from inflow (descent drives the rotor), so the rotor speed holds in an
-      autorotation and decays with collective at the flare
-- [ ] Vortex ring state in steep powered descent (stretch)
-- [ ] An autorotation check: cut the motor at height, enter, flare, land; and the bailout
-      (governor spools back up within its limits)
+- [x] Rotor torque from inflow (descent drives the rotor), so the rotor speed holds in an
+      autorotation and decays with collective at the flare: momentum theory, the change of
+      induced power T (v_c + v_i) - T v_h. All three presets autorotate at 1 g, ~2 v_h sink
+- [x] Vortex ring state: the induced velocity follows Leishman's empirical fit between hover
+      and the windmill brake - no power relief from the descent there. Its thrust
+      fluctuations and roughness are not modelled
+- [x] An autorotation check (`--autorotation land`): cut the throttle at height (governor
+      AUTOROTATION), hold the headspeed on the collective, flare, land; and the bailout
+      (`--autorotation bailout`, governor BAILOUT)
+- [ ] Validate the sink rate and rotor decay against a logged autorotation (the M7R's
+      autorotation profile)
 
 ## 6. Ground
 
 The heli snaps level on the ground, and touchdown zeroes its velocity.
 
-- [ ] Ground effect (thrust gain below about one rotor diameter)
+- [x] Ground effect (thrust gain below about one rotor diameter, Cheeseman & Bennett on
+      the induced velocity)
 - [ ] Skid contact: spring, damping and friction per contact point, so tilt on landing,
       sliding, tip-over and a slope landing can happen
 - [ ] Ground resonance (stretch, needs a fuselage/hub mode)

@@ -75,6 +75,12 @@ jobs:
     - name: Rescue check
       run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --rescue --check
 
+    - name: Autorotation and landing (governor AUTOROTATION)
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --governor 2100 --autorotation land --check
+
+    - name: Autorotation bailout (governor BAILOUT)
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --governor 2100 --autorotation bailout --check
+
     - name: Hover check with vibration and gyro noise (RPM filter)
       run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --vibration omp_m7r --gyro-chip ICM40608 --check
 
@@ -126,6 +132,12 @@ jobs:
 
     - name: Rescue check
       run: python heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --rescue --check
+
+    - name: Autorotation and landing (governor AUTOROTATION)
+      run: python heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --governor 2100 --autorotation land --check
+
+    - name: Autorotation bailout (governor BAILOUT)
+      run: python heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --governor 2100 --autorotation bailout --check
 
     - name: Hover check with vibration and gyro noise (RPM filter)
       run: python heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --vibration omp_m7r --gyro-chip ICM40608 --check

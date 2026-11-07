@@ -11,7 +11,7 @@ import sys
 import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'heli'))
-from heli_model import G, MODELS, Heli, M7R, Stratos200, euler  # noqa: E402
+from heli_model import G, MODELS, Heli, M7R, Stratos200, euler, induced_velocity, ground_effect  # noqa: E402
 from sensors import Sensors, available  # noqa: E402
 
 DT = 250e-6
@@ -65,12 +65,12 @@ class Trim(unittest.TestCase):
 class RotorLaw(unittest.TestCase):
 
     def test_spool_up_settles(self):
-        """Constant throttle, collective at hover: the rotor speeds up monotonically to a
-        steady speed in the right range."""
+        """Constant throttle, half the hover collective (stays on the ground): the rotor
+        speeds up monotonically to a steady speed in the right range."""
         for name, cls in MODELS.items():
             with self.subTest(model=name):
                 h = cls()
-                c = -G / h.Zcol
+                c = -0.5 * G / h.Zcol
                 u = 0.65 if not h.motor_fit else 0.6
                 last, t = 0.0, 0.0
                 while t < 20.0:
@@ -238,6 +238,90 @@ class Integrator(unittest.TestCase):
                 f_run = mode_freq(cls(), dt=DT)
                 if f_ref:
                     self.assertAlmostEqual(f_run / f_ref, 1.0, delta=0.01)
+
+
+class Inflow(unittest.TestCase):
+    """Momentum theory: induced velocity, translational lift, ground effect, vortex ring,
+    and the autorotation it gives."""
+
+    def test_induced_velocity(self):
+        self.assertAlmostEqual(induced_velocity(3.0, 0.0, 0.0), 3.0)
+        # climb lowers it, the vortex ring raises it, the windmill brake brings it back down
+        self.assertLess(induced_velocity(3.0, 3.0, 0.0), 3.0)
+        self.assertGreater(induced_velocity(3.0, -3.0, 0.0), 1.5 * 3.0)
+        self.assertLess(induced_velocity(3.0, -9.0, 0.0), 3.0)
+        # forward flight: Glauert, vi -> vh^2 / V at speed
+        self.assertAlmostEqual(induced_velocity(3.0, 0.0, 15.0), 9.0 / 15.0, delta=0.02)
+        prev = 3.0
+        for vx in (1, 2, 4, 8):
+            vi = induced_velocity(3.0, 0.0, vx)
+            self.assertLess(vi, prev)
+            prev = vi
+
+    def test_ground_effect(self):
+        self.assertAlmostEqual(ground_effect(0.5, 100.0), 1.0, places=4)
+        self.assertLess(ground_effect(0.5, 0.3), 0.9)
+        self.assertGreaterEqual(ground_effect(0.5, 0.01), 0.5)
+
+    def steady(self, h, seconds=3.0, vel=(0.0, 0.0, 0.0), alt=100.0, coll=None):
+        """Thrust after a few seconds at the nominal rotor speed, with the velocity held."""
+        h.reset()
+        h.pos = [0.0, 0.0, -alt]
+        h.on_ground = False
+        h.ground = alt < 50
+        h.w = h.nominal_w
+        h.n = 1.0
+        c = h.coll_hover if coll is None else coll
+        for _ in range(int(seconds / DT)):
+            h.vel = list(vel)
+            h.rates = [0.0, 0.0, 0.0]
+            h.step(DT, 0.5, 0, 0, 0, c)
+            h.w = h.nominal_w
+        return h.n
+
+    def test_translational_lift(self):
+        for cls in (Heli, Stratos200, M7R):
+            with self.subTest(model=cls.__name__):
+                hover = self.steady(cls())
+                fwd = self.steady(cls(), vel=(10.0, 0.0, 0.0))
+                self.assertAlmostEqual(hover, 1.0, delta=0.03)
+                self.assertGreater(fwd, 1.15 * hover)
+
+    def test_ground_effect_thrust(self):
+        for cls in (Heli, Stratos200, M7R):
+            with self.subTest(model=cls.__name__):
+                oge = self.steady(cls())
+                ige = self.steady(cls(), alt=0.05)
+                self.assertGreater(ige, 1.05 * oge)
+
+    def test_vortex_ring_gives_no_power_relief(self):
+        """Sinking at about v_h the rotor sits in its own wake: the total inflow (v_c + v_i),
+        and with it the induced power, stays near hover - the descent buys nothing. Only
+        beyond ~2 v_h (windmill brake) does the inflow reverse and drive the rotor."""
+        for vh in (2.5, 3.3, 3.8):
+            hover = induced_velocity(vh, 0.0, 0.0)
+            ring = -vh + induced_velocity(vh, -vh, 0.0)
+            brake = -3 * vh + induced_velocity(vh, -3 * vh, 0.0)
+            self.assertAlmostEqual(ring / hover, 1.0, delta=0.1)
+            self.assertLess(brake, 0.0)
+
+    def test_autorotation(self):
+        """Motor off, free rotor and free fall at altitude: the airflow keeps the rotor
+        turning and the heli settles into a steady descent at 1 g of thrust, 1.5-3 v_h."""
+        for cls in (Heli, Stratos200, M7R):
+            with self.subTest(model=cls.__name__):
+                h = cls()
+                h.ground = False
+                h.on_ground = False
+                h.pos = [0.0, 0.0, -500.0]
+                h.w = h.nominal_w
+                h.n = 1.0
+                for _ in range(int(15 / DT)):
+                    h.step(DT, 0.0, 0, 0, 0, 0.3 * h.coll_hover)
+                    h.rates = [0.0, 0.0, 0.0]
+                self.assertAlmostEqual(h.n, 1.0, delta=0.05)
+                self.assertGreater(h.w, 0.7 * h.nominal_w)
+                self.assertTrue(1.5 * h.v_hover < h.vel[2] < 3.0 * h.v_hover, h.vel[2])
 
 
 class SensorModel(unittest.TestCase):
