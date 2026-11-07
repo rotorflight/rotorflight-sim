@@ -575,6 +575,7 @@ def main():
         ctrl = (0.0, 0.0, 0.0, 0.0, 0.0)    # throttle, roll, pitch, yaw, collective
         last_ctrl, ctrl_since, frozen = None, 0.0, 0.0   # a stalled SITL keeps replying stale outputs
         hold_i = 0.0
+        replay_resets = 0
         steps = int(seconds / DT)
         rc_every = int(0.02 / DT)
         timeouts = 0
@@ -619,14 +620,24 @@ def main():
             if ws or a.gust:
                 rel = [heli.vel[i] - heli.wind_e[i] for i in range(3)]
                 heli.wind_e = wind.step(DT, max(heli.altitude, 0.0), math.sqrt(sum(x * x for x in rel)))
-            heli.step(DT, *ctrl)
-            if (sticks and heli.ground and heli.w > 0.95 * heli.nominal_w
-                    and ctrl[4] > 0.9 * heli.coll_hover):
-                # The replayed collective is open loop: the pilot held height on the real
-                # heli, here thrust only roughly matches the weight. Release the heli from the
-                # ground once it is light on its skids; heave damping keeps the drift small.
-                heli.ground = False
-                heli.on_ground = False
+            if sticks and heli.on_ground:
+                # A replay starts mid-flight and flies open loop: the recorded cyclic belongs
+                # to the air, and on the skids it would tip the heli over. On the ground the
+                # model gets no cyclic - the pilot keeps it flat.
+                heli.step(DT, ctrl[0], 0.0, 0.0, ctrl[3], ctrl[4])
+                roll_, pitch_, yaw_ = euler(heli.q)
+                if max(abs(roll_), abs(pitch_)) > math.radians(20):
+                    # An open-loop replay drifts (the pilot corrected by eye) and now and then
+                    # comes down: set it back upright on its skids and fly on - what the old
+                    # ground model did on every touchdown. Counted, so a score can say so.
+                    heli.q = (math.cos(yaw_ / 2), 0.0, 0.0, math.sin(yaw_ / 2))
+                    heli.rates = [0.0, 0.0, 0.0]
+                    heli.vel = [0.0, 0.0, 0.0]
+                    heli.tpp = [0.0, 0.0]
+                    heli.set_altitude(0.0)
+                    replay_resets += 1
+            else:
+                heli.step(DT, *ctrl)
             if esc and n % esc_every == 0:
                 esc.send(esc_every * DT, ctrl[0], heli.motor_rpm * heli.motor_poles / 2, heli.vbat, heli.ibat)
             pressure = 101325.0 * (1 - 2.25577e-5 * heli.altitude) ** 5.25588
@@ -672,6 +683,8 @@ def main():
                              heli.vbat, heli.ibat, *heli.rates))
         real = time.time() - t0
         print('%.0f s simulated in %.0f s real, %d steps without reply' % (seconds, real, timeouts))
+        if sticks:
+            print('replay: set upright after %d tilted touchdowns' % replay_resets)
         if frozen >= 5.0:
             print('WARNING: FC outputs unchanged for %.1f s with the motor running - the SITL stalled?' % frozen)
         i = -1

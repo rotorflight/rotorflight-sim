@@ -314,7 +314,24 @@ so this holds in closed loop too. VAF 0.92-0.99:
   flapping alone.
 
 The M7R preset (L 700 / 700, tf 0.05, from the closed-loop replay sweep) sits between the
-roll and pitch values; a replay with per-axis values is the next check.
+roll and pitch values. Replayed (cruise profile, `m7r_sweep.py`, `tf_roll` / `tf_pitch`):
+
+| | roll err | roll 1.5-3 Hz | pitch err | pitch 1.5-3 Hz |
+|---|---|---|---|---|
+| real | 4.8 | 2.4 | 4.1 | 1.9 |
+| preset 700 / 700, tf 0.05 | 5.0 | 3.3 | 5.8 | 2.9 |
+| open-loop 1823 / 404, tf 0.021 / 0.070 | 2.8 | 1.9 | 6.1 | 3.8 |
+
+The open-loop values make roll track better than the real heli (calm air, no disturbances)
+and pitch worse; the preset stays. The open-loop fit's tf absorbs the delays of the whole
+loop (servos, filters), which the replay has on its own.
+
+**The replay itself, checked against the state before the session's model changes**
+(same profile, sim/real): the inflow torque in powered flight raised the throttle to 56.7 %
+(real 51.2) and the tail to -42 % (-21.7) - it is now only applied in descent (throttle
+48.1 / 51.1, yaw mixer -22.3 / -22.0, as before); and the replay needed an explicit
+upright reset on tilted touchdowns, which the old ground model did silently (92 % above
+1 m with 7 resets, before 95 %).
 
 ## Gyro chip noise (`scripts/allan.py`)
 
@@ -354,6 +371,13 @@ reference headspeed, deg/s peak, roll / pitch / yaw:
 | M5 (1900 rpm) | 6.8 / 4.7 / 1.4 | 13.3 / 3.9 / 4.2 | 3.7 / 1.6 / 1.5 | 13.0 / 1.2 / 1.2 | 4.1 / 0.5 / 3.0 | 2.9 / 0.7 / 0.6 | 0.15 |
 | M6 (1900 rpm) | 10.5 / 9.4 / 1.9 | 4.8 / 3.1 / 1.0 | 3.6 / 1.6 / 1.6 | 25.2 / 3.1 / 3.0 | 4.6 / 0.3 / 3.1 | 3.0 / 0.9 / 2.4 | 0.15 |
 | M7R (1800 rpm) | 3.9 / 5.3 / 3.2 | 9.4 / 4.1 / 2.8 | 4.9 / 1.6 / 1.0 | 2.0 / 0.6 / 0.4 | 3.3 / 0.4 / 2.0 | 1.3 / 0.2 / 1.3 | 0.07 |
+| Stratos 200 (3600 rpm) | 17.7 / 5.4 / 30.6 | 8.9 / 3.5 / 9.4 | 3.0 / 4.4 / 1.8 (with the tail) | - | - | - (direct drive) | 0.13 |
+
+The Stratos is direct drive with a motorized tail: no motor line apart from the rotor's,
+and its tail turns at 3-4.6x the main rotor (median 4.05), moving by 4-5 % within 4 s as
+the yaw control - it never holds still long enough to be tracked on its own and sits in
+the main 4x line it crosses (`vibration.py` tracks a motorized tail at its own logged
+speed where it does hold). Its main 1x is strong on yaw and roll.
 
 The tail rotor's 1x on the roll axis is the strongest line on the M5 and M6. The rpm
 exponents scatter (two headspeeds per heli, different manoeuvres); the sensor model

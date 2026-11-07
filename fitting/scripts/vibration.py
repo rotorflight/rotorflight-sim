@@ -39,9 +39,15 @@ FLOOR = (0.04, 0.10)
 
 
 def sources(heli):
+    """(kind, harmonic, order): orders of the main rotor, except kind 'tailmotor' - a
+    motorized tail turns at its own speed, its harmonics are orders of the tail rotor
+    (the log's tailspeed)."""
     out = [('main', k, float(k)) for k in (1, 2, 3, 4)]
-    tr = heli.get('tail', {}).get('gear_ratio')
-    if tr:
+    tail = heli.get('tail', {})
+    tr = tail.get('gear_ratio')
+    if tail.get('type') == 'motor':
+        out += [('tailmotor', k, float(k)) for k in (1, 2)]
+    elif tr:
         out += [('tail', k, k * tr) for k in (1, 2, 3)]
     gr = heli.get('drive', {}).get('gear_ratio')
     if gr and gr != 1.0:
@@ -91,7 +97,7 @@ def main():
     a = ap.parse_args()
     heli = json.load(open(a.heli))
     src = sources(heli)
-    rows = []          # (rpm, coll, src index, axis, amp)
+    rows = []          # (rpm the source is locked to, coll, src index, axis, amp)
     floors = []        # (rpm, axis, asd 100-450 Hz)
     order_spec = {}    # rounded rpm level -> list of (orders, P) per axis
     for entry in heli['logs']:
@@ -106,6 +112,7 @@ def main():
             continue
         fs = 1.0 / log.dt
         hs = log.c('headspeed')
+        tsp = log.c('tailspeed') if 'tailspeed' in log.N else None
         coll = log.c('mixer[3]') / 1000 if 'mixer[3]' in log.N else np.zeros(len(hs))
         air = airborne(log)
         g = [log.c('gyroRAW[%d]' % i) for i in range(3)]
@@ -121,27 +128,41 @@ def main():
                 continue
             used += 1
             f0 = m / 60
+            # a motorized tail counts only where its own speed is steady too
+            tm = tsp[sl].mean() if tsp is not None else 0.0
+            tail_ok = tsp is not None and tm > 500 and tsp[sl].std() < 0.01 * tm
+
+            def lock(kind):
+                return (tm if kind == 'tailmotor' else m), (tm / 60 if kind == 'tailmotor' else f0)
             for ax in range(3):
                 f, P = welch(g[ax][sl] - g[ax][sl].mean(), fs=fs, nperseg=int(fs))
                 df = f[1] - f[0]
-                freqs = [o * f0 for _, _, o in src]
-                for si, (_, _, order) in enumerate(src):
-                    fc = order * f0
+                freqs = [o * lock(kind)[1] for kind, _, o in src if kind != 'tailmotor' or tail_ok]
+                for si, (kind, _, order) in enumerate(src):
+                    if kind == 'tailmotor' and not tail_ok:
+                        continue
+                    rpm_l, base = lock(kind)
+                    fc = order * base
                     if fc > 0.45 * fs:
                         continue
                     pw, _ = band_power(f, P, fc, df, freqs)
-                    rows.append((m, coll[sl].mean(), si, ax, np.sqrt(2 * pw)))
+                    rows.append((rpm_l, coll[sl].mean(), si, ax, np.sqrt(2 * pw)))
                 hb = (f >= 100) & (f <= 0.45 * fs)
-                for _, _, order in src:
-                    hb &= np.abs(f - order * f0) > max(3.0, 0.05 * order * f0)
+                for fc in freqs:
+                    hb &= np.abs(f - fc) > max(3.0, 0.05 * fc)
                 floors.append((m, ax, float(np.sqrt(np.median(P[hb])))))
                 lvl = int(round(m, -2))
                 order_spec.setdefault(lvl, [[], [], []])[ax].append((f / f0, P))
         print('%s: %d windows of %.0f s' % (name, used, WIN))
     if not rows:
         raise SystemExit('no usable windows')
+    if any(kind == 'tailmotor' for kind, _, _ in src) and not any(
+            src[int(r[2])][0] == 'tailmotor' for r in rows):
+        print('motorized tail: its speed never held within 1 %% over %.0f s (it is the yaw control) - '
+              'no tail lines; they stay in the main rotor lines they cross' % WIN)
     rows = np.array(rows)
-    rpm_ref = float(np.median(rows[:, 0]))
+    main_rows = np.isin(rows[:, 2], [i for i, (kind, _, _) in enumerate(src) if kind != 'tailmotor'])
+    rpm_ref = float(np.median(rows[main_rows, 0]))
     out = {'heli': heli['name'], 'rpm_ref': round(rpm_ref), 'source': 'gyroRAW, order tracking (vibration.py)',
            'windows': int(len(rows) / 3 / len(src)) if len(src) else 0, 'harmonics': []}
     print('\nreference %.0f rpm; amplitude deg/s (peak) per axis at it, rpm exponent, relative width' % rpm_ref)
@@ -150,19 +171,20 @@ def main():
         if not sel.any():
             continue
         amp, expo = [], []
+        ref = rpm_ref if kind != 'tailmotor' else float(np.median(rows[sel, 0]))
         for ax in range(3):
             s = sel & (rows[:, 3] == ax) & (rows[:, 4] > 0)
             if s.sum() < 5:
                 amp.append(0.0); expo.append(0.0)
                 continue
-            x, y = np.log(rows[s, 0] / rpm_ref), np.log(rows[s, 4])
+            x, y = np.log(rows[s, 0] / ref), np.log(rows[s, 4])
             if np.ptp(x) > 0.05:
                 kk, c0 = np.polyfit(x, y, 1)
             else:
                 kk, c0 = 0.0, np.median(y)
             amp.append(float(np.exp(c0))); expo.append(float(kk))
         width = []
-        for ax in range(3):
+        for ax in range(3 if kind != 'tailmotor' else 0):
             num = den = 0.0
             for lvl, per_ax in order_spec.items():
                 for o, P in per_ax[ax]:
@@ -174,12 +196,18 @@ def main():
                     num += np.sum(p * (o[w] - order) ** 2)
                     den += np.sum(p)
             width.append(float(np.sqrt(num / den) / order) if den > 0 else 0.0)
-        out['harmonics'].append({'source': kind, 'n': k, 'order': round(order, 4),
-                                 'amp_dps': [round(v, 3) for v in amp],
-                                 'rpm_exp': [round(v, 2) for v in expo],
-                                 'rel_width': [round(v, 4) for v in width]})
-        print('  %-5s %dx  order %6.3f   amp %6.2f %6.2f %6.2f   exp %+5.2f %+5.2f %+5.2f   width %.3f %.3f %.3f'
-              % (kind, k, order, *amp, *expo, *width))
+        width = width or [0.0, 0.0, 0.0]
+        h = {'source': kind, 'n': k, 'order': round(order, 4),
+             'amp_dps': [round(v, 3) for v in amp],
+             'rpm_exp': [round(v, 2) for v in expo],
+             'rel_width': [round(v, 4) for v in width]}
+        if kind == 'tailmotor':
+            # locked to the tail rotor's own speed, amplitudes at its reference speed
+            h.update(locked='tail', rpm_ref=round(ref))
+        out['harmonics'].append(h)
+        print('  %-9s %dx  order %6.3f   amp %6.2f %6.2f %6.2f   exp %+5.2f %+5.2f %+5.2f   width %.3f %.3f %.3f%s'
+              % (kind, k, order, *amp, *expo, *width,
+                 '   (tail rotor orders, at %.0f rpm)' % ref if kind == 'tailmotor' else ''))
     fl = np.array(floors)
     out['floor_asd_dps_rthz'] = [round(float(np.median(fl[fl[:, 1] == ax, 2])), 4) for ax in range(3)]
     print('broadband floor 100 Hz-Nyquist, deg/s/rtHz: %s' % out['floor_asd_dps_rthz'])
@@ -200,7 +228,9 @@ def main():
                 spec = np.median([np.interp(grid, o, P) for o, P in per_ax[ax]], axis=0)
                 axs[ax].semilogy(grid, np.sqrt(spec), lw=0.7, label='%d rpm (%d windows)' % (lvl, len(per_ax[ax])))
             for kind, k, order in src:
-                axs[ax].axvline(order, color={'main': 'k', 'tail': 'r', 'motor': 'b'}[kind], alpha=0.25, lw=0.8)
+                if kind == 'tailmotor':
+                    continue            # not a main rotor order
+                axs[ax].axvline(order, color={'main': 'k', 'tail': 'r', 'motor': 'b', 'tailmotor': 'm'}[kind], alpha=0.25, lw=0.8)
             axs[ax].set_ylabel('%s deg/s/rtHz' % AXES[ax])
             axs[ax].grid(True, which='both', alpha=0.3)
             axs[ax].legend(fontsize=8)

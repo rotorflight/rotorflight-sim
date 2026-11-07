@@ -1,0 +1,93 @@
+{
+ "heli": "Stratos 200 (Bo105 fuselage)",
+ "rpm_ref": 3599,
+ "source": "gyroRAW, order tracking (vibration.py)",
+ "windows": 154,
+ "harmonics": [
+  {
+   "source": "main",
+   "n": 1,
+   "order": 1.0,
+   "amp_dps": [
+    17.677,
+    5.413,
+    30.587
+   ],
+   "rpm_exp": [
+    9.58,
+    5.37,
+    12.67
+   ],
+   "rel_width": [
+    0.0098,
+    0.01,
+    0.0098
+   ]
+  },
+  {
+   "source": "main",
+   "n": 2,
+   "order": 2.0,
+   "amp_dps": [
+    8.909,
+    3.504,
+    9.348
+   ],
+   "rpm_exp": [
+    -13.54,
+    -17.78,
+    -6.33
+   ],
+   "rel_width": [
+    0.0232,
+    0.0228,
+    0.0245
+   ]
+  },
+  {
+   "source": "main",
+   "n": 3,
+   "order": 3.0,
+   "amp_dps": [
+    3.407,
+    3.871,
+    1.419
+   ],
+   "rpm_exp": [
+    2.14,
+    12.7,
+    0.51
+   ],
+   "rel_width": [
+    0.0131,
+    0.0077,
+    0.0195
+   ]
+  },
+  {
+   "source": "main",
+   "n": 4,
+   "order": 4.0,
+   "amp_dps": [
+    2.947,
+    4.396,
+    1.803
+   ],
+   "rpm_exp": [
+    8.94,
+    5.94,
+    7.83
+   ],
+   "rel_width": [
+    0.0299,
+    0.0253,
+    0.031
+   ]
+  }
+ ],
+ "floor_asd_dps_rthz": [
+  0.1328,
+  0.0656,
+  0.0457
+ ]
+}
