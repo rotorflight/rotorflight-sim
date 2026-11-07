@@ -582,8 +582,8 @@ class Stratos200(Heli):
       Stiffness ~ rpm^2 and tf ~ 1/rpm: at 3300 rpm the replay whirls at 5.1 Hz (real
       4.94; 5.9 without the scaling), with too little amplitude (7 vs 10 deg/s roll).
     Not identifiable from those flights: cross coupling and speed derivatives (off).
-    Fly it with the heli's CLI dump (--dump): the scripted flight's default configuration
-    does not set up the motorized tail.
+    Fly it with the heli's CLI dump (--dump heli/replays/stratos_3300/dump.txt): on the
+    bridge's default gains the motorized tail does not hold the yaw.
     """
     motor_fit = (987.74, 16.843, 7.003e-4, 1.101e-2, 2.0)
     motor_poles = 24

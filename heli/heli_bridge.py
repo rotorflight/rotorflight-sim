@@ -189,7 +189,8 @@ def schedule(t, governor=False, acro=False, hover=215.0):
     """Scripted pilot: returns (throttle, collective, aux1 arm, aux2 angle, roll, pitch, yaw) in us.
     Without the governor the throttle stick ramps to 65 % (the model's hover throttle at
     nominal headspeed); with it the stick goes to 100 % and the governor spools up.
-    The collective goes relative to hover (us above centre, hover_us(); the Blade 360 215)."""
+    The collective goes in proportion to hover (us above centre, hover_us(); the Blade 360
+    215, whose margins the ratios keep)."""
     arm = 1900 if 6.0 <= t < 34.0 else 1000
     angle = 1000 if acro else 1900
     thr = 1000
@@ -198,11 +199,11 @@ def schedule(t, governor=False, acro=False, hover=215.0):
     # collective: ~2.05e-3 per us at the mixer; the Blade 360 hovers at 0.44 (215 us) at 2100 rpm
     coll = 1500 - 150                                            # low pitch on the ground
     if 18.0 <= t < 26.0:
-        coll = 1500 + hover + 15                                 # lift off, climb slowly
+        coll = 1500 + hover * 230 / 215                          # lift off, climb slowly
         if 24.0 <= t < 25.0:
-            coll = 1500 + hover + 115                            # 1 s punch: loads the governor
+            coll = 1500 + hover * 330 / 215                      # 1 s punch: loads the governor
     elif 26.0 <= t < 33.0:
-        coll = 1500 + hover - 20                                 # descend and land
+        coll = 1500 + hover * 195 / 215                          # descend and land
     if acro:
         # doublets: 0.5 s one way, hold 1 s, 0.5 s back - the attitude must be held in
         # between and come back level
@@ -225,8 +226,9 @@ class RescuePilot:
     CLIMB_END = 27.0          # angle-mode climb 18-27 s
     RESCUE_HOLD = 6.0
 
-    def __init__(self, hover=215.0):
+    def __init__(self, hover=215.0, governor=False):
         self.hover = hover        # hover collective, us above centre (hover_us())
+        self.governor = governor  # full throttle stick for the governor, as schedule()
         self.t_inverted = None    # sticks released, heli inverted
         self.t_rescue = None      # rescue switch on
         self.t_end = None         # rescue off, angle mode, descend
@@ -234,10 +236,12 @@ class RescuePilot:
     def rc(self, t, heli):
         arm = 1900 if t >= 6.0 and (self.t_end is None or t < self.t_end + 8.0) else 1000
         thr = 1000 + min(1.0, max(0.0, (t - 8.0) / 4.0)) * 650 if t >= 8.0 else 1000
+        if self.governor and t >= 8.0:
+            thr = 2000
         h = self.hover
         coll, angle, roll, aux3 = 1500 - 150, 1900, 1500, 1000
         if 18.0 <= t < self.CLIMB_END:
-            coll = 1500 + h + 45                                   # climb to height
+            coll = 1500 + h * 260 / 215                            # climb to height
         elif t >= self.CLIMB_END and self.t_inverted is None:
             angle = 1000                                           # acro
             bank = abs(math.degrees(euler(heli.q)[0]))
@@ -256,7 +260,7 @@ class RescuePilot:
             elif self.t_rescue is not None:
                 if self.t_end is None:
                     self.t_end = t
-                coll, angle = 1500 + h - 20, 1900                  # angle mode, descend
+                coll, angle = 1500 + h * 195 / 215, 1900           # angle mode, descend
         return thr, coll, arm, angle, roll, 1500, 1500, aux3
 
 
@@ -500,6 +504,8 @@ def main():
         a.model, a.governor, a.hold_alt = case['model'], case['governor'], case['hold_alt']
         a.replay = os.path.join(a.replay_case, 'sticks.csv')
         a.cli_file = os.path.join(a.replay_case, 'tune.txt')
+        if case.get('dump'):
+            a.dump = os.path.join(a.replay_case, case['dump'])
     elf = os.path.abspath(a.elf)
     rundir = tempfile.mkdtemp(prefix='heli-bridge-')
 
@@ -540,7 +546,7 @@ def main():
         print(wind.describe(), 'from %.0f deg' % wd)
     sticks = load_sticks(a.replay) if a.replay else None
     seconds = (REPLAY_LEAD + sticks[-1][0] - sticks[0][0] + REPLAY_TAIL) if sticks else a.seconds
-    pilot = RescuePilot(hover_us(heli)) if a.rescue else None
+    pilot = RescuePilot(hover_us(heli), bool(a.governor)) if a.rescue else None
     if pilot and a.seconds == ap.get_default('seconds'):
         seconds = 46.0
     if a.autorotation:
@@ -565,8 +571,9 @@ def main():
         # hovers at 0.44 (the defaults 450/350 are below it): 600 / 450
         hov = round(1000 * heli.coll_hover)
         commands += ['aux 2 53 2 1700 2100 0 0', 'set rescue_mode = CLIMB',
-                     'set rescue_climb_collective = %d' % (hov + 160),
-                     'set rescue_hover_collective = %d' % (hov + 10)]
+                     'set rescue_climb_collective = %d' % round(hov * 600 / 440),
+                     'set rescue_hover_collective = %d' % round(hov * 450 / 440),
+                     'set rescue_pull_up_time = 3', 'set rescue_climb_time = 10']
     if a.bbl:
         # each run starts on fresh flash: log from its start, no ring-buffer erasing
         commands += ['set blackbox_mode = ARMED', 'set blackbox_rolling_erase = OFF', 'set blackbox_initial_erase_kb = 0']
@@ -842,35 +849,50 @@ def main():
         if sticks:
             if not case:
                 sys.exit('--check with a replay needs --replay-case (the reference to judge against)')
-            sys.exit(0 if check_replay(rows, timeouts, steps, replay_resets, case) else 1)
+            sys.exit(0 if check_replay(rows, timeouts, steps, replay_resets, case, heli.tail_motor) else 1)
         sys.exit(0 if check_flight(rows, timeouts, steps, a.governor, vib_rms,
                                    slope and (slope[0], heli)) else 1)
 
 
-def check_replay(rows, timeouts, steps, resets, case):
+def check_replay(rows, timeouts, steps, resets, case, tail_motor=False):
     """A recorded flight replayed open loop (with the height-hold pilot): the model must
     keep flying it, and the trim it needs - throttle under the governor, tail pitch against
     the torque - must stay near the real flight's. Medians over the scored window, at the
-    instants the sim flies above 1 m (the real ones from the log over its whole window)."""
+    instants the sim flies above 1 m (the real ones from the log over its whole window).
+    With the real pack voltage in the case ("vbat"), motor commands compare as motor volts:
+    the sim's throttle (and a tail motor) scaled by its own pack voltage over the real one.
+    A quantity with a known model gap can carry a sim baseline ("baseline"): it is judged
+    against that, with the real value printed beside it, so the case still catches changes."""
     t0, t1 = case['window']
     span = [r for r in rows if t0 <= r[0] <= t1]
     up = [r for r in span if r[1] > 1.0]
     share = len(up) / max(1, len(span))
 
-    def median(col):
-        v = sorted(r[col] for r in up)
+    real, tol = case['real'], case['tolerance']
+    base = case.get('baseline', {})
+    ref = dict(real, **base)
+    VBAT = 11
+
+    def against(k):
+        return ('the sim baseline %.1f %% (real %.1f %%, a known gap)' % (base[k], real[k]) if k in base
+                else 'the real %.1f %%' % real[k])
+
+    def median(col, volts=False):
+        k = (lambda r: r[VBAT] / real['vbat']) if volts and real.get('vbat') else (lambda r: 1.0)
+        v = sorted(r[col] * k(r) for r in up)
         return 100 * v[len(v) // 2] if v else float('nan')
 
-    ref, tol = case['real'], case['tolerance']
-    thr, yaw = median(7), median(16)
+    thr, yaw = median(7, True), median(16, tail_motor)
+    at = ' at %.1f V' % real['vbat'] if real.get('vbat') else ''
     checks = [
         ('airborne: above 1 m for %.0f %% of %g-%g s' % (100 * tol['airborne'], t0, t1),
          share >= tol['airborne'], '%.0f %%, lowest %.1f m' % (100 * share, min(r[1] for r in span))),
         ('upright resets after tilted touchdowns: at most %d' % tol['resets'], resets <= tol['resets'],
          '%d' % resets),
-        ('throttle: median within %g points of the real %.1f %%' % (tol['throttle'], ref['throttle']),
+        ('throttle: median within %g points of %s%s' % (tol['throttle'], against('throttle'), at),
          abs(thr - ref['throttle']) <= tol['throttle'], '%.1f %%' % thr),
-        ('tail trim: median yaw mix within %g points of the real %.1f %%' % (tol['yaw_mix'], ref['yaw_mix']),
+        ('tail trim: median yaw mix within %g points of %s%s'
+         % (tol['yaw_mix'], against('yaw_mix'), at if tail_motor else ''),
          abs(yaw - ref['yaw_mix']) <= tol['yaw_mix'], '%.1f %%' % yaw),
         ('lockstep: under 1 % of steps without reply', timeouts <= steps // 100, '%d of %d' % (timeouts, steps)),
     ]

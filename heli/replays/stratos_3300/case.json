@@ -1,0 +1,26 @@
+{
+  "description": "Stratos 200 in a Bo105 fuselage (motorized tail, 4S), 3300 rpm governor, 60 s of recorded sticks (real log 20261008_160146_11, 65-125 s); sim time = real - 57 s",
+  "model": "stratos200",
+  "governor": 3300,
+  "hold_alt": 10,
+  "dump": "dump.txt",
+  "window": [
+    30,
+    60
+  ],
+  "real": {
+    "throttle": 45.4,
+    "yaw_mix": 25.6,
+    "vbat": 14.59
+  },
+  "tolerance": {
+    "airborne": 0.85,
+    "resets": 12,
+    "throttle": 5,
+    "yaw_mix": 5
+  },
+  "baseline": {
+    "yaw_mix": 19.3
+  },
+  "baseline_note": "the model tail motor holds the 3300 rpm forward flying with 19.3 % (in motor volts at 14.6 V) where the real heli used 25.6 %: the Stratos tail was fitted in hover at 3600 rpm (TODO 9)"
+}

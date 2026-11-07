@@ -47,10 +47,12 @@ deg and come back within 3 deg, no excursion beyond 35 deg, yaw held, lockstep r
 and with `--governor` headspeed within 3 %) and exits 1 on a failure - the closed-loop
 regression gate CI runs. A board-alignment error, for example, fails it.
 
-The scripted pilots fly the collective relative to the preset's hover collective (the
-Blade 360 215 us above centre, the M7R 133, the Stratos 310), and the rescue collectives
-follow it, so the same flight runs on every preset. A preset with a motorized tail gets
-`tail_rotor_mode = MOTORIZED` without a dump.
+The scripted pilots fly the collective in proportion to the preset's hover collective
+(the Blade 360 215 us above centre, the M7R 133, the Stratos 310), keeping the Blade 360's
+ratios, and so do the rescue collectives; under the governor the throttle stick goes to
+full. The same flight runs on every preset. A preset with a motorized tail gets
+`tail_rotor_mode = MOTORIZED` without a dump, but the Stratos needs its own dump
+(`heli/replays/stratos_3300/dump.txt`) to hold the yaw.
 
 `--slope DEG[,UPHILL_DEG]` tilts the ground (rising towards UPHILL_DEG, default 90: across
 the skids). The heli is set down on it at 4 s, after the accelerometer calibration on level
@@ -160,8 +162,18 @@ the flight:
   against the real flight's over the window - the power and torque balance of the preset
 - lockstep: steps without a reply
 
-CI runs `m7r_cruise` (100 s of OMP M7R cruise at 1500 rpm, about 5 min). Model changes broke
-this replay twice without another check noticing: double-counted rotor power (too much
+A case can bring the heli's CLI dump (`"dump"`), the real pack voltage (`"vbat"` in `real`:
+throttle, and a tail motor, then compare as motor volts - the sim's command scaled by its
+pack voltage over the real one) and a sim baseline for a quantity with a known model gap
+(`"baseline"`, judged against that with the real value printed beside it).
+
+| case | flight | real | sim |
+|---|---|---|---|
+| `m7r_cruise` | OMP M7R, 1500 rpm cruise, 100 s | throttle 51.0 % at 45.5 V, tail -21.4 % | 51.9 %, -22.4 % |
+| `stratos_3300` | Stratos 200 (Bo105, motorized tail), 3300 rpm, 60 s | throttle 45.4 % at 14.6 V, tail motor 25.6 % | 44.3 %, 19.3 % (baseline) |
+
+CI runs both (about 2 and 1 min on Linux). Model changes broke
+the M7R replay twice without another check noticing: double-counted rotor power (too much
 throttle and tail) and the skid contact (the heli fell away).
 
 ## Frames

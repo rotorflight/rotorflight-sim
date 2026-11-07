@@ -84,6 +84,12 @@ jobs:
     - name: Take-off and landing on a 15 deg slope
       run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --slope 15 --check
 
+    - name: Hover check, 200 class (Stratos preset, motorized tail, its CLI dump)
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --model stratos200 --dump heli/replays/stratos_3300/dump.txt --seconds 34 --governor 3600 --check
+
+    - name: Rescue check, 200 class (Stratos preset, its CLI dump)
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --model stratos200 --dump heli/replays/stratos_3300/dump.txt --governor 3600 --rescue --check
+
     - name: Hover check in wind (5 m/s crosswind, Dryden gusts)
       run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --wind 5,90 --gust 1.0 --check
 
@@ -112,6 +118,9 @@ jobs:
 
     - name: Replay of a real flight (OMP M7R cruise, against the real throttle and tail trim)
       run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --replay-case heli/replays/m7r_cruise --check
+
+    - name: Replay of a real flight (Stratos 200, 3300 rpm, motorized tail)
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --replay-case heli/replays/stratos_3300 --check
 
   windows:
 
