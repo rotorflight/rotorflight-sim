@@ -586,6 +586,7 @@ def main():
     vib_rms = None
     if vib_probe:
         fw = [r for r in imu_fw if int(round(r[0] / DT)) in vib_probe]
+        vib_rms = []
         if fw:
             # firmware gyro (sensor frame: pitch and yaw opposite to FRD) against the model's
             # true rates; the RMS of the difference is the vibration and noise that got through
@@ -633,7 +634,10 @@ def check_flight(rows, timeouts, steps, governor, vib_rms=None):
         dev = max(abs(v - governor) for v in span(20, 33, RPM)) / governor
         checks.append(('governor: headspeed within 3 %% of %d rpm, 20-33 s' % governor, dev < 0.03,
                        '%.1f %%' % (100 * dev)))
-    if vib_rms is not None:
+    if vib_rms == []:
+        # the gyro was to be sampled but no MSP_RAW_IMU reply came back: no evidence, a failure
+        checks.append(('vibration filtered: filtered gyro sampled over MSP, 26.5-32 s', False, 'no samples'))
+    elif vib_rms is not None:
         checks.append(('vibration filtered: gyro error RMS below %.0f deg/s per axis, 26.5-32 s' % VIB_RMS_MAX,
                        max(vib_rms) < VIB_RMS_MAX, '%.2f / %.2f / %.2f deg/s' % tuple(vib_rms)))
     ok = True

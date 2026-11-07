@@ -19,6 +19,9 @@ on:
         description: 'Firmware branch, tag or commit'
         required: false
 
+permissions:
+  contents: read
+
 env:
   # The lockstep SITL is in rotorflight/rotorflight-firmware#596; switch to
   # rotorflight/rotorflight-firmware master once it is merged.
@@ -77,8 +80,13 @@ jobs:
 
     - name: The vibration check fails without the RPM filter
       run: |
-        if python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --vibration omp_m7r --gyro-chip ICM40608 --cli "feature -RPM_FILTER" --check; then
-          echo "::error::the vibration check passed with the RPM filter off"; exit 1
+        # it must fail on the filtered gyro error, not on a crash or another check
+        rc=0
+        python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --vibration omp_m7r --gyro-chip ICM40608 --cli "feature -RPM_FILTER" --check > vib_off.log 2>&1 || rc=$?
+        cat vib_off.log
+        if [ "$rc" -eq 0 ] || ! grep -q '^FAIL vibration filtered: gyro error' vib_off.log \
+           || grep '^FAIL' vib_off.log | grep -vq 'vibration filtered'; then
+          echo "::error::the vibration check did not fail on the filtered gyro error alone with the RPM filter off"; exit 1
         fi
 
   windows:

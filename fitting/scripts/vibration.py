@@ -69,8 +69,15 @@ def airborne(log):
     return air
 
 
-def band_power(f, P, fc, df):
+def band_power(f, P, fc, df, others=()):
+    """Power of the harmonic at fc above the local floor. Its band is +-BAND (at least
+    1.5 Hz), but at most half the distance to the nearest other harmonic, so two close
+    lines (the M6's tail 2x at 9.5 and motor 1x at 9.31 orders) split the bins between
+    them instead of both counting the same peak."""
     half = max(1.5, BAND * fc)
+    near = [abs(o - fc) for o in others if o != fc]
+    if near:
+        half = min(half, 0.5 * min(near))
     k = np.abs(f - fc) <= half
     fl = (np.abs(f - fc) >= FLOOR[0] * fc + half) & (np.abs(f - fc) <= FLOOR[1] * fc + half)
     floor = np.median(P[fl]) if fl.any() else 0.0
@@ -117,11 +124,12 @@ def main():
             for ax in range(3):
                 f, P = welch(g[ax][sl] - g[ax][sl].mean(), fs=fs, nperseg=int(fs))
                 df = f[1] - f[0]
+                freqs = [o * f0 for _, _, o in src]
                 for si, (_, _, order) in enumerate(src):
                     fc = order * f0
                     if fc > 0.45 * fs:
                         continue
-                    pw, _ = band_power(f, P, fc, df)
+                    pw, _ = band_power(f, P, fc, df, freqs)
                     rows.append((m, coll[sl].mean(), si, ax, np.sqrt(2 * pw)))
                 hb = (f >= 100) & (f <= 0.45 * fs)
                 for _, _, order in src:
@@ -136,7 +144,7 @@ def main():
     rpm_ref = float(np.median(rows[:, 0]))
     out = {'heli': heli['name'], 'rpm_ref': round(rpm_ref), 'source': 'gyroRAW, order tracking (vibration.py)',
            'windows': int(len(rows) / 3 / len(src)) if len(src) else 0, 'harmonics': []}
-    print('\nreference %.0f rpm; amplitude deg/s (peak) per axis at it, rpm exponent, relative width')
+    print('\nreference %.0f rpm; amplitude deg/s (peak) per axis at it, rpm exponent, relative width' % rpm_ref)
     for si, (kind, k, order) in enumerate(src):
         sel = rows[:, 2] == si
         if not sel.any():
