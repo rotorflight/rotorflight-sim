@@ -233,6 +233,86 @@ python -I scripts/m7r_sweep.py [-p 1|2|3] <elf> data/m7r.0.npy replay/m7r replay
 Found on the way: the SITL read a 12S pack as 36.3 V - its emulated ADC clipped at the
 generic scale's full range; fixed in rotorflight-firmware#596 (scale 250, 82.5 V).
 
+## Heli files (`helis/<heli>/heli.json`)
+
+One file per heli: hardware (pack, gear and tail ratios, motor, tail type, gyro chip,
+geometry), firmware, and its logs with the headspeeds flown. The scripts below take it
+instead of hard-coded flight lists and write their results next to it. Logs are decoded
+with `bbl.js decode <file> -o $FIT_DATA_DIR/<stem>` and found by stem. So far: the Stratos
+200 and the OMP M5, M6 and M7R (Rotorflight 4.6, Nexus XR, 12S, servo tails). Their
+geometry fields are empty - needed for the physical model (TODO 1).
+
+## Open-loop fits per heli (`scripts/fit_heli.py`)
+
+```sh
+FIT_DATA_DIR=<decoded logs> python -I scripts/fit_heli.py helis/omp_m6/heli.json   # -> helis/omp_m6/fit.json
+```
+
+The stages of `m7r_fit.py` from the heli file, pooled over its logs and split by
+headspeed: rotor law, hover collective, rate gains, servo-tail yaw, whirl peak. The three
+OMP helis (same pilot and tune), rate per cyclic in rad/s per unit mixer input (roll /
+pitch, coherence 0.6-0.9):
+
+| | 1600 rpm | 1900 rpm | 2200 rpm |
+|---|---|---|---|
+| M5 | 4.95 / 4.39 | 5.36 / 6.66 | 8.22 / 7.44 |
+| M6 | 4.47 / 4.85 | 5.78 / 6.66 | 8.12 / 6.35 |
+| M7R (1500 / 1800 / 2100) | 4.89 / 5.88 | 6.74 / 7.59 | 7.88 / 8.30 |
+
+The rate grows ~rpm on every size - flapping theory with stiffness ~rpm^2 and tf ~1/rpm,
+as the M7R preset already has it (`ctrl_rpm_exp` 0). The closed-loop gyro peak sits at
+2.2-2.6 Hz on all three, independent of size and headspeed. The rotor law fits R^2
+0.48-0.75 in the volts form (these ESCs add a throttle response of their own). Hover
+collective and the inflow law are NOT usable from these sport flights: there is little
+hover in them, and forward flight cannot be told apart without velocity (the inflow
+fit gives an inflow share above 100 %); segmentation (TODO 3) is needed first.
+
+## Gyro chip noise (`scripts/allan.py`)
+
+```sh
+python -I scripts/allan.py <soak.csv> --chip ICM40608 [--lsb-per-dps 16.4] --plot adev.png   # -> sensors/ICM40608.json
+```
+
+A flight controller at rest for 30 min, MSP_RAW_IMU polled at ~200 Hz (filtered gyro in
+counts, acc in g). Overlapping Allan deviation per axis; at tau >= 1 s the firmware's
+filters and the poll rate do not matter, so the white noise, bias instability and rate
+walk hold.
+
+| chip | white noise deg/s/rtHz (x / y / z) | bias instability deg/h | acc white ug/rtHz |
+|---|---|---|---|
+| ICM-40608 | 0.0037 / 0.0051 / 0.0033 | 6.1 / 2.2 / 3.1 | 91 / 114 / 74 |
+| IIM-42652 | 0.0045 / 0.0055 / 0.0039 | 10.2 / 5.0 / 7.1 | 97 / - / 150 |
+| LSM6DSK320X | 0.0036 / 0.0036 / 0.0036 | 4.6 / 7.6 / 4.9 | 117 / - / 110 |
+
+The white noise is at the datasheet level. The axis that carried 1 g sits on one count
+without dither (marked -); the sensor model replaces it with the other axes'.
+
+## Vibration (`scripts/vibration.py`)
+
+```sh
+FIT_DATA_DIR=<decoded logs> python -I scripts/vibration.py helis/omp_m6/heli.json --plot m6.png   # -> helis/omp_m6/vibration.json
+```
+
+Order tracking of the logged `gyroRAW` (the decimated gyro before the RPM filter, notches
+and low-pass; Rotorflight 4.6+ logs it at any debug mode) in steady 4 s airborne windows.
+The spectra are rpm-locked throughout; besides the main rotor 1x/2x/4x, the tail sits at
+4.75x (M5, M6) and 5.0x (M7R), and the motor at its gear ratio: 8.85x (M5, 115/13), 9.31x
+(M6, 121/13), 8.75x (M7R, 140/16 - the M7R preset had 10). Amplitudes at the fit's
+reference headspeed, deg/s peak, roll / pitch / yaw:
+
+| | main 1x | main 2x | main 4x | tail 1x | tail 2x | motor 1x | floor deg/s/rtHz (roll) |
+|---|---|---|---|---|---|---|---|
+| M5 (1900 rpm) | 6.8 / 4.7 / 1.4 | 13.3 / 3.9 / 4.2 | 3.7 / 1.6 / 1.5 | 13.0 / 1.2 / 1.2 | 4.1 / 0.5 / 3.0 | 2.9 / 0.7 / 0.6 | 0.15 |
+| M6 (1900 rpm) | 10.5 / 9.4 / 1.9 | 4.8 / 3.1 / 1.0 | 3.6 / 1.6 / 1.6 | 25.2 / 3.1 / 3.0 | 6.6 / 1.1 / 4.1 | 6.5 / 1.1 / 4.0 | 0.15 |
+| M7R (1800 rpm) | 3.9 / 5.3 / 3.2 | 9.4 / 4.1 / 2.8 | 4.9 / 1.6 / 1.0 | 2.0 / 0.6 / 0.4 | 3.3 / 0.4 / 2.0 | 1.3 / 0.2 / 1.3 | 0.07 |
+
+The tail rotor's 1x on the roll axis is the strongest line on the M5 and M6. The rpm
+exponents scatter (two headspeeds per heli, different manoeuvres); the sensor model
+scales with rpm^2. In the SITL, with the firmware's default filters, the M7R's vibration
+leaves 1.2 / 0.3 / 0.4 deg/s RMS in the filtered gyro with the RPM filter and 9.2 / 6.1 /
+4.0 without (the M5 and M6, 2.5 deg/s on roll with it: their broadband floor, which no
+notch removes).
+
 ## Open
 
 - a less damped mode and lower-band turbulence (the real peak is sharper; the whirl's

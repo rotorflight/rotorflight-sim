@@ -11,6 +11,7 @@ library is used.
 | `heli_bridge.py` | starts the SITL, configures it over the CLI, runs the lockstep loop, flies a scripted flight or replays recorded sticks |
 | `swash.py` | inverse swash mixing: servo pulses back to roll/pitch/collective, from the servo and mixer configuration read over MSP, so the model feels servo travel, speed limits and the cyclic ring |
 | `esc.py` | HobbyWing V4 telemetry from the model on UART3 (`--esc hw4`) |
+| `sensors.py` | gyro and accelerometer errors: chip noise (`--gyro-chip`) and rotor-locked vibration (`--vibration`), from the fits in `../fitting/sensors/` and `../fitting/helis/` |
 | `configs.py` | load a real CLI dump (`--dump`), minus board, radio and sensor-alignment settings |
 
 ## Run
@@ -38,6 +39,18 @@ it must be upright (tilt under 30 deg) within 2 s, level (under 15 deg) from 3 s
 longer sinking (above -0.5 m/s) from 2.5 s, and never below 2 m. Climb and hover
 collective are set to the Blade 360 model (600 / 450; it hovers at 0.44). With
 `rescue_mode = OFF` the heli falls inverted into the ground and the check fails.
+
+`--gyro-chip CHIP` adds a gyro chip's noise (white noise, bias as a Gauss-Markov process,
+rate walk; Allan fit of a soak at rest), `--vibration HELI` a heli's measured vibration:
+every main rotor, tail and motor harmonic locked to the model's rotor angle, with its
+logged amplitude per axis x (rpm / rpm at the fit)^2, plus the broadband floor. Both are
+seeded (`--sensor-seed`); `--vib-scale` scales the vibration. Without a dump, `--vibration`
+turns on `feature RPM_FILTER` and sets `main_rotor_gear_ratio` / `tail_rotor_gear_ratio` to
+the model's gear and the heli's measured tail ratio, so the filter tracks the same lines.
+With `--check`, the scripted flight then also samples the filtered gyro over MSP in the
+calm descent (26.5-32 s) and requires its difference to the model's true rates below
+3 deg/s RMS per axis. With the M7R's vibration that is 1.2 / 0.3 / 0.4 deg/s with the RPM
+filter and 9.2 / 6.1 / 4.0 without it (CI runs both).
 
 `--hold-alt M` adds a slow virtual pilot (PID on height, ~0.3 Hz, at most +-150 us) to the
 replayed collective: the model has no translational lift, so the recorded collective of a

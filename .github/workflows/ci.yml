@@ -27,6 +27,20 @@ env:
 
 jobs:
 
+  model:
+
+    # the model alone, without the firmware: trim, rotor and thrust laws, rate response,
+    # flap/body mode, integrator, sensor model
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Model unit tests
+      run: python3 -m unittest discover -s tests -v
+
   linux:
 
     runs-on: ubuntu-latest
@@ -57,6 +71,15 @@ jobs:
 
     - name: Rescue check
       run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --rescue --check
+
+    - name: Hover check with vibration and gyro noise (RPM filter)
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --vibration omp_m7r --gyro-chip ICM40608 --check
+
+    - name: The vibration check fails without the RPM filter
+      run: |
+        if python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --vibration omp_m7r --gyro-chip ICM40608 --cli "feature -RPM_FILTER" --check; then
+          echo "::error::the vibration check passed with the RPM filter off"; exit 1
+        fi
 
   windows:
 
@@ -95,3 +118,6 @@ jobs:
 
     - name: Rescue check
       run: python heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --rescue --check
+
+    - name: Hover check with vibration and gyro noise (RPM filter)
+      run: python heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --vibration omp_m7r --gyro-chip ICM40608 --check

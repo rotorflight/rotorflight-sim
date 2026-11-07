@@ -1,0 +1,76 @@
+{
+ "chip": "LSM6DSK320X",
+ "source": "soak_LSM6DSK320X_20261106_074214_raw.csv",
+ "duration_s": 1800.0,
+ "lsb_per_dps": 14.29,
+ "gyro": {
+  "white_dps_rthz": [
+   0.00356,
+   0.00358,
+   0.00355
+  ],
+  "arw_deg_rth": [
+   0.2138,
+   0.2145,
+   0.213
+  ],
+  "bias_instability_dps": [
+   0.00128,
+   0.00211,
+   0.00136
+  ],
+  "bias_instability_deg_h": [
+   4.6,
+   7.59,
+   4.91
+  ],
+  "bias_tau_s": [
+   69.7,
+   16.6,
+   21.1
+  ],
+  "rate_walk_dps_rts": [
+   0.000197,
+   0.000458,
+   0.000329
+  ],
+  "drift_dps": [
+   0.0106,
+   -0.0242,
+   -0.0217
+  ],
+  "quant_dps": 0.07
+ },
+ "acc": {
+  "white_g_rthz": [
+   0.000117,
+   1e-05,
+   0.00011
+  ],
+  "vrw_mps_rth": [
+   0.0686,
+   0.0059,
+   0.0648
+  ],
+  "bias_instability_g": [
+   8.8e-05,
+   1e-06,
+   8.4e-05
+  ],
+  "bias_tau_s": [
+   13.1,
+   600.0,
+   8.1
+  ],
+  "acc_walk_g_rts": [
+   2.44e-05,
+   null,
+   3.08e-05
+  ],
+  "drift_g": [
+   -0.0019,
+   1e-05,
+   -0.00167
+  ]
+ }
+}
