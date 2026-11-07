@@ -19,6 +19,9 @@ on:
         description: 'Firmware branch, tag or commit'
         required: false
 
+permissions:
+  contents: read
+
 env:
   # The lockstep SITL is in rotorflight/rotorflight-firmware#596; switch to
   # rotorflight/rotorflight-firmware master once it is merged.
@@ -26,6 +29,20 @@ env:
   FIRMWARE_REF: ${{ inputs.firmware_ref || 'feature/sitl-build' }}
 
 jobs:
+
+  model:
+
+    # the model alone, without the firmware: trim, rotor and thrust laws, rate response,
+    # flap/body mode, integrator, sensor model
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Model unit tests
+      run: python3 -m unittest discover -s tests -v
 
   linux:
 
@@ -57,6 +74,20 @@ jobs:
 
     - name: Rescue check
       run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --rescue --check
+
+    - name: Hover check with vibration and gyro noise (RPM filter)
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --vibration omp_m7r --gyro-chip ICM40608 --check
+
+    - name: The vibration check fails without the RPM filter
+      run: |
+        # it must fail on the filtered gyro error, not on a crash or another check
+        rc=0
+        python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --vibration omp_m7r --gyro-chip ICM40608 --cli "feature -RPM_FILTER" --check > vib_off.log 2>&1 || rc=$?
+        cat vib_off.log
+        if [ "$rc" -eq 0 ] || ! grep -q '^FAIL vibration filtered: gyro error' vib_off.log \
+           || grep '^FAIL' vib_off.log | grep -vq 'vibration filtered'; then
+          echo "::error::the vibration check did not fail on the filtered gyro error alone with the RPM filter off"; exit 1
+        fi
 
   windows:
 
@@ -95,3 +126,6 @@ jobs:
 
     - name: Rescue check
       run: python heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --rescue --check
+
+    - name: Hover check with vibration and gyro noise (RPM filter)
+      run: python heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --vibration omp_m7r --gyro-chip ICM40608 --check

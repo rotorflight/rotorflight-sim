@@ -383,8 +383,9 @@ class M7R(Heli):
       yaw            tracking error 11.0 vs 9.3 deg/s; the torque term matches the yaw
                      mixer's median in that flying (-0.21)
       throttle       47.7 % at 49.2 V vs 51.1 % at 45.5 V: the same motor volts
-    Not in the log: gear ratio and motor poles (10 and 10 here: they only set the eRPM
-    the SITL sees, the bridge configures the same), speed derivatives (off).
+    Gear ratio 8.75 (140/16): the motor's 1x line in the gyro of later flights sits at
+    8.75 rotor orders (fitting/helis/omp_m7r). Not in the log: motor poles (10 here: they
+    only set the eRPM the SITL sees, the bridge configures the same), speed derivatives (off).
     """
     motor_fit = (3.05, 0.3667, 4.907e-4, 5.248e-4, 2.0)
     motor_poles = 10
@@ -407,7 +408,7 @@ class M7R(Heli):
         # main rotor torque against the tail trim: the yaw mixer sits at -0.21 (median of
         # the replayed cruise flying, collective precomp included)
         self.torque_yaw = -55.0 * 0.20
-        args = dict(nominal_rpm=1800.0, gear_ratio=10.0, hover_throttle=0.6, pack_cells=12,
+        args = dict(nominal_rpm=1800.0, gear_ratio=8.75, hover_throttle=0.6, pack_cells=12,
                     pack_ah=4.5, pack_r=0.047, hover_power_w=1150.0, cyclic_scale=1.0, yaw_scale=1.0)
         args.update(kw)
         super().__init__(**args)

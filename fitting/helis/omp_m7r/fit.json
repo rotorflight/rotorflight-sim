@@ -1,0 +1,161 @@
+{
+ "heli": "OMP M7R",
+ "logs": [
+  "OMP_M7R_20261016_124328",
+  "OMP_M7R_20261022_143720",
+  "OMP_M7R_20261022_155150"
+ ],
+ "motor_fit": [
+  2.670541717710254,
+  0.32474006173186204,
+  0.0004152795848481145,
+  0.000490969869168363,
+  2.0
+ ],
+ "motor_fit_r2": 0.482,
+ "hover": {
+  "1500": {
+   "seconds": 78.0,
+   "collective": 0.294,
+   "throttle": 0.512,
+   "volts": 45.54,
+   "yaw_mixer": -0.282
+  },
+  "1800": {
+   "seconds": 81.2,
+   "collective": 0.293,
+   "throttle": 0.638,
+   "volts": 45.86,
+   "yaw_mixer": -0.231
+  },
+  "2000": {
+   "seconds": 3.1,
+   "collective": 0.179,
+   "throttle": 0.732,
+   "volts": 45.42,
+   "yaw_mixer": -0.235
+  },
+  "2100": {
+   "seconds": 2.2,
+   "collective": 0.4095,
+   "throttle": 0.783,
+   "volts": 45.65,
+   "yaw_mixer": -0.2905
+  }
+ },
+ "rate_gains": {
+  "1500": {
+   "roll": {
+    "gain": 4.89,
+    "coherence": 0.773
+   },
+   "pitch": {
+    "gain": 5.882,
+    "coherence": 0.801
+   },
+   "yaw": {
+    "gain": 4.602,
+    "coherence": 0.92
+   }
+  },
+  "1800": {
+   "roll": {
+    "gain": 6.737,
+    "coherence": 0.843
+   },
+   "pitch": {
+    "gain": 7.587,
+    "coherence": 0.8
+   },
+   "yaw": {
+    "gain": 5.804,
+    "coherence": 0.794
+   }
+  },
+  "2000": {
+   "roll": {
+    "gain": 7.799,
+    "coherence": 0.898
+   },
+   "pitch": {
+    "gain": 7.141,
+    "coherence": 0.934
+   },
+   "yaw": {
+    "gain": 6.0,
+    "coherence": 0.952
+   }
+  },
+  "2100": {
+   "roll": {
+    "gain": 7.878,
+    "coherence": 0.89
+   },
+   "pitch": {
+    "gain": 8.3,
+    "coherence": 0.91
+   },
+   "yaw": {
+    "gain": 5.82,
+    "coherence": 0.893
+   }
+  }
+ },
+ "yaw": {
+  "1500": {
+   "N_ped": 32.61,
+   "N_col": 11.27,
+   "N_r": -0.963,
+   "r2": 0.526
+  },
+  "1800": {
+   "N_ped": 25.69,
+   "N_col": 2.7,
+   "N_r": -0.526,
+   "r2": 0.356
+  },
+  "2000": {
+   "N_ped": 32.83,
+   "N_col": 5.88,
+   "N_r": -0.799,
+   "r2": 0.371
+  },
+  "2100": {
+   "N_ped": 26.18,
+   "N_col": 4.2,
+   "N_r": -0.386,
+   "r2": 0.286
+  }
+ },
+ "whirl_hz": {
+  "1500": {
+   "roll": 2.4,
+   "pitch": 2.4,
+   "yaw": 2.2
+  },
+  "1800": {
+   "roll": 2.54,
+   "pitch": 2.29,
+   "yaw": 2.49
+  },
+  "2000": {
+   "roll": 2.51,
+   "pitch": 2.44,
+   "yaw": 2.65
+  },
+  "2100": {
+   "roll": 2.64,
+   "pitch": 2.44,
+   "yaw": 2.2
+  }
+ },
+ "inflow_law": {
+  "rpm_nominal": 1800,
+  "a": -0.24,
+  "b": 0.533,
+  "residuals": [
+   0.0,
+   0.0
+  ]
+ }
+}

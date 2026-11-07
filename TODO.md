@@ -24,6 +24,10 @@ tail type. New sizes should come from parameters, not from a fitting campaign.
 - [ ] The `Stratos200` and `M7R` fits as calibration points: `PhysicalHeli` with their
       geometry must come out near the fitted values. First check: the Stratos' Lb1s 1400 at
       3600 rpm scaled by rpm^2 gives ~350 at 1800 rpm, the M7R fit says 700
+- [ ] Geometry and inertias of the fitted helis (blade length, chord and mass, mass, roll and
+      pitch inertia, hub dampers) in their heli files - without them neither check above can
+      run. The OMP M5, M6 and M7R logs (`fitting/helis/*/fit.json`) already show the rate per
+      cyclic growing ~rpm on all three sizes, as stiffness ~rpm^2 and tf ~1/rpm predict
 - [ ] Size presets as parameter sets: ~200, 380, 550, 700 class (and 800 / 90 mm blades for
       the high-voltage end); the Blade 360 kept as a reference
 - [ ] `--model` takes a preset name or a parameter file
@@ -37,26 +41,27 @@ notches, gyro low-pass, D-term filters) are never exercised.
 Measure the noise from two sources, so the model separates sensor noise (per gyro chip,
 independent of the heli) from vibration (per heli, scaled with rpm):
 
-- [ ] **Allan variance on a real flight controller**: a bench FC at rest for several hours,
-      raw gyro and accel at the full sample rate (blackbox with `debug_mode` set to the raw
-      gyro, or a dedicated logging build). Extract angle random walk, bias instability and
-      rate random walk per axis, plus accel velocity random walk. Repeat per gyro chip in
-      use (e.g. ICM-42688-P, BMI270, ICM-42605, MPU6000) and note the temperature drift
-      over a warm-up
-- [ ] Script `fitting/scripts/allan.py`: overlapping Allan deviation from a log, fit of the
+- [x] **Allan variance on a real flight controller**: 30 min soaks at rest (MSP_RAW_IMU at
+      200 Hz) of ICM-40608, IIM-42652 and LSM6DSK320X -> `fitting/sensors/`. White noise
+      0.0035-0.0055 deg/s/rtHz (datasheet level), bias instability 2-10 deg/h
+- [ ] More chips (ICM-42688-P, BMI270, ICM-42605, MPU6000), several-hour soaks for the rate
+      random walk, and the temperature drift over a warm-up from power-on
+- [x] Script `fitting/scripts/allan.py`: overlapping Allan deviation from a log, fit of the
       noise terms, plot; results stored per chip
-- [ ] **Vibration from flight logs**: unfiltered gyro (debug gyro channels or a high
-      blackbox rate) against headspeed, tail speed and motor eRPM. Order tracking: amplitude
-      of the 1x, 2x and blade-pass harmonics of the main rotor, the tail and the motor per
-      axis, and the broadband floor, as a function of rpm and collective. The Stratos and M7R
-      logs first, then every new heli (see 3)
-- [ ] Model: gyro and accel = true value + chip noise (white, bias walk, from the Allan fit)
+- [x] **Vibration from flight logs**: `fitting/scripts/vibration.py`, order tracking of the
+      logged `gyroRAW` (4.6+, any debug mode) per axis: main rotor 1-4x, tail 1-3x, motor
+      1-2x and the broadband floor. Done for the OMP M5, M6 and M7R (`fitting/helis/`)
+- [ ] Vibration of the Stratos (direct drive, motorized tail), and against collective; the
+      rpm exponent (two headspeeds per heli scatter it, the model uses rpm^2)
+- [x] Model: gyro and accel = true value + chip noise (white, bias walk, from the Allan fit)
       + vibration (harmonics locked to the model's rotor, tail and motor rpm, amplitudes from
-      the logs) + optional resonance of the frame/FC mount. Seeded, so checks stay repeatable
-- [ ] Quantization, range clipping and the sensor's own low-pass, per chip
-- [ ] Checks: with vibration on, the RPM filter must remove the tracked harmonics (filtered
-      gyro spectrum below a bound), and the hover check still passes; with the RPM filter
-      off it must fail
+      the logs). Seeded (`heli/sensors.py`, `--gyro-chip`, `--vibration`)
+- [ ] Resonance of the frame/FC mount; accelerometer vibration (no logs carry it)
+- [ ] Quantization and range clipping per chip (the SITL applies 16.4 LSB/deg/s and
+      256 LSB/g for all), and the sensor's own low-pass
+- [x] Checks: with vibration on, the RPM filter must remove the tracked harmonics (filtered
+      gyro error below 3 deg/s RMS over MSP in the calm descent), and the hover check still
+      passes; with the RPM filter off it must fail (CI, both)
 - [ ] Compare sim and real filtered-gyro spectra in `compare_replay.py`
 
 ## 3. Refining parameter sets from more flight logs
@@ -64,10 +69,11 @@ independent of the heli) from vibration (per heli, scaled with rpm):
 One heli, one flight, hand-run scripts does not scale. A pipeline that takes logs of any
 heli and gives back a preset with its validation:
 
-- [ ] **Heli description file** per heli (`fitting/helis/<name>/heli.json`): geometry and
+- [x] **Heli description file** per heli (`fitting/helis/<name>/heli.json`): geometry and
       hardware as in 1 (rotor, blades, gear, motor, ESC, pack, tail, gyro chip), firmware
       version, CLI dump, and the list of logs with their headspeed and profile. Replaces
-      the hard-coded flight lists in `common.py` and `fit_cyclic.py`
+      the hard-coded flight lists in `common.py` and `fit_cyclic.py`. Started for the
+      Stratos and the OMP M5, M6, M7R; their geometry fields are still empty (see 1)
 - [ ] **Log intake**: split, de-duplicate, decode (blackbox-decode skill), check that the
       log has what the fits need (logging rate, debug mode, rpm and voltage fields, header
       gains) and say what is missing
@@ -75,7 +81,10 @@ heli and gives back a preset with its validation:
       and stick-input segments automatically, so each fit uses the parts it can identify
 - [ ] **Fits as stages**, each with a coherence / R^2 gate: rotor law, rate gains per
       headspeed, yaw, hover collective per headspeed (thrust law), vibration (2), then the
-      closed-loop flap/body sweep by replay (`sweep_replay.py`, `m7r_sweep.py` generalised)
+      closed-loop flap/body sweep by replay (`sweep_replay.py`, `m7r_sweep.py` generalised).
+      Open-loop stages done in `fit_heli.py` (from the heli file, pooled over its logs, per
+      headspeed -> `fit.json`); the gates and the closed-loop sweep are open, and the hover
+      stage needs segmentation (sport flights hold no hover: its numbers are not usable)
 - [ ] **Joint fit across helis**: the parameters of `PhysicalHeli` (1) fitted on all helis
       together, with the geometry as known input, so each new heli refines the scaling laws
       instead of getting its own constants. Report where a heli is off the shared law
@@ -153,8 +162,9 @@ The current disturbance is a random moment on the body, with `turb_hz` tuned per
 
 ## 10. Engineering
 
-- [ ] Unit tests of the model alone, without the firmware: trim, whirl frequency, scaling
-      with rpm, thrust law, rotor law - fast, in CI on every push
-- [ ] Integrator: check the fixed-step Euler at 4 kHz against a higher-order step for the
-      stiffer presets and size classes
+- [x] Unit tests of the model alone, without the firmware: trim, whirl frequency, scaling
+      with rpm, thrust law, rotor law - in CI on every push (`tests/`, about a minute)
+- [x] Integrator: the fixed-step Euler at 4 kHz against the same model at 40 kHz (step
+      response within 2 %, mode frequency within 1 %) for the Blade 360, Stratos and M7R;
+      repeat for each new size class
 - [ ] Keep `heli/` on the Python standard library; numpy/scipy stay in `fitting/`

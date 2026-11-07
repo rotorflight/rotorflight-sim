@@ -1,0 +1,18 @@
+{
+  "name": "OMP M7R",
+  "size_class": 700,
+  "firmware": "Rotorflight 4.6.0 (118e912)",
+  "board": "RDMS NEXUS_XR",
+  "gyro_chip": null,
+  "pack": {"cells": 12, "capacity_ah": 4.5, "resistance_ohm": 0.047},
+  "drive": {"gear_ratio": 8.75, "gear_ratio_from": "motor 1x order in gyroRAW", "motor_poles": null, "esc": "analog, under the governor"},
+  "tail": {"type": "servo", "gear_ratio": 5.0, "gear_ratio_from": "tail 1x order in gyroRAW"},
+  "rotor": {"radius_m": null, "chord_m": null, "blades": 2, "blade_mass_kg": null},
+  "mass_kg": null,
+  "preset": "M7R",
+  "logs": [
+    {"file": "OMP_M7R_20261016_124328.bbl", "headspeed": [1800]},
+    {"file": "OMP_M7R_20261022_143720.bbl", "headspeed": [1800, 2100]},
+    {"file": "OMP_M7R_20261022_155150.bbl", "headspeed": [1500, 1800, 2000], "used_for": "preset fit (m7r_*.py)"}
+  ]
+}

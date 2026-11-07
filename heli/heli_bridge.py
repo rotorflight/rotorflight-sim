@@ -32,6 +32,7 @@ from configs import load_dump         # noqa: E402
 import csv                            # noqa: E402
 from swash import Swash               # noqa: E402
 from esc import Hw4Esc                # noqa: E402
+from sensors import Sensors, available as sensors_available   # noqa: E402
 
 DT = 250e-6
 MSP_SET_RAW_RC = 200
@@ -46,6 +47,7 @@ ARMING_FLAG_NAMES = [
     "NO_ACC_CAL", "MOTOR_PROTO", "OVERRIDE", "ARMSWITCH",
 ]
 MOTOR_POLES = 2
+GYRO_COUNTS_PER_DPS = 16.4    # the SITL's fake gyro (GYRO_SCALE in target.c)
 
 
 def msp_frame(cmd, payload=b''):
@@ -309,6 +311,15 @@ def main():
                          'adds to the recorded collective and holds the model near this height - the model '
                          'lacks translational lift, so open-loop collective drifts in forward flight; '
                          'divided by the upward share of the rotor axis, so it also holds tilted and inverted')
+    ap.add_argument('--gyro-chip', metavar='CHIP',
+                    help='add gyro/acc chip noise from fitting/sensors/<CHIP>.json (Allan fit of a soak '
+                         'at rest), or a path; available: %s' % ', '.join(sensors_available('sensors')))
+    ap.add_argument('--vibration', metavar='HELI',
+                    help='add rotor-locked gyro vibration from fitting/helis/<HELI>/vibration.json (order '
+                         'tracking of logged gyroRAW), or a path; available: %s'
+                         % ', '.join(sensors_available('helis')))
+    ap.add_argument('--vib-scale', type=float, default=1.0, help='scale the vibration amplitudes')
+    ap.add_argument('--sensor-seed', type=int, default=1)
     ap.add_argument('--bbl', metavar='OUT',
                     help='save the SITL blackbox (file-backed flash) here after the flight')
     a = ap.parse_args()
@@ -323,6 +334,10 @@ def main():
         k, v = item.split('=', 1)
         kw[k] = float(v)
     heli = MODELS[a.model](sign_roll=1.0, sign_pitch=-1.0, sign_yaw=-1.0, **kw)
+    sensors = Sensors(a.gyro_chip, a.vibration, seed=a.sensor_seed, vib_scale=a.vib_scale,
+                      gear_ratio=heli.gear)
+    if a.gyro_chip or a.vibration:
+        print('sensors:', sensors.describe())
     sticks = load_sticks(a.replay) if a.replay else None
     seconds = (REPLAY_LEAD + sticks[-1][0] - sticks[0][0] + REPLAY_TAIL) if sticks else a.seconds
     pilot = RescuePilot() if a.rescue else None
@@ -345,8 +360,16 @@ def main():
     if a.bbl:
         # each run starts on fresh flash: log from its start, no ring-buffer erasing
         commands += ['set blackbox_mode = ARMED', 'set blackbox_rolling_erase = OFF', 'set blackbox_initial_erase_kb = 0']
+    if not a.dump and (a.governor or a.vibration):
+        # the governor and the RPM filter take the rotor speed from the motor eRPM through the
+        # gear ratios: pinion/main gear, and (servo tail) main gear/tail as rotor turns
+        commands += ['set main_rotor_gear_ratio = 1000,%d' % round(heli.gear * 1000)]
+        if sensors.tail_ratio:
+            commands += ['set tail_rotor_gear_ratio = 1000,%d' % round(sensors.tail_ratio * 1000)]
+    if a.vibration and not a.dump:
+        commands += ['feature RPM_FILTER']
     if a.governor:
-        commands += ['feature GOVERNOR', 'set gov_mode = ELECTRIC', 'set main_rotor_gear_ratio = 1,10',
+        commands += ['feature GOVERNOR', 'set gov_mode = ELECTRIC',
                      'set gov_headspeed = %d' % a.governor]
     if a.esc == 'hw4':
         commands += ['feature ESC_SENSOR', 'serial 2 1024 115200 57600 0 115200',
@@ -385,6 +408,13 @@ def main():
         at30 = (0.0, 0.0, 0.0)
         imu_probe = {int(float(x) / DT) for x in os.environ.get('IMU_AT', '').split(',') if x}
         imu_model = []
+        # filtered gyro over MSP during the calm descent of the scripted flight (26.5-32 s),
+        # every 20 ms: what is left of the vibration after the firmware's filters
+        vib_probe = set()
+        if (a.gyro_chip or a.vibration) and not sticks and not pilot:
+            vib_probe = set(range(int(26.5 / DT), int(32.0 / DT), int(0.02 / DT)))
+        imu_probe |= vib_probe
+        imu_fw = []
         decode_err, decode_at, decode_sq, decode_n = [0.0] * 4, [None] * 4, [0.0] * 4, 0
         time.sleep(1.0)
         msp.send(msp_frame(MSP_ACC_CALIBRATION))
@@ -444,7 +474,8 @@ def main():
             if esc and n % esc_every == 0:
                 esc.send(esc_every * DT, ctrl[0], heli.motor_rpm * heli.motor_poles / 2, heli.vbat, heli.ibat)
             pressure = 101325.0 * (1 - 2.25577e-5 * (-heli.pos[2])) ** 5.25588
-            pkt = struct.pack('<28d', t, *heli.rates, *heli.specific_force, *heli.q,
+            gyro, force = sensors.step(DT, heli.rates, heli.specific_force, heli.w)
+            pkt = struct.pack('<28d', t, *gyro, *force, *heli.q,
                               *heli.vel, *heli.pos,
                               heli.motor_rpm * heli.motor_poles / 2,
                               (heli.tail_rpm * 6 if heli.tail_motor else 0), 0, 0,
@@ -499,10 +530,14 @@ def main():
                 print('MSP_STATUS: armed %d, blockers %s' % (armed, [ARMING_FLAG_NAMES[b] if b < len(
                     ARMING_FLAG_NAMES) else str(b) for b in range(32) if flags >> b & 1]))
             if cmd == MSP_RAW_IMU and len(msp_rx) >= i + 5 + size and imu_model:
-                gx, gy, gz = struct.unpack_from('<3h', msp_rx, i + 5 + 6)
+                # gyroRateDps() is in sensor counts despite its name: gyroADCf / scale, and the
+                # SITL's fake gyro scale is 16.4 counts per deg/s
+                gx, gy, gz = (v / GYRO_COUNTS_PER_DPS for v in struct.unpack_from('<3h', msp_rx, i + 5 + 6))
                 tm, mp, mq, mr = imu_model.pop(0)
-                print('MSP_RAW_IMU at %.1f s: firmware gyro %+d %+d %+d deg/s, model p q r %+.1f %+.1f %+.1f'
-                      % (tm, gx, gy, gz, mp, mq, mr))
+                imu_fw.append((tm, gx, gy, gz, mp, mq, mr))
+                if int(round(tm / DT)) not in vib_probe:
+                    print('MSP_RAW_IMU at %.1f s: firmware gyro %+.1f %+.1f %+.1f deg/s, model p q r %+.1f %+.1f %+.1f'
+                          % (tm, gx, gy, gz, mp, mq, mr))
             if cmd == MSP_MOTOR_TELEMETRY and len(msp_rx) >= i + 5 + size:
                 rpm, _err, volt, curr, _cons, temp, _t2 = struct.unpack_from('<IHHHHHH', msp_rx, i + 6)
                 print('MSP_MOTOR_TELEMETRY at 30 s: motor rpm %d, %.2f V, %.2f A, %.1f C (model %.0f rpm, %.2f V, %.2f A)'
@@ -548,13 +583,30 @@ def main():
                     and int(round(r[0] * 10)) % 5 == 0:
                 print('  t %5.1f  alt %6.2f m  climb %+5.2f  roll %+7.1f  pitch %+6.1f  coll %+.2f'
                       % (r[0], r[1], r[2], r[3], r[4], r[8]))
+    vib_rms = None
+    if vib_probe:
+        fw = [r for r in imu_fw if int(round(r[0] / DT)) in vib_probe]
+        vib_rms = []
+        if fw:
+            # firmware gyro (sensor frame: pitch and yaw opposite to FRD) against the model's
+            # true rates; the RMS of the difference is the vibration and noise that got through
+            err = [[r[1] - r[4], -r[2] - r[5], -r[3] - r[6]] for r in fw]
+            vib_rms = [math.sqrt(sum(e[i] ** 2 for e in err) / len(err)) for i in range(3)]
+            print('filtered gyro minus true rate, RMS 26.5-32 s (%d samples): roll %.2f pitch %.2f yaw %.2f deg/s'
+                  % (len(err), *vib_rms))
+            print('  model true rate RMS %.2f %.2f %.2f deg/s, firmware gyro RMS %.2f %.2f %.2f deg/s'
+                  % (*(math.sqrt(sum(r[4 + i] ** 2 for r in fw) / len(fw)) for i in range(3)),
+                     *(math.sqrt(sum(r[1 + i] ** 2 for r in fw) / len(fw)) for i in range(3))))
     if a.check:
         if pilot:
             sys.exit(0 if check_rescue(rows, timeouts, steps, pilot) else 1)
-        sys.exit(0 if check_flight(rows, timeouts, steps, a.governor) else 1)
+        sys.exit(0 if check_flight(rows, timeouts, steps, a.governor, vib_rms) else 1)
 
 
-def check_flight(rows, timeouts, steps, governor):
+VIB_RMS_MAX = 3.0     # deg/s: filtered gyro error allowed with --gyro-chip / --vibration
+
+
+def check_flight(rows, timeouts, steps, governor, vib_rms=None):
     """The scripted angle-mode flight (schedule()): lift off at 18 s, roll stick 21-22 s,
     pitch stick 23-24 s, collective punch 24-25 s, descend from 26 s. Fixed bounds."""
     def at(t):
@@ -582,6 +634,12 @@ def check_flight(rows, timeouts, steps, governor):
         dev = max(abs(v - governor) for v in span(20, 33, RPM)) / governor
         checks.append(('governor: headspeed within 3 %% of %d rpm, 20-33 s' % governor, dev < 0.03,
                        '%.1f %%' % (100 * dev)))
+    if vib_rms == []:
+        # the gyro was to be sampled but no MSP_RAW_IMU reply came back: no evidence, a failure
+        checks.append(('vibration filtered: filtered gyro sampled over MSP, 26.5-32 s', False, 'no samples'))
+    elif vib_rms is not None:
+        checks.append(('vibration filtered: gyro error RMS below %.0f deg/s per axis, 26.5-32 s' % VIB_RMS_MAX,
+                       max(vib_rms) < VIB_RMS_MAX, '%.2f / %.2f / %.2f deg/s' % tuple(vib_rms)))
     ok = True
     for name, passed, detail in checks:
         print('%s %s (%s)' % ('PASS' if passed else 'FAIL', name, detail))

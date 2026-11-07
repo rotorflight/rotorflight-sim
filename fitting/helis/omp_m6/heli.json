@@ -1,0 +1,16 @@
+{
+  "name": "OMP M6",
+  "size_class": null,
+  "firmware": "Rotorflight 4.6.0 (118e912)",
+  "board": "RDMS NEXUS_XR",
+  "gyro_chip": null,
+  "pack": {"cells": 12},
+  "drive": {"gear_ratio": 9.308, "gear_ratio_from": "motor 1x order in gyroRAW (121/13)", "motor_poles": null},
+  "tail": {"type": "servo", "gear_ratio": 4.75, "gear_ratio_from": "tail 1x order in gyroRAW"},
+  "rotor": {"radius_m": null, "chord_m": null, "blades": 2, "blade_mass_kg": null},
+  "mass_kg": null,
+  "logs": [
+    {"file": "OMP_M6_20260821_112524.bbl", "headspeed": [2200]},
+    {"file": "OMP_M6_20260822_102430.bbl", "headspeed": [1900]}
+  ]
+}
