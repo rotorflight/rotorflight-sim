@@ -34,6 +34,7 @@ from swash import Swash               # noqa: E402
 from esc import Hw4Esc                # noqa: E402
 from sensors import Sensors, available as sensors_available   # noqa: E402
 from wind import Wind                 # noqa: E402
+from servos import Servos, TYPES as SERVO_TYPES   # noqa: E402
 
 DT = 250e-6
 MSP_SET_RAW_RC = 200
@@ -458,6 +459,9 @@ def main():
     ap.add_argument('--gust', type=float, default=0.0, metavar='SIGMA_W',
                     help='Dryden turbulence, vertical intensity m/s (MIL-F-8785C: 0.1 x the wind at 6 m: '
                          'light ~0.5, moderate ~1.5)')
+    ap.add_argument('--servos', choices=sorted(SERVO_TYPES), default='ideal',
+                    help='servo dynamics between the pulses and the swash (speed, deadband, lag; '
+                         'heli/servos.py); ideal = none')
     ap.add_argument('--bbl', metavar='OUT',
                     help='save the SITL blackbox (file-backed flash) here after the flight')
     a = ap.parse_args()
@@ -476,6 +480,7 @@ def main():
                       gear_ratio=heli.gear)
     if a.gyro_chip or a.vibration:
         print('sensors:', sensors.describe())
+    servos = Servos(a.servos)
     ws, wd = (float(x) for x in a.wind.split(','))
     wind = Wind(ws, wd, a.gust)
     if ws or a.gust:
@@ -638,7 +643,7 @@ def main():
                     motor = struct.unpack_from('<4f', d, 0)
                     mix = struct.unpack_from('<5f', d, 48)
                     if a.controls == 'servos':
-                        servo_us = struct.unpack_from('<8f', d, 16)
+                        servo_us = servos.step(DT, struct.unpack_from('<8f', d, 16))
                         roll_, pitch_, yaw_, coll_ = swash.decode(servo_us)
                         if heli.tail_motor:
                             yaw_ = motor[1]       # motorized tail: the tail motor is the yaw input

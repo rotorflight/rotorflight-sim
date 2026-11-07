@@ -67,6 +67,12 @@ def euler(q):
     return roll, pitch, yaw
 
 
+# LiPo open-circuit voltage per cell at 0, 5, ..., 100 % state of charge (a typical
+# discharge curve: the knee below ~10 %, the long plateau around 3.8 V)
+LIPO_OCV = (3.27, 3.61, 3.69, 3.71, 3.73, 3.75, 3.77, 3.79, 3.80, 3.82, 3.84,
+            3.85, 3.87, 3.91, 3.95, 3.98, 4.02, 4.08, 4.11, 4.15, 4.20)
+
+
 def induced_velocity(vh, vc, vx):
     """Induced velocity of a rotor (m/s, through the disk against the thrust) at hover
     induced velocity vh for its thrust, axial climb speed vc (positive along the thrust)
@@ -261,9 +267,14 @@ class Heli:
         self.ibat = 0.0
 
     def pack_voltage(self, current):
+        """Open-circuit voltage from a LiPo discharge curve (per cell against state of
+        charge), less the internal resistance, which rises towards empty (x2.5 at 0 %)."""
         soc = max(0.0, 1.0 - self.used_ah / self.pack_ah)
-        v_cell = 3.5 + 0.7 * soc
-        return self.cells * v_cell - current * self.pack_r
+        x = soc * (len(LIPO_OCV) - 1)
+        i = min(int(x), len(LIPO_OCV) - 2)
+        v_cell = LIPO_OCV[i] + (LIPO_OCV[i + 1] - LIPO_OCV[i]) * (x - i)
+        r = self.pack_r * (1.0 + 1.5 * (1.0 - soc) ** 4)
+        return self.cells * v_cell - current * r
 
     @property
     def rotor_rpm(self):
