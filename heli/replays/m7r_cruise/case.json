@@ -1,0 +1,9 @@
+{
+  "description": "OMP M7R cruise, 1500 rpm governor, 100 s of recorded sticks (real log 222-322 s); sim time = real - 214 s",
+  "model": "m7r",
+  "governor": 1500,
+  "hold_alt": 10,
+  "window": [30, 100],
+  "real": {"throttle": 51.0, "yaw_mix": -21.4},
+  "tolerance": {"airborne": 0.85, "resets": 12, "throttle": 5, "yaw_mix": 5}
+}

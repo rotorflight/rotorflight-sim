@@ -6,3 +6,6 @@ __pycache__/
 *.npz
 fitting/data/
 fitting/replay/
+
+# committed replay cases
+!heli/replays/**/*.csv

@@ -32,7 +32,8 @@ tail type. New sizes should come from parameters, not from a fitting campaign.
       cyclic growing ~rpm on all three sizes, as stiffness ~rpm^2 and tf ~1/rpm predict
 - [ ] Size presets as parameter sets: ~200, 380, 550, 700 class (and 800 / 90 mm blades for
       the high-voltage end); the Blade 360 kept as a reference
-- [ ] `--model` takes a preset name or a parameter file
+- [x] `--model` takes a preset name or a parameter file (JSON: base preset, constructor
+      args, class constants; `heli_model.load_model`)
 - [ ] CI runs hover, governor and rescue checks per size class, not only the Blade 360
 
 ## 2. Gyro noise and vibration
@@ -112,8 +113,10 @@ heli and gives back a preset with its validation:
 - [x] Per-axis L and tf checked by replay on the M7R: no better than the preset (roll too
       good, pitch worse); `tf_roll` / `tf_pitch` stay as options
 - [ ] The joint fit across sizes once the geometry is known
-- [ ] A replay regression in CI (TODO 3, Regression): the session's model changes broke the
-      M7R replay twice without a check noticing
+- [x] A replay regression in CI (TODO 3, Regression): the session's model changes broke the
+      M7R replay twice without a check noticing. `--replay-case heli/replays/m7r_cruise
+      --check` (Linux job): airborne share, upright resets, throttle and tail trim against
+      the real flight; fails on the inflow-torque regression of #3
 - [ ] Test flights the current fits are missing: collective doublets (collective
       sensitivity, heave damping), hover at two headspeeds, an airborne autorotation
 

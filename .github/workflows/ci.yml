@@ -101,6 +101,9 @@ jobs:
           echo "::error::the vibration check did not fail on the filtered gyro error alone with the RPM filter off"; exit 1
         fi
 
+    - name: Replay of a real flight (OMP M7R cruise, against the real throttle and tail trim)
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --replay-case heli/replays/m7r_cruise --check
+
   windows:
 
     runs-on: windows-latest
