@@ -67,8 +67,9 @@ along it (mu 0.6: a spring to an anchor on the ground, capped at mu times the no
 the anchor sliding beyond). So a landing can bounce, tilt, slide or tip over (beyond
 atan(skid half-width / CG height), ~36 deg), the tail's push on the ground is held without
 creeping, and the accelerometer feels the ground. Skid sizes, CG height and the radii of
-gyration are fractions of the rotor radius. `altitude` is the skid height above the
-ground; the FDM packet and the baro use it.
+gyration are fractions of the rotor radius. `altitude` is the centre of gravity's height
+above its level resting position - the skid clearance while level, not when tilted; the
+FDM packet, the baro and the checks use it.
 
 `--governor RPM --autorotation land` tests autorotations: climb to ~65 m, throttle stick
 to 15 % (above throttle off, below the governor's 25 % handover - the ELECTRIC governor

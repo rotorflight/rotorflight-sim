@@ -286,7 +286,9 @@ class Heli:
 
     @property
     def altitude(self):
-        """Height of the skids above the ground (0 resting on them), m."""
+        """Height of the centre of gravity above its level resting position, m: the skid
+        clearance while the heli is level, not when it is tilted (rolled 90 deg on its side
+        it reads slightly below zero). The FDM packet, the baro and the checks use it."""
         return -self.pos[2] - self.cg_height + self.skid_deflection
 
     def set_altitude(self, alt):
