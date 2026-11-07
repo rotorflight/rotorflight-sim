@@ -710,11 +710,18 @@ def load_model(spec, **kw):
     import json
     with open(spec) as f:
         p = json.load(f)
+    if not isinstance(p, dict):
+        raise ValueError('%s: a JSON object expected' % spec)
     unknown = set(p) - {'base', 'args', 'attrs', 'description'}
     if unknown:
         raise ValueError('%s: unknown keys %s' % (spec, ', '.join(sorted(unknown))))
-    base = MODELS[p.get('base', 'blade360')]
+    name = p.get('base', 'blade360')
+    if name not in MODELS:
+        raise ValueError('%s: unknown base %s (presets: %s)' % (spec, name, ', '.join(sorted(MODELS))))
+    base = MODELS[name]
     attrs = p.get('attrs', {})
+    if not isinstance(attrs, dict) or not isinstance(p.get('args', {}), dict):
+        raise ValueError('%s: "args" and "attrs" must be objects' % spec)
     for k in attrs:
         if not hasattr(base, k):
             raise ValueError('%s: %s has no constant %s' % (spec, base.__name__, k))

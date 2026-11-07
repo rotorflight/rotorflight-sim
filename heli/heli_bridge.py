@@ -512,7 +512,10 @@ def main():
         kw[k] = float(v)
     if a.model not in MODELS and not os.path.isfile(a.model):
         ap.error('--model: no preset or file %s (presets: %s)' % (a.model, ', '.join(sorted(MODELS))))
-    heli = load_model(a.model, sign_roll=1.0, sign_pitch=-1.0, sign_yaw=-1.0, **kw)
+    try:
+        heli = load_model(a.model, sign_roll=1.0, sign_pitch=-1.0, sign_yaw=-1.0, **kw)
+    except (ValueError, TypeError) as e:          # a bad parameter file or --set name
+        ap.error('--model: %s' % e)
     sensors = Sensors(a.gyro_chip, a.vibration, seed=a.sensor_seed, vib_scale=a.vib_scale,
                       gear_ratio=heli.gear)
     if a.gyro_chip or a.vibration:
@@ -522,7 +525,12 @@ def main():
     wind = Wind(ws, wd, a.gust)
     slope = None
     if a.slope:
-        v = [float(x) for x in a.slope.split(',')]
+        try:
+            v = [float(x) for x in a.slope.split(',')]
+        except ValueError:
+            v = []
+        if not 1 <= len(v) <= 2 or not 0.0 <= v[0] < 90.0:
+            ap.error('--slope: DEG[,UPHILL_DEG] with 0 <= DEG < 90, not %r' % a.slope)
         slope = (v[0], v[1] if len(v) > 1 else 90.0)
         if a.seconds == ap.get_default('seconds'):
             a.seconds = 45.0      # disarm at 34 s, then the rotor runs down on the slope

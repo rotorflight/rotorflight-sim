@@ -618,6 +618,9 @@ class ModelFiles(unittest.TestCase):
             load_model(self.write({'base': 'm7r', 'attrs': {'v_hoover': 2.5}}))
         with self.assertRaises(ValueError):
             load_model(self.write({'bse': 'm7r'}))
+        for bad in ([1, 2], {'base': 'm9'}, {'base': 'm7r', 'args': [1]}, {'base': 'm7r', 'attrs': 3}):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                load_model(self.write(bad))
 
 
 if __name__ == '__main__':
