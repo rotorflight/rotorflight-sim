@@ -1,0 +1,21 @@
+{
+  "name": "Stratos 200 (Bo105 fuselage)",
+  "size_class": 200,
+  "firmware": "Rotorflight 4.7.0",
+  "gyro_chip": null,
+  "pack": {"cells": 4, "capacity_ah": 0.85, "resistance_ohm": 0.05},
+  "drive": {"gear_ratio": 1.0, "motor_poles": 24, "direct_drive": true},
+  "tail": {"type": "motor"},
+  "rotor": {"radius_m": null, "chord_m": null, "blades": 2, "blade_mass_kg": null},
+  "mass_kg": null,
+  "preset": "Stratos200",
+  "cli_dump": "RTFL_cli_Stratos_200_20261007_Bo.txt",
+  "logs": [
+    {"file": "20261008_160146_11", "headspeed": [3300]},
+    {"file": "20261008_160146_12", "headspeed": [3300]},
+    {"file": "20261008_172721_00", "headspeed": [3600]},
+    {"file": "20261008_174938_00", "headspeed": [3600]},
+    {"file": "20261008_180641_00", "headspeed": [3600]},
+    {"file": "20261008_182311_01", "headspeed": [3600]}
+  ]
+}
