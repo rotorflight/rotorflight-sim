@@ -75,8 +75,8 @@ class RotorLaw(unittest.TestCase):
                 last, t = 0.0, 0.0
                 while t < 20.0:
                     h.step(DT, u, 0, 0, 0, c)
-                    # monotonic, apart from the pack sagging as it drains
-                    self.assertGreaterEqual(h.w, last * (1 - 1e-6))
+                    # monotonic, apart from the pack sagging as it drains and the heli settling on its skids
+                    self.assertGreaterEqual(h.w, last * (1 - 1e-4))
                     last = h.w
                     t += DT
                 w1 = h.w
@@ -266,7 +266,7 @@ class Inflow(unittest.TestCase):
     def steady(self, h, seconds=3.0, vel=(0.0, 0.0, 0.0), alt=100.0, coll=None):
         """Thrust after a few seconds at the nominal rotor speed, with the velocity held."""
         h.reset()
-        h.pos = [0.0, 0.0, -alt]
+        h.set_altitude(alt)
         h.on_ground = False
         h.ground = alt < 50
         h.w = h.nominal_w
@@ -322,6 +322,91 @@ class Inflow(unittest.TestCase):
                 self.assertAlmostEqual(h.n, 1.0, delta=0.05)
                 self.assertGreater(h.w, 0.7 * h.nominal_w)
                 self.assertTrue(1.5 * h.v_hover < h.vel[2] < 3.0 * h.v_hover, h.vel[2])
+
+
+class Skids(unittest.TestCase):
+    """Skid contact: four points with spring, damper and friction. Rotor stopped, so only
+    gravity and the ground act."""
+
+    def run_ground(self, h, seconds):
+        for _ in range(int(seconds / DT)):
+            h.step(DT, 0.0, 0, 0, 0, 0.0)
+        return h
+
+    def tilted(self, roll_deg):
+        """Resting on one skid's edge, rolled by roll_deg."""
+        h = Heli()
+        a = math.radians(roll_deg) / 2
+        h.q = (math.cos(a), math.sin(a), 0.0, 0.0)
+        # lowest point just touching
+        h.pos[2] = -(h.cg_height * math.cos(2 * a) + h.skid_y * math.sin(2 * a)) + 0.002
+        return h
+
+    def test_rests_level(self):
+        for cls in (Heli, Stratos200, M7R):
+            with self.subTest(model=cls.__name__):
+                h = self.run_ground(cls(), 2.0)
+                r, p, _ = euler(h.q)
+                self.assertLess(abs(h.altitude), 0.002)
+                self.assertLess(max(abs(r), abs(p)), math.radians(0.1))
+                self.assertLess(max(abs(v) for v in h.vel), 0.01)
+                self.assertTrue(h.on_ground)
+                # the accelerometer reads 1 g up on the ground
+                self.assertAlmostEqual(h.specific_force[2], -G, delta=0.05)
+
+    def test_drop(self):
+        h = Heli()
+        h.set_altitude(1.0)
+        h.on_ground = False
+        h.air_time = 1.0
+        self.run_ground(h, 3.0)
+        self.assertAlmostEqual(h.touchdown_speed, math.sqrt(2 * G * 1.0), delta=0.1)
+        r, p, _ = euler(h.q)
+        self.assertLess(max(abs(r), abs(p)), math.radians(0.5))
+        self.assertLess(abs(h.altitude), 0.005)
+
+    def test_slide_and_stop(self):
+        """Touching down at 2 m/s sideways: friction stops it within about v^2 / 2 mu g,
+        upright (the tipping friction is skid_y / cg_height = 0.73 > mu)."""
+        h = Heli()
+        h.set_altitude(0.05)
+        h.vel = [0.0, 2.0, 0.5]
+        h.on_ground = False
+        self.run_ground(h, 3.0)
+        slide = h.pos[1]
+        self.assertLess(abs(h.vel[1]), 0.01)
+        self.assertTrue(0.5 * 4 / (2 * h.skid_mu * G) < slide < 2.0 * 4 / (2 * h.skid_mu * G), slide)
+        r, p, _ = euler(h.q)
+        self.assertLess(abs(r), math.radians(2))
+
+    def test_tip_over_angle(self):
+        """Statics: tipping angle atan(skid_y / cg_height) = 36 deg. From 30 deg it falls back
+        on its skids, from 45 deg it falls on its side."""
+        tip = math.degrees(math.atan2(Heli().skid_y, Heli().cg_height))
+        self.assertAlmostEqual(tip, 36.3, delta=0.5)
+        h = self.run_ground(self.tilted(30.0), 4.0)
+        self.assertLess(abs(math.degrees(euler(h.q)[0])), 1.0)
+        h = self.run_ground(self.tilted(45.0), 4.0)
+        self.assertGreater(abs(math.degrees(euler(h.q)[0])), 60.0)
+
+    def test_stiction(self):
+        """A steady sideways push below mu g is held without creeping (the friction sticks);
+        above it the heli slides."""
+        for push, slides in ((0.3 * G, False), (0.8 * G, True)):
+            h = Heli()
+            for _ in range(int(3.0 / DT)):
+                h.step(DT, 0.0, 0, 0, 0, 0.0)
+                h.vel[0] += push * DT
+            if slides:
+                self.assertGreater(h.pos[0], 1.0)
+            else:
+                self.assertLess(abs(h.pos[0]), 0.01)
+
+    def test_yaw_friction(self):
+        h = Heli()
+        h.rates = [0.0, 0.0, 3.0]
+        self.run_ground(h, 2.0)
+        self.assertLess(abs(h.rates[2]), 0.01)
 
 
 class SensorModel(unittest.TestCase):
