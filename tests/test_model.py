@@ -13,6 +13,7 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'heli'))
 from heli_model import G, MODELS, Heli, M7R, Stratos200, euler, induced_velocity, ground_effect  # noqa: E402
 from sensors import Sensors, available  # noqa: E402
+from wind import Wind  # noqa: E402
 
 DT = 250e-6
 
@@ -407,6 +408,48 @@ class Skids(unittest.TestCase):
         h.rates = [0.0, 0.0, 3.0]
         self.run_ground(h, 2.0)
         self.assertLess(abs(h.rates[2]), 0.01)
+
+
+class WindModel(unittest.TestCase):
+
+    def test_dryden_intensity(self):
+        """Each component's std comes out at the MIL-F-8785C intensity for the height."""
+        w = Wind(0.0, 0.0, 1.0, seed=3)
+        xs = [w.step(DT, 10.0, 5.0) for _ in range(int(300 / DT))]
+        (su, sw), _ = w.scales(10.0)
+        for i, want in ((0, su), (1, su), (2, sw)):
+            m = sum(x[i] for x in xs) / len(xs)
+            std = math.sqrt(sum((x[i] - m) ** 2 for x in xs) / len(xs))
+            self.assertAlmostEqual(std / want, 1.0, delta=0.15)
+
+    def test_steady_wind_direction(self):
+        self.assertEqual(tuple(round(c, 6) for c in Wind(5.0, 90.0).step(DT, 10.0, 0.0)), (-0.0, -5.0, 0.0))
+
+    def test_air_relative(self):
+        """Hovering in a 5 m/s wind is flying 5 m/s through still air: the same thrust."""
+        def thrust(vel, wind):
+            h = M7R()
+            h.ground, h.on_ground = False, False
+            h.pos = [0.0, 0.0, -100.0]
+            h.w, h.n = h.nominal_w, 1.0
+            h.wind_e = wind
+            for _ in range(int(2 / DT)):
+                h.vel, h.rates = list(vel), [0.0, 0.0, 0.0]
+                h.step(DT, 0.6, 0, 0, 0, h.coll_hover)
+                h.w = h.nominal_w
+            return h.n
+        self.assertAlmostEqual(thrust((5.0, 0, 0), (0, 0, 0)), thrust((0, 0, 0), (-5.0, 0, 0)), places=6)
+
+    def test_drag_slows(self):
+        h = Heli()
+        h.ground, h.on_ground = False, False
+        h.pos = [0.0, 0.0, -100.0]
+        h.w, h.n = h.nominal_w, 1.0
+        h.vel = [15.0, 0.0, 0.0]
+        for _ in range(int(3 / DT)):
+            h.step(DT, 0.65, 0, 0, 0, h.coll_hover)
+            h.rates, h.q = [0.0, 0.0, 0.0], (1.0, 0.0, 0.0, 0.0)
+        self.assertLess(h.vel[0], 13.0)
 
 
 class SensorModel(unittest.TestCase):

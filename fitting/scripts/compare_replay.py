@@ -7,6 +7,10 @@ Both logs are aligned by cross-correlating the pilot's sticks (rcCommand, identi
 construction), then compared over the real flight's airborne window:
   - rate tracking: RMS of setpoint - gyro per axis (the firmware's own error)
   - gyro spectrum: band power 4-8 Hz (the Bo105 whirl) and the peak frequency
+  - vibration: RMS of the filtered gyro (gyroADC, what the PIDs see) and, where both logs
+    have it, of the unfiltered gyro (gyroRAW, what the sensor saw) from 20 Hz to Nyquist -
+    with a replay flown with --vibration, how close the sim's vibration and the firmware's
+    filtering of it come to the real heli's
   - hover: throttle, tail motor, headspeed spread
 """
 import os
@@ -72,6 +76,16 @@ def metrics(L, t0, t1):
         wide = (f >= 2) & (f <= 15)
         out[ax + '_peak_hz'] = f[wide][np.argmax(P[wide])]
         out[ax + '_psd'] = (f, P)
+        hi = f >= 20
+        out[ax + '_vib_filt'] = np.sqrt(np.trapz(P[hi], f[hi]))
+        try:
+            g = L.c('gyroRAW[%d]' % i)[m]
+            fr, Pr = welch(g - g.mean(), fs=1 / L.dt, nperseg=4096)
+            hr = fr >= 20
+            out[ax + '_vib_raw'] = np.sqrt(np.trapz(Pr[hr], fr[hr]))
+            out[ax + '_psd_raw'] = (fr, Pr)
+        except ValueError:
+            out[ax + '_vib_raw'] = float('nan')
     out['throttle'] = np.median(L.c('motor[0]')[m]) / 10
     try:
         out['tail'] = np.median(L.c('motor[1]')[m]) / 10       # motorized tail, %
@@ -99,10 +113,12 @@ def main():
     print('aligned: sim = real + %.2f s; window %.0f-%.0f s of the real flight (%.0f s)' % (lag, t0, t1, t1 - t0))
     print('%-22s %10s %10s' % ('', 'real', label))
     for k in ('roll_err_rms', 'pitch_err_rms', 'yaw_err_rms', 'roll_4_8Hz', 'pitch_4_8Hz', 'yaw_4_8Hz',
-              'roll_peak_hz', 'pitch_peak_hz', 'throttle', 'tail', 'hs_std', 'volts'):
+              'roll_peak_hz', 'pitch_peak_hz', 'roll_vib_raw', 'pitch_vib_raw', 'yaw_vib_raw',
+              'roll_vib_filt', 'pitch_vib_filt', 'yaw_vib_filt', 'throttle', 'tail', 'hs_std', 'volts'):
         print('%-22s %10.2f %10.2f' % (k, R[k], S[k]))
     if plot:
-        fig, ax = plt.subplots(1, 3, figsize=(14, 4))
+        fig, axs = plt.subplots(2, 3, figsize=(14, 8))
+        ax = axs[0]
         for i, axn in enumerate(('roll', 'pitch', 'yaw')):
             for d, lab in ((R, 'real'), (S, label)):
                 f, P = d[axn + '_psd']
@@ -110,7 +126,15 @@ def main():
                 ax[i].semilogy(f[sel], P[sel], lw=0.8, label=lab)
             ax[i].axvspan(4, 8, color='0.92', zorder=0)
             ax[i].set_title('%s gyro PSD' % axn); ax[i].set_xlabel('Hz')
-        ax[0].set_ylabel('(deg/s)^2/Hz'); ax[0].legend()
+            # vibration: unfiltered (dashed) and filtered gyro up to Nyquist
+            for d, lab, c in ((R, 'real', 'C0'), (S, label, 'C1')):
+                f, P = d[axn + '_psd']
+                axs[1][i].semilogy(f[f >= 10], P[f >= 10], lw=0.7, color=c, label=lab + ' filtered')
+                if axn + '_psd_raw' in d:
+                    f, P = d[axn + '_psd_raw']
+                    axs[1][i].semilogy(f[f >= 10], P[f >= 10], lw=0.7, color=c, ls='--', label=lab + ' raw')
+            axs[1][i].set_title('%s vibration' % axn); axs[1][i].set_xlabel('Hz')
+        ax[0].set_ylabel('(deg/s)^2/Hz'); ax[0].legend(); axs[1][0].legend(fontsize=7)
         fig.tight_layout(); fig.savefig(plot, dpi=110)
     return R, S
 

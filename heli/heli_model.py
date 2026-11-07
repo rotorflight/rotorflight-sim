@@ -174,6 +174,11 @@ class Heli:
     skid_deflection = 0.01  # m, static deflection under the weight (sets the stiffness)
     skid_zeta = 0.6        # damping ratio of the bounce
     skid_mu = 0.6          # friction coefficient (grass, skid tubes)
+    # fuselage drag: equivalent flat-plate area as a fraction of the rotor disk (~0.015 for
+    # RC helis). Per unit mass with the mass from v_hover (m = 2 rho A v_h^2 / g), the
+    # quadratic drag is k |V| V with k = f g / (4 v_h^2), independent of the size; its
+    # power (parasite power, D V) loads the rotor
+    flat_plate = 0.015
 
     def __init__(self, nominal_rpm=2100.0, gear_ratio=10.0, hover_throttle=0.65, load_fraction=0.85,
                  pack_cells=6, pack_ah=2.2, pack_r=0.02, hover_power_w=400.0,
@@ -226,6 +231,8 @@ class Heli:
         # deflection, damping for skid_zeta of the vertical bounce
         self.skid_k = G / (4 * self.skid_deflection)
         self.skid_c = self.skid_zeta * 2 * math.sqrt(4 * self.skid_k) / 4
+        self.k_par = self.flat_plate * G / (4 * self.v_hover ** 2)
+        self.wind_e = (0.0, 0.0, 0.0)      # air velocity, earth axes (heli/wind.py)
         self.ground = True
         self.touchdown_speed = 0.0
         self.touchdown_rpm = 0.0
@@ -383,7 +390,8 @@ class Heli:
         coll = self.coll_scale * collective + self.coll_offset
 
         # air-relative body velocity, rotor inflow
-        u, v, w_ = earth_to_body(self.q, self.vel)
+        u, v, w_ = earth_to_body(self.q, [self.vel[i] - self.wind_e[i] for i in range(3)])
+        va = math.sqrt(u * u + v * v + w_ * w_)
         inflow, inflow_t = self.update_inflow(dt, u, v, w_) if self.inflow else (0.0, 0.0)
 
         # rotor speed
@@ -400,6 +408,9 @@ class Heli:
             # steep descent: the airflow drives the rotor
             vh = self.v_hover * math.sqrt(abs(self.n))
             dp = self.ind_share * self.shaft_hover * abs(self.n) * (inflow_t - vh) / self.v_hover
+            # parasite power D V = k |V|^3 per unit mass, on the same scale (the hover
+            # induced power is g v_h per unit mass)
+            dp += self.ind_share * self.shaft_hover * self.k_par * va ** 3 / (G * self.v_hover)
             q_drag += dp / max(self.w, 0.3 * self.nominal_w)
         self.w = max(0.0, self.w + (q_motor - q_drag) * dt)
         rr = (self.w / self.nominal_w) ** 2        # thrust and control power scale with rpm^2
@@ -449,8 +460,8 @@ class Heli:
             r_dot += self.torque_yaw * q_drag * self.nominal_w / self.shaft_hover
 
         # specific force (aero), body
-        fx = -G * a1s + self.Xu * u
-        fy = G * b1s + self.Yv * v + self.Yp * p
+        fx = -G * a1s + self.Xu * u - self.k_par * va * u
+        fy = G * b1s + self.Yv * v + self.Yp * p - self.k_par * va * v
         if self.thrust_inflow and self.inflow:
             # the inflow carries the heave damping (Zw) and translational lift
             self.n = self.thrust_g_inflow(coll, inflow)

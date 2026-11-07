@@ -33,6 +33,7 @@ import csv                            # noqa: E402
 from swash import Swash               # noqa: E402
 from esc import Hw4Esc                # noqa: E402
 from sensors import Sensors, available as sensors_available   # noqa: E402
+from wind import Wind                 # noqa: E402
 
 DT = 250e-6
 MSP_SET_RAW_RC = 200
@@ -452,6 +453,11 @@ def main():
                          % ', '.join(sensors_available('helis')))
     ap.add_argument('--vib-scale', type=float, default=1.0, help='scale the vibration amplitudes')
     ap.add_argument('--sensor-seed', type=int, default=1)
+    ap.add_argument('--wind', default='0,0', metavar='SPEED,FROM_DEG',
+                    help='steady wind, m/s, blowing from FROM_DEG (0 north, 90 east); the heli faces north')
+    ap.add_argument('--gust', type=float, default=0.0, metavar='SIGMA_W',
+                    help='Dryden turbulence, vertical intensity m/s (MIL-F-8785C: 0.1 x the wind at 6 m: '
+                         'light ~0.5, moderate ~1.5)')
     ap.add_argument('--bbl', metavar='OUT',
                     help='save the SITL blackbox (file-backed flash) here after the flight')
     a = ap.parse_args()
@@ -470,6 +476,10 @@ def main():
                       gear_ratio=heli.gear)
     if a.gyro_chip or a.vibration:
         print('sensors:', sensors.describe())
+    ws, wd = (float(x) for x in a.wind.split(','))
+    wind = Wind(ws, wd, a.gust)
+    if ws or a.gust:
+        print(wind.describe(), 'from %.0f deg' % wd)
     sticks = load_sticks(a.replay) if a.replay else None
     seconds = (REPLAY_LEAD + sticks[-1][0] - sticks[0][0] + REPLAY_TAIL) if sticks else a.seconds
     pilot = RescuePilot() if a.rescue else None
@@ -601,6 +611,9 @@ def main():
                 except (BlockingIOError, OSError):
                     pass
 
+            if ws or a.gust:
+                rel = [heli.vel[i] - heli.wind_e[i] for i in range(3)]
+                heli.wind_e = wind.step(DT, max(heli.altitude, 0.0), math.sqrt(sum(x * x for x in rel)))
             heli.step(DT, *ctrl)
             if (sticks and heli.ground and heli.w > 0.95 * heli.nominal_w
                     and ctrl[4] > 0.9 * heli.coll_hover):

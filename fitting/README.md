@@ -318,6 +318,15 @@ leaves 1.2 / 0.3 / 0.4 deg/s RMS in the filtered gyro with the RPM filter and 9.
 4.0 without (the M5 and M6, 2.5 deg/s on roll with it: their broadband floor, which no
 notch removes).
 
+**End to end.** A Blade 360 hover check with `--vibration omp_m7r` at 2100 rpm, its SITL
+blackbox at the full rate (`--cli "set blackbox_rate_denom = 1"`, ~800 Hz, 1 MB for 28 s
+of the 2 MB flash), order-tracked like a real log: the firmware's `gyroRAW` carries the
+injected lines at their amplitude x (2100/1797)^2 - main 1x 5.27/7.25/4.37 deg/s
+(injected 5.32/7.27/4.37), 2x 12.75/5.59/3.75 (12.86/5.64/3.79), 4x 6.55/2.09/1.34
+(6.73/2.16/1.36), tail 1x 2.55/0.77/0.44 (2.67/0.80/0.49). `compare_replay.py` compares
+the vibration that reached the sensor (gyroRAW) and the PIDs (gyroADC) above 20 Hz between
+a replay and its real flight.
+
 ## Open
 
 - a less damped mode and lower-band turbulence (the real peak is sharper; the whirl's

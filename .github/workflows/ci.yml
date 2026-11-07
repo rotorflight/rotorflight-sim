@@ -75,6 +75,9 @@ jobs:
     - name: Rescue check
       run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --rescue --check
 
+    - name: Hover check in wind (5 m/s crosswind, Dryden gusts)
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --wind 5,90 --gust 1.0 --check
+
     - name: Autorotation and landing (governor AUTOROTATION)
       run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --governor 2100 --autorotation land --check
 
@@ -132,6 +135,9 @@ jobs:
 
     - name: Rescue check
       run: python heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --rescue --check
+
+    - name: Hover check in wind (5 m/s crosswind, Dryden gusts)
+      run: python heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --wind 5,90 --gust 1.0 --check
 
     - name: Autorotation and landing (governor AUTOROTATION)
       run: python heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --governor 2100 --autorotation land --check

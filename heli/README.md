@@ -60,6 +60,12 @@ too, 65 % inflow share of its 0.44 hover collective), and the rotor torque the c
 induced power from hover, T (v_c + v_i) - T v_h: a steep descent drives the rotor. Rotor
 size and hover induced velocity (`rotor_radius`, `v_hover`) are typical values per size.
 
+**Wind.** `--wind SPEED,FROM_DEG` blows a steady wind (the heli faces north), `--gust
+SIGMA_W` adds Dryden turbulence (MIL-F-8785C at low altitude: light ~0.5, moderate ~1.5
+m/s), seeded (`heli/wind.py`). The model flies relative to the air: inflow and
+translational lift, a quadratic fuselage drag (flat-plate area 1.5 % of the disk) whose
+power loads the rotor, and the speed derivatives where a preset has them.
+
 **Ground.** The heli stands on four skid contact points below its centre of gravity
 (plus the rotor head, nose and tail, for a heli that tips over), each a spring and damper
 normal to the ground (1 cm static deflection, damping ratio 0.6) and stick-slip friction
