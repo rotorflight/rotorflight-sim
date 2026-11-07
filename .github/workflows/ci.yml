@@ -75,6 +75,15 @@ jobs:
     - name: Rescue check
       run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --rescue --check
 
+    - name: Hover check, 700 class (OMP M7R preset, governor)
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --model m7r --seconds 34 --governor 1800 --check
+
+    - name: Rescue check, 700 class (OMP M7R preset, governor)
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --model m7r --governor 1800 --rescue --check
+
+    - name: Take-off and landing on a 15 deg slope
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --slope 15 --check
+
     - name: Hover check in wind (5 m/s crosswind, Dryden gusts)
       run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --seconds 34 --wind 5,90 --gust 1.0 --check
 

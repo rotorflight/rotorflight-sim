@@ -47,6 +47,18 @@ deg and come back within 3 deg, no excursion beyond 35 deg, yaw held, lockstep r
 and with `--governor` headspeed within 3 %) and exits 1 on a failure - the closed-loop
 regression gate CI runs. A board-alignment error, for example, fails it.
 
+The scripted pilots fly the collective relative to the preset's hover collective (the
+Blade 360 215 us above centre, the M7R 133, the Stratos 310), and the rescue collectives
+follow it, so the same flight runs on every preset. A preset with a motorized tail gets
+`tail_rotor_mode = MOTORIZED` without a dump.
+
+`--slope DEG[,UPHILL_DEG]` tilts the ground (rising towards UPHILL_DEG, default 90: across
+the skids). The heli is set down on it at 4 s, after the accelerometer calibration on level
+ground, flies the scripted flight and lands on it again; the run lasts 45 s so the rotor
+runs down. `--check` adds: at rest on the ground at the end, not rolled over (tilt at most
+the slope + 6 deg), no slide after touchdown (below 0.5 m). The rotor still turns at the
+end with the cyclic left at disarm, so the heli rests flatter than the ground (9 deg on 15).
+
 `--rescue` tests Rotorflight's rescue (`rescue_mode = CLIMB`, flip on, switch on AUX3):
 climb to ~25 m in angle mode, roll inverted in acro at full stick and hold inverted hover
 collective, centre the sticks, and switch rescue on half a second later. With `--check`
