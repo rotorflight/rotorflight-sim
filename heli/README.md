@@ -12,6 +12,8 @@ library is used.
 | `swash.py` | inverse swash mixing: servo pulses back to roll/pitch/collective, from the servo and mixer configuration read over MSP, so the model feels servo travel, speed limits and the cyclic ring |
 | `esc.py` | HobbyWing V4 telemetry from the model on UART3 (`--esc hw4`) |
 | `sensors.py` | gyro and accelerometer errors: chip noise (`--gyro-chip`) and rotor-locked vibration (`--vibration`), from the fits in `../fitting/sensors/` and `../fitting/helis/` |
+| `wind.py` | steady wind and Dryden turbulence as the air velocity (`--wind`, `--gust`) |
+| `servos.py` | servo speed, deadband and lag between the pulses and the swash (`--servos`) |
 | `configs.py` | load a real CLI dump (`--dump`), minus board, radio and sensor-alignment settings |
 
 ## Run
@@ -65,6 +67,12 @@ SIGMA_W` adds Dryden turbulence (MIL-F-8785C at low altitude: light ~0.5, modera
 m/s), seeded (`heli/wind.py`). The model flies relative to the air: inflow and
 translational lift, a quadratic fuselage drag (flat-plate area 1.5 % of the disk) whose
 power loads the rotor, and the speed derivatives where a preset has them.
+
+**Servos and pack.** `--servos digital|fast|analog` puts servo dynamics between the
+firmware's pulses and the swash decode: speed (0.06 / 0.04 / 0.12 s per 60 deg at 10 us
+per degree), deadband (1 / 1 / 4 us) and a first-order lag (10 / 6 / 20 ms); `ideal`
+(default) passes the pulses through (`heli/servos.py`). The pack follows a LiPo discharge
+curve with an internal resistance that rises towards empty.
 
 **Ground.** The heli stands on four skid contact points below its centre of gravity
 (plus the rotor head, nose and tail, for a heli that tips over), each a spring and damper

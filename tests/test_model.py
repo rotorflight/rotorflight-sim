@@ -14,6 +14,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'
 from heli_model import G, MODELS, Heli, M7R, Stratos200, euler, induced_velocity, ground_effect  # noqa: E402
 from sensors import Sensors, available  # noqa: E402
 from wind import Wind  # noqa: E402
+from servos import Servo, Servos, TYPES  # noqa: E402
+from heli_model import LIPO_OCV  # noqa: E402
 
 DT = 250e-6
 
@@ -450,6 +452,47 @@ class WindModel(unittest.TestCase):
             h.step(DT, 0.65, 0, 0, 0, h.coll_hover)
             h.rates, h.q = [0.0, 0.0, 0.0], (1.0, 0.0, 0.0, 0.0)
         self.assertLess(h.vel[0], 13.0)
+
+
+class Actuators(unittest.TestCase):
+
+    def test_servo_slew_time(self):
+        """A 300 us step on a 0.06 s/60 deg servo (10 us/deg) takes 30 ms at full speed,
+        plus its lag."""
+        sv = Servo(*TYPES['digital'])
+        sv.step(DT, 1500.0)
+        t = 0.0
+        while sv.step(DT, 1800.0) < 1799.0:
+            t += DT
+        self.assertTrue(0.030 <= t <= 0.060, t)
+
+    def test_servo_deadband(self):
+        sv = Servo(*TYPES['analog'])          # 4 us deadband
+        sv.step(DT, 1500.0)
+        for _ in range(400):
+            pos = sv.step(DT, 1503.0)
+        self.assertAlmostEqual(pos, 1500.0)
+        for _ in range(2000):
+            pos = sv.step(DT, 1510.0)
+        self.assertAlmostEqual(pos, 1510.0, delta=0.01)
+
+    def test_ideal_and_unused(self):
+        self.assertEqual(Servos('ideal').step(DT, (1500.0, 0.0)), (1500.0, 0.0))
+        out = Servos('digital').step(DT, (1500.0,) + (0.0,) * 7)
+        self.assertEqual(out[1], 0.0)
+
+    def test_pack_curve(self):
+        self.assertEqual(LIPO_OCV[-1], 4.20)
+        for a, b in zip(LIPO_OCV, LIPO_OCV[1:]):
+            self.assertGreater(b, a)
+        h = M7R()
+        self.assertAlmostEqual(h.pack_voltage(0.0), 12 * 4.20)
+        h.used_ah = 0.5 * h.pack_ah
+        self.assertAlmostEqual(h.pack_voltage(0.0) / 12, 3.84, delta=0.01)
+        # the sag under load grows towards empty
+        sag_half = h.pack_voltage(0.0) - h.pack_voltage(40.0)
+        h.used_ah = 0.95 * h.pack_ah
+        self.assertGreater(h.pack_voltage(0.0) - h.pack_voltage(40.0), sag_half)
 
 
 class SensorModel(unittest.TestCase):

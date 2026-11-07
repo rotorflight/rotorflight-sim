@@ -181,9 +181,12 @@ The current disturbance is a random moment on the body, with `turb_hz` tuned per
 
 - [ ] ESC response model (the M7R's analog ESC: R^2 0.73 in the volts form); ESC telemetry
       models beyond HobbyWing V4
-- [ ] Servos: rate limit, deadband, lag and load, per servo type (`servo_tau` is off)
-- [ ] Pack: discharge curve, internal resistance with temperature and state of charge,
-      instead of the straight line
+- [x] Servos: speed limit, deadband and lag per servo type on each pulse before the swash
+      decode (`heli/servos.py`, `--servos ideal|digital|fast|analog`; CI flies digital)
+- [ ] Servo load (stall torque against the feathering moment), types from measured servos
+- [x] Pack: LiPo discharge curve (open-circuit voltage per cell against state of charge)
+      and internal resistance rising towards empty, instead of the straight line
+- [ ] Pack temperature (resistance and capacity), and a curve fitted from logged Vbat/Ibat
 
 ## 10. Engineering
 
