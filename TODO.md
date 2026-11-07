@@ -115,7 +115,9 @@ forward flight cannot be tested.
 
 - [x] Translational lift: the induced velocity follows forward speed (Glauert), and the
       blade-element thrust its inflow
-- [ ] Flapback, dihedral (Lv, Mu), weathervane (Nv), fuselage and tail drag, parasite power
+- [x] Fuselage drag (quadratic, flat-plate area 1.5 % of the disk) and its parasite power
+      on the rotor
+- [ ] Flapback, dihedral (Lv, Mu), weathervane (Nv), tail drag
 - [ ] Fit them from logs with GPS speed (blackbox GPS fields) - add a GPS-logged flight to
       the manoeuvre card
 - [ ] Replays without `--hold-alt` hold height in cruise; a forward-flight and a piro check
@@ -157,8 +159,12 @@ The heli used to snap level on the ground, and touchdown zeroed its velocity.
 
 The current disturbance is a random moment on the body, with `turb_hz` tuned per heli.
 
-- [ ] Wind (steady and gusts) as air velocity, with turbulence from a Dryden or von Karman
-      spectrum scaled to the rotor size; the rotor responds through the speed derivatives (4)
+- [x] Wind (steady and gusts) as air velocity (`heli/wind.py`, `--wind`, `--gust`), with
+      Dryden turbulence (MIL-F-8785C low altitude, first-order shaping) scaled with the
+      height; the rotor responds through the inflow (translational lift, vertical gusts),
+      the drag and the speed derivatives. A hover check in a 5 m/s crosswind with gusts in CI
+- [ ] Turbulence scale lengths from the rotor size, and the rotor's response to gusts
+      across the disk (the fitted presets have their speed derivatives off, see 4)
 - [ ] Check it against the whirl amplitude the fits undersize (Stratos at 3300 rpm, the D
       gain effect)
 
