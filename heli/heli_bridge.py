@@ -177,23 +177,32 @@ def save_blackbox(flash, out):
     print('blackbox: %d bytes -> %s' % (end, out))
 
 
-def schedule(t, governor=False, acro=False):
+COLL_PER_US = 2.05e-3   # mixer collective per us of stick (default collective rate)
+
+
+def hover_us(heli):
+    """Collective stick above centre at which the model hovers at its nominal headspeed."""
+    return heli.coll_hover / COLL_PER_US
+
+
+def schedule(t, governor=False, acro=False, hover=215.0):
     """Scripted pilot: returns (throttle, collective, aux1 arm, aux2 angle, roll, pitch, yaw) in us.
     Without the governor the throttle stick ramps to 65 % (the model's hover throttle at
-    nominal headspeed); with it the stick goes to 100 % and the governor spools up."""
+    nominal headspeed); with it the stick goes to 100 % and the governor spools up.
+    The collective goes relative to hover (us above centre, hover_us(); the Blade 360 215)."""
     arm = 1900 if 6.0 <= t < 34.0 else 1000
     angle = 1000 if acro else 1900
     thr = 1000
     if 8.0 <= t < 34.0:
         thr = 2000 if governor else 1000 + min(1.0, (t - 8.0) / 4.0) * 650
-    # collective: ~2.05e-3 per us at the mixer; the model hovers at 0.44 (215 us) at 2100 rpm
+    # collective: ~2.05e-3 per us at the mixer; the Blade 360 hovers at 0.44 (215 us) at 2100 rpm
     coll = 1500 - 150                                            # low pitch on the ground
     if 18.0 <= t < 26.0:
-        coll = 1500 + 230                                        # lift off, climb slowly
+        coll = 1500 + hover + 15                                 # lift off, climb slowly
         if 24.0 <= t < 25.0:
-            coll = 1500 + 330                                    # 1 s punch: loads the governor
+            coll = 1500 + hover + 115                            # 1 s punch: loads the governor
     elif 26.0 <= t < 33.0:
-        coll = 1500 + 195                                        # descend and land
+        coll = 1500 + hover - 20                                 # descend and land
     if acro:
         # doublets: 0.5 s one way, hold 1 s, 0.5 s back - the attitude must be held in
         # between and come back level
@@ -216,7 +225,8 @@ class RescuePilot:
     CLIMB_END = 27.0          # angle-mode climb 18-27 s
     RESCUE_HOLD = 6.0
 
-    def __init__(self):
+    def __init__(self, hover=215.0):
+        self.hover = hover        # hover collective, us above centre (hover_us())
         self.t_inverted = None    # sticks released, heli inverted
         self.t_rescue = None      # rescue switch on
         self.t_end = None         # rescue off, angle mode, descend
@@ -224,19 +234,20 @@ class RescuePilot:
     def rc(self, t, heli):
         arm = 1900 if t >= 6.0 and (self.t_end is None or t < self.t_end + 8.0) else 1000
         thr = 1000 + min(1.0, max(0.0, (t - 8.0) / 4.0)) * 650 if t >= 8.0 else 1000
+        h = self.hover
         coll, angle, roll, aux3 = 1500 - 150, 1900, 1500, 1000
         if 18.0 <= t < self.CLIMB_END:
-            coll = 1500 + 260                                      # climb to height
+            coll = 1500 + h + 45                                   # climb to height
         elif t >= self.CLIMB_END and self.t_inverted is None:
             angle = 1000                                           # acro
             bank = abs(math.degrees(euler(heli.q)[0]))
-            coll = 1500 + (215 if bank < 90 else -215)            # hover collective, either way up
+            coll = 1500 + (h if bank < 90 else -h)                # hover collective, either way up
             if bank < 150:
                 roll = 1500 + 500                                  # full roll until inverted
             else:
                 self.t_inverted = t
         if self.t_inverted is not None:
-            coll, angle = 1500 - 215, 1000                         # inverted hover, sticks centred
+            coll, angle = 1500 - h, 1000                           # inverted hover, sticks centred
             if self.t_rescue is None and t >= self.t_inverted + 0.5:
                 self.t_rescue = t
             if self.t_rescue is not None and t < self.t_rescue + self.RESCUE_HOLD:
@@ -245,7 +256,7 @@ class RescuePilot:
             elif self.t_rescue is not None:
                 if self.t_end is None:
                     self.t_end = t
-                coll, angle = 1500 + 195, 1900                     # angle mode, descend
+                coll, angle = 1500 + h - 20, 1900                  # angle mode, descend
         return thr, coll, arm, angle, roll, 1500, 1500, aux3
 
 
@@ -465,6 +476,11 @@ def main():
     ap.add_argument('--sensor-seed', type=int, default=1)
     ap.add_argument('--wind', default='0,0', metavar='SPEED,FROM_DEG',
                     help='steady wind, m/s, blowing from FROM_DEG (0 north, 90 east); the heli faces north')
+    ap.add_argument('--slope', default=None, metavar='DEG[,UPHILL_DEG]',
+                    help='take off from and land on a slope rising towards UPHILL_DEG (0 north, the '
+                         'heli faces north; default 90: across the skids). The heli is set down on it '
+                         'at %.0f s, after the accelerometer calibration on level ground; with --check '
+                         'the landing is judged too' % 4.0)
     ap.add_argument('--gust', type=float, default=0.0, metavar='SIGMA_W',
                     help='Dryden turbulence, vertical intensity m/s (MIL-F-8785C: 0.1 x the wind at 6 m: '
                          'light ~0.5, moderate ~1.5)')
@@ -496,7 +512,10 @@ def main():
         kw[k] = float(v)
     if a.model not in MODELS and not os.path.isfile(a.model):
         ap.error('--model: no preset or file %s (presets: %s)' % (a.model, ', '.join(sorted(MODELS))))
-    heli = load_model(a.model, sign_roll=1.0, sign_pitch=-1.0, sign_yaw=-1.0, **kw)
+    try:
+        heli = load_model(a.model, sign_roll=1.0, sign_pitch=-1.0, sign_yaw=-1.0, **kw)
+    except (ValueError, TypeError) as e:          # a bad parameter file or --set name
+        ap.error('--model: %s' % e)
     sensors = Sensors(a.gyro_chip, a.vibration, seed=a.sensor_seed, vib_scale=a.vib_scale,
                       gear_ratio=heli.gear)
     if a.gyro_chip or a.vibration:
@@ -504,11 +523,24 @@ def main():
     servos = Servos(a.servos)
     ws, wd = (float(x) for x in a.wind.split(','))
     wind = Wind(ws, wd, a.gust)
+    slope = None
+    if a.slope:
+        try:
+            v = [float(x) for x in a.slope.split(',')]
+        except ValueError:
+            v = []
+        if not 1 <= len(v) <= 2 or not 0.0 <= v[0] < 90.0:
+            ap.error('--slope: DEG[,UPHILL_DEG] with 0 <= DEG < 90, not %r' % a.slope)
+        slope = (v[0], v[1] if len(v) > 1 else 90.0)
+        if a.seconds == ap.get_default('seconds'):
+            a.seconds = 45.0      # disarm at 34 s, then the rotor runs down on the slope
+        if a.replay or a.rescue or a.autorotation:
+            ap.error('--slope goes with the scripted flight only')
     if ws or a.gust:
         print(wind.describe(), 'from %.0f deg' % wd)
     sticks = load_sticks(a.replay) if a.replay else None
     seconds = (REPLAY_LEAD + sticks[-1][0] - sticks[0][0] + REPLAY_TAIL) if sticks else a.seconds
-    pilot = RescuePilot() if a.rescue else None
+    pilot = RescuePilot(hover_us(heli)) if a.rescue else None
     if pilot and a.seconds == ap.get_default('seconds'):
         seconds = 46.0
     if a.autorotation:
@@ -523,14 +555,18 @@ def main():
     proc, log = start_sitl(elf, rundir, 'config', False)
     wait_for(os.path.join(rundir, 'config.log'), 'bind port 5761', 15)
     commands = load_dump(a.dump) if a.dump else ['set motor_poles = %d' % heli.motor_poles]
+    if heli.tail_motor and not a.dump:
+        commands += ['set tail_rotor_mode = MOTORIZED']
     # the bridge's radio: MSP RX, channels AETRC123, ARM on AUX1, angle mode on AUX2
     commands += ['feature -RX_SERIAL', 'feature RX_MSP', 'map AETRC123',
                  'aux 0 0 0 1700 2100 0 0', 'aux 1 1 1 1700 2100 0 0']
     if a.rescue:
         # 53: RESCUE's permanent id. Climb and hover collective per heli: the Blade 360 model
-        # hovers at 0.44 (the defaults 450/350 are below it)
+        # hovers at 0.44 (the defaults 450/350 are below it): 600 / 450
+        hov = round(1000 * heli.coll_hover)
         commands += ['aux 2 53 2 1700 2100 0 0', 'set rescue_mode = CLIMB',
-                     'set rescue_climb_collective = 600', 'set rescue_hover_collective = 450']
+                     'set rescue_climb_collective = %d' % (hov + 160),
+                     'set rescue_hover_collective = %d' % (hov + 10)]
     if a.bbl:
         # each run starts on fresh flash: log from its start, no ring-buffer erasing
         commands += ['set blackbox_mode = ARMED', 'set blackbox_rolling_erase = OFF', 'set blackbox_initial_erase_kb = 0']
@@ -622,7 +658,7 @@ def main():
                 elif pilot:
                     thr, coll, arm, angle, r, p, y, aux3 = pilot.rc(t, heli)
                 else:
-                    thr, coll, arm, angle, r, p, y = schedule(t, bool(a.governor), a.acro)
+                    thr, coll, arm, angle, r, p, y = schedule(t, bool(a.governor), a.acro, hover_us(heli))
                 ch = [int(round(v)) for v in (r, p, thr, y, coll, arm, angle, aux3)]
                 msp.send(msp_frame(MSP_SET_RAW_RC, struct.pack('<8H', *ch)))
                 if n == int(30.0 / DT):
@@ -638,6 +674,9 @@ def main():
                 except (BlockingIOError, OSError):
                     pass
 
+            if slope and n == int(SLOPE_AT / DT):
+                heli.set_ground_slope(*slope)
+                heli.place_on_ground()
             if ws or a.gust:
                 rel = [heli.vel[i] - heli.wind_e[i] for i in range(3)]
                 heli.wind_e = wind.step(DT, max(heli.altitude, 0.0), math.sqrt(sum(x * x for x in rel)))
@@ -804,7 +843,8 @@ def main():
             if not case:
                 sys.exit('--check with a replay needs --replay-case (the reference to judge against)')
             sys.exit(0 if check_replay(rows, timeouts, steps, replay_resets, case) else 1)
-        sys.exit(0 if check_flight(rows, timeouts, steps, a.governor, vib_rms) else 1)
+        sys.exit(0 if check_flight(rows, timeouts, steps, a.governor, vib_rms,
+                                   slope and (slope[0], heli)) else 1)
 
 
 def check_replay(rows, timeouts, steps, resets, case):
@@ -844,7 +884,10 @@ def check_replay(rows, timeouts, steps, resets, case):
 VIB_RMS_MAX = 3.0     # deg/s: filtered gyro error allowed with --gyro-chip / --vibration
 
 
-def check_flight(rows, timeouts, steps, governor, vib_rms=None):
+SLOPE_AT = 4.0        # s: the heli is set down on the slope after the level ACC calibration
+
+
+def check_flight(rows, timeouts, steps, governor, vib_rms=None, slope=None):
     """The scripted angle-mode flight (schedule()): lift off at 18 s, roll stick 21-22 s,
     pitch stick 23-24 s, collective punch 24-25 s, descend from 26 s. Fixed bounds."""
     def at(t):
@@ -872,6 +915,24 @@ def check_flight(rows, timeouts, steps, governor, vib_rms=None):
         dev = max(abs(v - governor) for v in span(20, 33, RPM)) / governor
         checks.append(('governor: headspeed within 3 %% of %d rpm, 20-33 s' % governor, dev < 0.03,
                        '%.1f %%' % (100 * dev)))
+    if slope:
+        # landed back on the slope (the flight descends from 26 s, disarms at 34 s): at rest,
+        # not rolled over, not sliding. The rotor still turns at the end (it runs down for
+        # ~20 s) with the cyclic left at disarm, so it holds the heli flatter than the ground,
+        # as a pilot's cyclic into the slope does; the soft skids add a few degrees the other way
+        deg, heli = slope
+        last = rows[-1]
+        tilt = math.degrees(math.acos(max(-1.0, min(1.0, math.cos(math.radians(last[ROLL]))
+                                                     * math.cos(math.radians(last[PITCH]))))))
+        td = heli.touchdown_pos
+        moved = math.hypot(heli.pos[0] - td[0], heli.pos[1] - td[1]) if td else float('inf')
+        checks += [
+            ('slope: landed, at rest on the ground at the end', heli.on_ground and abs(last[2]) < 0.05,
+             'on ground %s, climb %.2f m/s' % (heli.on_ground, last[2])),
+            ('slope: not rolled over, tilt at most %.0f deg on the %.0f deg ground' % (deg + 6, deg),
+             tilt <= deg + 6, '%.1f deg' % tilt),
+            ('slope: no slide after touchdown, below 0.5 m', moved < 0.5, '%.2f m' % moved),
+        ]
     if vib_rms == []:
         # the gyro was to be sampled but no MSP_RAW_IMU reply came back: no evidence, a failure
         checks.append(('vibration filtered: filtered gyro sampled over MSP, 26.5-32 s', False, 'no samples'))

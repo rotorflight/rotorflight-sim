@@ -34,7 +34,11 @@ tail type. New sizes should come from parameters, not from a fitting campaign.
       the high-voltage end); the Blade 360 kept as a reference
 - [x] `--model` takes a preset name or a parameter file (JSON: base preset, constructor
       args, class constants; `heli_model.load_model`)
-- [ ] CI runs hover, governor and rescue checks per size class, not only the Blade 360
+- [ ] CI runs hover, governor and rescue checks per size class, not only the Blade 360.
+      Done for the M7R (700): the scripted pilots fly relative to the preset's hover
+      collective, rescue collectives likewise. The Stratos (200, motorized tail) lifts off
+      but yaws at 3.2 rad/s and does not roll inverted on the default gains: it needs its
+      own tune (tail gains) without a dump
 
 ## 2. Gyro noise and vibration
 
@@ -164,7 +168,12 @@ The heli used to snap level on the ground, and touchdown zeroed its velocity.
       points, plus rotor head, nose and tail so a tipped heli lies on its side), about the
       centre of gravity: tilt on landing, sliding and tip-over happen (unit tests: drop,
       slide, tip-over angle, stiction, yaw friction)
-- [ ] A slope landing check, and skid sizes and inertias from real helis (now fractions of
+- [x] A slope landing check: the ground plane can be tilted (`set_ground_slope`, unit tests
+      hold / slide / land level onto it); `--slope DEG[,UPHILL]` sets the heli down on it
+      after the level ACC calibration and judges the landing (at rest, not rolled over, no
+      slide after touchdown). CI flies 15 deg across the skids. A rollover case is still
+      missing: on 40 deg the heli slides before take-off (mu 0.6)
+- [ ] Skid sizes and inertias from real helis (now fractions of
       the rotor radius)
 - [ ] Ground resonance (stretch, needs a fuselage/hub mode)
 

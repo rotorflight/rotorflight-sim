@@ -411,6 +411,49 @@ class Skids(unittest.TestCase):
         self.run_ground(h, 2.0)
         self.assertLess(abs(h.rates[2]), 0.01)
 
+    def on_slope(self, slope, uphill=0.0, yaw=0.0):
+        h = Heli()
+        h.q = (math.cos(math.radians(yaw) / 2), 0.0, 0.0, math.sin(math.radians(yaw) / 2))
+        h.set_ground_slope(slope, uphill)
+        h.place_on_ground()
+        return h
+
+    def test_rests_on_a_slope(self):
+        """Placed on a 15 deg slope (tan 0.27 < mu), facing uphill and across it: it stays
+        put, tilted with the ground - a little more: the downhill skid carries more of the
+        weight and the springs are soft (1 cm static deflection), about 3 deg here."""
+        for yaw, axis in ((0.0, 1), (90.0, 0)):
+            with self.subTest(yaw=yaw):
+                h = self.on_slope(15.0, 0.0, yaw)
+                x0 = list(h.pos)
+                self.run_ground(h, 3.0)
+                self.assertLess(math.dist(h.pos, x0), 0.01)
+                self.assertTrue(15.0 <= abs(math.degrees(euler(h.q)[axis])) <= 19.0, euler(h.q))
+                self.assertTrue(h.on_ground)
+
+    def test_slides_down_a_steep_slope(self):
+        """35 deg (tan 0.70 > mu 0.6): it slides downhill at about g (sin - mu cos)."""
+        h = self.on_slope(35.0)
+        self.run_ground(h, 1.0)
+        s, c = math.sin(math.radians(35)), math.cos(math.radians(35))
+        expect = 0.5 * G * (s - h.skid_mu * c)               # m along the slope in 1 s
+        self.assertAlmostEqual(-h.pos[0] / c, expect, delta=0.3 * expect)
+        self.assertAlmostEqual(math.degrees(euler(h.q)[1]), 35.0, delta=1.0)
+
+    def test_lands_level_onto_a_slope(self):
+        """Dropped level from 0.2 m onto a 10 deg slope across the skids, it settles tilted
+        with the ground (plus the soft skids' share), upright, without sliding off."""
+        h = Heli()
+        h.set_ground_slope(10.0, 90.0)
+        h.set_altitude(0.2)
+        h.on_ground, h.air_time = False, 1.0
+        self.run_ground(h, 3.0)
+        r, p, _ = euler(h.q)
+        self.assertTrue(10.0 <= abs(math.degrees(r)) <= 13.0, r)
+        self.assertLess(abs(math.degrees(p)), 1.0)
+        self.assertLess(max(abs(v) for v in h.vel), 0.01)
+        self.assertLess(math.hypot(h.pos[0], h.pos[1]), 0.1)
+
 
 class WindModel(unittest.TestCase):
 
@@ -575,6 +618,9 @@ class ModelFiles(unittest.TestCase):
             load_model(self.write({'base': 'm7r', 'attrs': {'v_hoover': 2.5}}))
         with self.assertRaises(ValueError):
             load_model(self.write({'bse': 'm7r'}))
+        for bad in ([1, 2], {'base': 'm9'}, {'base': 'm7r', 'args': [1]}, {'base': 'm7r', 'attrs': 3}):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                load_model(self.write(bad))
 
 
 if __name__ == '__main__':

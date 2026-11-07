@@ -240,8 +240,10 @@ class Heli:
         self.k_par = self.flat_plate * G / (4 * self.v_hover ** 2)
         self.wind_e = (0.0, 0.0, 0.0)      # air velocity, earth axes (heli/wind.py)
         self.ground = True
+        self.ground_g = (0.0, 0.0, 1.0)    # unit normal into the ground (NED): level
         self.touchdown_speed = 0.0
         self.touchdown_rpm = 0.0
+        self.touchdown_pos = None
         self.ground_effect = True
         self.inflow = True
         self.servo_xy = [0.0, 0.0]
@@ -312,6 +314,35 @@ class Heli:
     def set_altitude(self, alt):
         self.pos[2] = -(alt + self.cg_height - self.skid_deflection)
 
+    def set_ground_slope(self, slope_deg, uphill_deg=0.0):
+        """Tilt the ground plane (through the earth origin) by slope_deg, rising towards
+        the heading uphill_deg. The skid contact acts along its normal and the friction in
+        it; altitude, the baro and the ground effect keep the level reference."""
+        s, d = math.radians(slope_deg), math.radians(uphill_deg)
+        self.ground_g = (math.sin(s) * math.cos(d), math.sin(s) * math.sin(d), math.cos(s))
+
+    def place_on_ground(self):
+        """Set the heli down at rest on its skids where it is, keeping its heading: the
+        body z along the ground normal, the skids at their static deflection."""
+        g = self.ground_g
+        _, _, yaw = euler(self.q)
+        q = (math.cos(yaw / 2), 0.0, 0.0, math.sin(yaw / 2))
+        s = math.sqrt(g[0] ** 2 + g[1] ** 2)
+        if s > 1e-9:
+            # tilt earth z onto g about the horizontal axis z x g
+            a = math.atan2(s, g[2]) / 2
+            q = qnorm(qmul((math.cos(a), -g[1] / s * math.sin(a), g[0] / s * math.sin(a), 0.0), q))
+        self.q = q
+        on = sum(self.pos[i] * g[i] for i in range(3))       # depth of the CG below the plane
+        h = self.cg_height - self.skid_deflection
+        self.pos = [self.pos[i] - (on + h) * g[i] for i in range(3)]
+        self.vel = [0.0, 0.0, 0.0]
+        self.rates = [0.0, 0.0, 0.0]
+        self.tpp = [0.0, 0.0]
+        self.anchors = {}
+        self.on_ground = True
+        self.air_time = 0.0
+
     def height(self):
         """Rotor hub above the ground, m."""
         return self.altitude + self.hub_height
@@ -325,7 +356,9 @@ class Heli:
         creeping, and a hard one slides."""
         fe = [0.0, 0.0, 0.0]
         mb = [0.0, 0.0, 0.0]
-        if -self.pos[2] > self.cg_height + self.skid_x + self.skid_y + self.hub_height:
+        g = self.ground_g                        # normal into the ground; level: (0, 0, 1)
+        dot = lambda a, b: a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+        if -dot(self.pos, g) > self.cg_height + self.skid_x + self.skid_y + self.hub_height:
             self.anchors = {}
             return fe, mb, False                 # no point can reach the ground
         touching = False
@@ -333,7 +366,8 @@ class Heli:
         anchors = {}
         for k, rb in enumerate(self.skid_points):
             re = body_to_earth(self.q, rb)
-            depth = self.pos[2] + re[2]
+            pe = [self.pos[i] + re[i] for i in range(3)]
+            depth = dot(pe, g)
             if depth <= 0.0:
                 continue
             touching = True
@@ -341,25 +375,28 @@ class Heli:
             wxr = (q_ * rb[2] - r * rb[1], r * rb[0] - p * rb[2], p * rb[1] - q_ * rb[0])
             we = body_to_earth(self.q, wxr)
             vp = [self.vel[i] + we[i] for i in range(3)]
-            fn = max(0.0, self.skid_k * depth + self.skid_c * vp[2])
-            px, py = self.pos[0] + re[0], self.pos[1] + re[1]
-            ax, ay = self.anchors.get(k, (px, py))
-            tx = -self.skid_k * (px - ax) - self.skid_c * vp[0]
-            ty = -self.skid_k * (py - ay) - self.skid_c * vp[1]
+            vn = dot(vp, g)
+            fn = max(0.0, self.skid_k * depth + self.skid_c * vn)
+            # friction in the ground plane: the point's offset from its anchor and its
+            # velocity, both without their normal parts
+            a_ = self.anchors.get(k, pe)
+            e = [pe[i] - a_[i] for i in range(3)]
+            en = dot(e, g)
+            e = [e[i] - en * g[i] for i in range(3)]
+            t = [-self.skid_k * e[i] - self.skid_c * (vp[i] - vn * g[i]) for i in range(3)]
             cap = self.skid_mu * fn
-            mag = math.hypot(tx, ty)
+            mag = math.sqrt(dot(t, t))
             if mag > cap:
                 # slipping: friction at its limit, the anchor follows to where the spring
                 # alone would give that limit
                 sc = cap / mag
-                tx, ty = tx * sc, ty * sc
-                ex, ey = px - ax, py - ay
-                el = math.hypot(ex, ey)
+                t = [x * sc for x in t]
+                el = math.sqrt(dot(e, e))
                 lim = cap / self.skid_k
                 if el > lim:
-                    ax, ay = px - ex / el * lim, py - ey / el * lim
-            anchors[k] = (ax, ay)
-            f = (tx, ty, -fn)
+                    a_ = [pe[i] - e[i] / el * lim for i in range(3)]
+            anchors[k] = a_
+            f = tuple(t[i] - fn * g[i] for i in range(3))
             for i in range(3):
                 fe[i] += f[i]
             fb = earth_to_body(self.q, f)
@@ -509,6 +546,7 @@ class Heli:
             # touched down after flying (a bounce off the skids does not count)
             self.touchdown_speed = self.vel[2]
             self.touchdown_rpm = self.rotor_rpm
+            self.touchdown_pos = (self.pos[0], self.pos[1])
         self.air_time = 0.0 if touching else self.air_time + dt
         self.on_ground = touching
 
@@ -672,11 +710,18 @@ def load_model(spec, **kw):
     import json
     with open(spec) as f:
         p = json.load(f)
+    if not isinstance(p, dict):
+        raise ValueError('%s: a JSON object expected' % spec)
     unknown = set(p) - {'base', 'args', 'attrs', 'description'}
     if unknown:
         raise ValueError('%s: unknown keys %s' % (spec, ', '.join(sorted(unknown))))
-    base = MODELS[p.get('base', 'blade360')]
+    name = p.get('base', 'blade360')
+    if name not in MODELS:
+        raise ValueError('%s: unknown base %s (presets: %s)' % (spec, name, ', '.join(sorted(MODELS))))
+    base = MODELS[name]
     attrs = p.get('attrs', {})
+    if not isinstance(attrs, dict) or not isinstance(p.get('args', {}), dict):
+        raise ValueError('%s: "args" and "attrs" must be objects' % spec)
     for k in attrs:
         if not hasattr(base, k):
             raise ValueError('%s: %s has no constant %s' % (spec, base.__name__, k))
