@@ -124,6 +124,40 @@ heli and gives back a preset with its validation:
 - [ ] Test flights the current fits are missing: collective doublets (collective
       sensitivity, heave damping), hover at two headspeeds, an airborne autorotation
 
+### Training loop: new logs refine a preset
+
+The goal is that a new log makes a preset better without anyone running scripts by hand,
+and never makes it worse. Here "training" means refitting the model's physical parameters.
+It is not a neural net: closed-loop data is too thin for that, and a net would not
+extrapolate to autorotation or 3D.
+
+- [ ] **Fits write the preset**: `fit_heli.py` writes `helis/<heli>/model.json` (the
+      `--model` format, `heli_model.load_model`) and the sim loads it. The `Stratos200` and
+      `M7R` constants move out of `heli/heli_model.py` into those files, and the
+      heli-specific scripts (`m7r_*.py`, the Stratos flight lists in `common.py`) fold into
+      the generic stages
+- [ ] **`train.py`, one command per heli**: intake -> segmentation -> pooled fit ->
+      replay validation -> report with the parameter diff and the replay scores before
+      and after. It runs whenever logs are added to a heli file
+- [ ] **Held-out logs**: the heli file marks some logs (or segments) as validation only.
+      A new parameter set is accepted only if its replay scores on them do not get worse
+      (the validation report above). Otherwise the old preset stays and the report says
+      which parameter made things worse
+- [ ] **Per-parameter confidence**: each stage reports an uncertainty per parameter (from
+      the least-squares covariance or a bootstrap over the logs). Each log is weighted by
+      what it actually excites (the segment and stick-input labels): a calm hover moves the
+      hover collective, not the flap time constant. Parameters a heli's logs do not
+      identify stay at the `PhysicalHeli` / size-preset prior instead of drifting
+- [ ] **Setup fingerprint per log**: gear ratio, blades, headspeed, firmware and the gains
+      from the header. Logs are pooled only within one fingerprint; a changed mechanic or
+      blade set starts a new parameter group, it does not pull the old one
+- [ ] **Log store**: a manifest per heli (content hash, source, sharing consent) so any fit
+      can be redone, with the logs themselves kept in a private store outside the repo
+      (`CONTRIBUTING_LOGS.md`). CI trains on the public excerpts only (Regression above)
+- [ ] Stretch: once the physical model's error on the held-out logs stops shrinking, a small
+      learned model of what is left over (a residual on the body rates or moments) on top of
+      the physics. It stays off by default and is judged by the same held-out replays
+
 ## 4. Forward flight
 
 No translational lift and the speed derivatives are off: replays need `--hold-alt`, and
