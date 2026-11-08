@@ -1,6 +1,6 @@
 {
  "base": "fitted",
- "description": "Stratos 200 (Bo105 fuselage): trained 2026-11-08 from 5 logs (setup cfbc5200), checked on 1 held-out",
+ "description": "Stratos 200 (Bo105 fuselage): trained 2026-11-09 from 5 logs (setup cfbc5200), checked on 1 held-out",
  "attrs": {
   "motor_fit": [
    987.74,
@@ -45,7 +45,7 @@
   "yaw_scale": 1.0
  },
  "provenance": {
-  "trained": "2026-11-08",
+  "trained": "2026-11-09",
   "group": "cfbc5200",
   "logs": {
    "fit": [
@@ -60,8 +60,8 @@
    ]
   },
   "params": {
-   "rate_gain_roll": "fit 2026-11-08 (rate stage)",
-   "rate_gain_pitch": "fit 2026-11-08 (rate stage)",
+   "rate_gain_roll": "fit 2026-11-09 (rate stage)",
+   "rate_gain_pitch": "fit 2026-11-09 (rate stage)",
    "Lb1s": "preset stratos200",
    "Ma1s": "preset stratos200",
    "tf": "preset stratos200",
@@ -97,7 +97,8 @@
    "rate": 0.006304489637541629,
    "flap": null,
    "yaw": null,
-   "power": null
+   "power": null,
+   "pack": 0.05820555578634562
   }
  }
 }

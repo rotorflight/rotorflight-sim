@@ -1,6 +1,6 @@
 # OMP M6 - training report
 
-Trained 2026-11-08 on setup `3e472a5b` (craft OMP M6, firmware 4.6, board RDMS NEXUS_XR, tail servo, collective -1250,1250, esc 0/0), from the prior: size prior (? class, M7R dynamics). Written by `scripts/train.py`.
+Trained 2026-11-09 on setup `3e472a5b` (craft OMP M6, firmware 4.6, board RDMS NEXUS_XR, tail servo, collective -1250,1250, esc 0/0), from the prior: size prior (? class, M7R dynamics). Written by `scripts/train.py`.
 
 - fit logs (1): OMP_M6_20260821_112524
 - held-out logs (1): OMP_M6_20260822_102430
@@ -9,14 +9,15 @@ Trained 2026-11-08 on setup `3e472a5b` (craft OMP M6, firmware 4.6, board RDMS N
 
 | stage | decision | held-out before | after |
 |---|---|---|---|
-| rotor | taken | 11.46 | 0.8571 |
+| rotor | kept | 11.46 | 0.8571 |
 | thrust | no proposal | - | - |
 | rate | kept | 0.04757 | 0.1423 |
 | flap | no proposal | - | - |
 | yaw | no proposal | - | - |
 | power | no proposal | - | - |
+| pack | no proposal | - | - |
 
-**rotor**: taken: held-out 11.46 -> 0.8571
+**rotor**: kept: makes yaw 0.4102 -> 0.4404 worse
 - R^2 0.982, A 50.68 +- 18 %, B 6.435 +- 18 %
 - held-out before: RMS throttle error 11.5 % over 40400 samples
 - held-out after: RMS throttle error 0.9 % over 40400 samples
@@ -38,17 +39,22 @@ Trained 2026-11-08 on setup `3e472a5b` (craft OMP M6, firmware 4.6, board RDMS N
 **power**: no proposal
 - no gated hover at 2200 rpm with Vbat and Ibat
 
+**pack**: no proposal
+- resistance not identified (R^2 0.94, +- inf %)
+- capacity not identified (3.87 Ah +- inf %, the largest draw 42 % of it)
+
 ## Held-out scores
 
 Lower is better (`scripts/holdout.py`).
 
 | stage | prior | current | new |
 |---|---|---|---|
-| rotor | 11.46 | 11.46 | 0.8571 |
+| rotor | 11.46 | 11.46 | 11.46 |
 | thrust | 0.06951 | 0.06951 | 0.06951 |
 | rate | 0.04757 | 0.04757 | 0.04757 |
 | flap | 0.04627 | 0.04627 | 0.04627 |
-| yaw | 0.4608 | 0.4608 | 0.4608 |
+| yaw | 0.4102 | 0.4102 | 0.4102 |
 | power | - | - | - |
+| pack | 0.7161 | 0.7161 | 0.7161 |
 
-Model changed: yes.
+Model changed: no.

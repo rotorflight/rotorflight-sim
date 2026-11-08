@@ -1,6 +1,6 @@
 {
  "heli": "ALZRC Devil 505",
- "trained": "2026-11-08",
+ "trained": "2026-11-09",
  "group": "683c976e",
  "setup": {
   "craft": "Devil 505",
@@ -80,11 +80,12 @@
    "proposal": {
     "attrs": {
      "Nped": 19.94,
-     "Nr": -0.113
+     "Nr": -0.113,
+     "Ncol": 18.66
     }
    },
    "notes": [
-    "N_ped 19.9 at 2300 rpm (R^2 0.42) -> Nped 19.9 at 2300 rpm, Nr -0.11"
+    "N_ped 19.9 at 2300 rpm (R^2 0.42) -> Nped 19.9 at 2300 rpm, Nr -0.11, Ncol 18.7"
    ],
    "score_before": null,
    "score_after": null,
@@ -101,6 +102,14 @@
     "no gated hover at 2300 rpm with Vbat and Ibat"
    ],
    "decision": "no proposal"
+  },
+  "pack": {
+   "proposal": null,
+   "notes": [
+    "resistance not identified (R^2 0.94, +- inf %)",
+    "capacity not identified (4.42 Ah +- inf %, the largest draw 54 % of it)"
+   ],
+   "decision": "no proposal"
   }
  },
  "replay": null,
@@ -112,7 +121,8 @@
    "rate": null,
    "flap": null,
    "yaw": null,
-   "power": null
+   "power": null,
+   "pack": null
   },
   "current": {
    "rotor": null,
@@ -120,7 +130,8 @@
    "rate": null,
    "flap": null,
    "yaw": null,
-   "power": null
+   "power": null,
+   "pack": null
   },
   "new": {
    "rotor": null,
@@ -128,7 +139,8 @@
    "rate": null,
    "flap": null,
    "yaw": null,
-   "power": null
+   "power": null,
+   "pack": null
   }
  },
  "gates": {
@@ -141,7 +153,11 @@
   "flap_events": 5,
   "flap_rel": 0.35,
   "yaw_r2": 0.3,
-  "yaw_rel": 0.25
+  "yaw_rel": 0.25,
+  "pack_r2": 0.8,
+  "pack_rel_r": 0.3,
+  "pack_rel_c": 0.25,
+  "pack_share": 0.25
  },
  "tolerance": 0.02
 }

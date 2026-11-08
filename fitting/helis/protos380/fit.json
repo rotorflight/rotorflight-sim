@@ -17,7 +17,10 @@
    "aerobatic": 6.4,
    "hover": 8.7,
    "cruise": 15.6,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 6.1,
+   "doublet": 0.0,
+   "sweep": 0.0
   },
   "Protos_20260622_094946.0": {
    "ground": 12.0,
@@ -26,7 +29,10 @@
    "aerobatic": 18.3,
    "hover": 0.0,
    "cruise": 58.9,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 10.8,
+   "doublet": 16.0,
+   "sweep": 0.0
   },
   "Protos_20260622_095704.0": {
    "ground": 13.7,
@@ -35,7 +41,10 @@
    "aerobatic": 13.9,
    "hover": 0.0,
    "cruise": 55.4,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 5.3,
+   "doublet": 36.4,
+   "sweep": 0.0
   },
   "Protos_20260622_095920.0": {
    "ground": 11.6,
@@ -44,7 +53,10 @@
    "aerobatic": 8.9,
    "hover": 0.0,
    "cruise": 36.8,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 9.3,
+   "doublet": 5.7,
+   "sweep": 0.0
   },
   "Protos_20260622_100428.0": {
    "ground": 10.7,
@@ -53,7 +65,10 @@
    "aerobatic": 24.4,
    "hover": 0.0,
    "cruise": 72.9,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 5.5,
+   "doublet": 21.3,
+   "sweep": 0.0
   },
   "Protos_20260622_101056.0": {
    "ground": 10.5,
@@ -62,7 +77,10 @@
    "aerobatic": 35.6,
    "hover": 0.0,
    "cruise": 47.6,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 10.3,
+   "doublet": 55.8,
+   "sweep": 0.0
   }
  },
  "motor_fit": [
@@ -144,13 +162,15 @@
    "N_ped": 49.25,
    "N_col": 7.12,
    "N_r": -0.111,
-   "r2": 0.697
+   "r2": 0.697,
+   "collective": 0.562
   },
   "2200": {
    "N_ped": 31.44,
    "N_col": 5.23,
    "N_r": 0.286,
-   "r2": 0.557
+   "r2": 0.557,
+   "collective": 0.453
   }
  },
  "whirl_hz": {
@@ -217,10 +237,12 @@
   "yaw/2000/N_col": 2.822408,
   "yaw/2000/N_r": 3.474502,
   "yaw/2000/r2": 0.25745,
+  "yaw/2000/collective": 0.005444,
   "yaw/2200/N_ped": 3.488254,
   "yaw/2200/N_col": 1.143843,
   "yaw/2200/N_r": 0.25017,
-  "yaw/2200/r2": 0.05326
+  "yaw/2200/r2": 0.05326,
+  "yaw/2200/collective": 0.010783
  },
  "unstable": [
   "hover/2000/seconds",

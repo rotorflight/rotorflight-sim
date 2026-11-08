@@ -12,7 +12,10 @@
    "aerobatic": 14.7,
    "hover": 6.0,
    "cruise": 191.8,
-   "hover_in_ground_effect": 3.7
+   "hover_in_ground_effect": 3.7,
+   "spoolup": 10.2,
+   "doublet": 19.9,
+   "sweep": 0.0
   }
  },
  "motor_fit": [
@@ -103,19 +106,22 @@
    "N_ped": 16.12,
    "N_col": 6.41,
    "N_r": 2.711,
-   "r2": 0.226
+   "r2": 0.226,
+   "collective": 0.334
   },
   "2000": {
    "N_ped": 36.31,
    "N_col": 8.16,
    "N_r": -1.826,
-   "r2": 0.431
+   "r2": 0.431,
+   "collective": 0.289
   },
   "2200": {
    "N_ped": 16.79,
    "N_col": 1.45,
    "N_r": 0.216,
-   "r2": 0.163
+   "r2": 0.163,
+   "collective": 0.293
   }
  },
  "whirl_hz": {
@@ -166,7 +172,8 @@
   "yaw/2200/N_ped": 4.734942,
   "yaw/2200/N_col": 0.82268,
   "yaw/2200/N_r": 0.254012,
-  "yaw/2200/r2": 0.053278
+  "yaw/2200/r2": 0.053278,
+  "yaw/2200/collective": 0.051469
  },
  "unstable": [
   "hover/2000/seconds",
@@ -205,10 +212,12 @@
   "yaw/1600/N_col",
   "yaw/1600/N_r",
   "yaw/1600/r2",
+  "yaw/1600/collective",
   "yaw/2000/N_ped",
   "yaw/2000/N_col",
   "yaw/2000/N_r",
   "yaw/2000/r2",
+  "yaw/2000/collective",
   "whirl_hz/1600/roll",
   "whirl_hz/1600/pitch",
   "whirl_hz/1600/yaw",

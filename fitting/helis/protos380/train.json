@@ -1,6 +1,6 @@
 {
  "heli": "MSH Protos 380",
- "trained": "2026-11-08",
+ "trained": "2026-11-09",
  "group": "b8916a32",
  "setup": {
   "craft": "Protos",
@@ -68,7 +68,7 @@
     "args": {
      "Lb1s": 2347.8,
      "tf_roll": 0.0248,
-     "rate_gain_roll": 5.243,
+     "rate_gain_roll": 4.698,
      "Ma1s": 739.3,
      "tf_pitch": 0.0444,
      "rate_gain_pitch": 5.08
@@ -80,39 +80,48 @@
     "pitch from 40 sharp inputs at 2200 rpm: L 739 +- 5 %, tf 0.044 +- 5 %, VAF 0.95"
    ],
    "score_before": 0.2091729318647316,
-   "score_after": 0.12831682789972132,
+   "score_after": 0.12463139665541723,
    "score_detail": {
     "before": "1 - VAF 0.209 over 8 sharp inputs",
-    "after": "1 - VAF 0.128 over 8 sharp inputs"
+    "after": "1 - VAF 0.125 over 8 sharp inputs"
    },
    "others_worse": [
-    "rate 0.1009 -> 0.128"
+    "rate 0.1009 -> 0.1829"
    ],
-   "decision": "kept: makes rate 0.1009 -> 0.128 worse"
+   "decision": "kept: makes rate 0.1009 -> 0.1829 worse"
   },
   "yaw": {
    "proposal": {
     "attrs": {
      "Nped": 31.44,
-     "Nr": -0.1
+     "Nr": -0.1,
+     "Ncol": 23.05
     }
    },
    "notes": [
-    "N_ped 31.4 at 2200 rpm (R^2 0.56) -> Nped 31.4 at 2200 rpm, Nr -0.10"
+    "N_ped 31.4 at 2200 rpm (R^2 0.56) -> Nped 31.4 at 2200 rpm, Nr -0.10, Ncol 23.1"
    ],
-   "score_before": 0.5900776203814073,
-   "score_after": 0.42586512215786165,
+   "score_before": 0.5878350547345232,
+   "score_after": 0.583584769419992,
    "score_detail": {
-    "before": "R^2 0.410",
-    "after": "R^2 0.574"
+    "before": "R^2 0.412",
+    "after": "R^2 0.416"
    },
    "others_worse": [],
-   "decision": "taken: held-out 0.5901 -> 0.4259"
+   "decision": "taken: held-out 0.5878 -> 0.5836"
   },
   "power": {
    "proposal": null,
    "notes": [
     "no gated hover at 2200 rpm with Vbat and Ibat"
+   ],
+   "decision": "no proposal"
+  },
+  "pack": {
+   "proposal": null,
+   "notes": [
+    "resistance not identified (R^2 0.93, +- 79 %)",
+    "capacity not identified (2.82 Ah +- 46 %, the largest draw 42 % of it)"
    ],
    "decision": "no proposal"
   }
@@ -125,24 +134,27 @@
    "thrust": 0.24273500000000003,
    "rate": 0.129428367139033,
    "flap": 0.34881285092226516,
-   "yaw": 0.5900776203814073,
-   "power": null
+   "yaw": 0.5878350547345232,
+   "power": null,
+   "pack": 0.2069106255356456
   },
   "current": {
    "rotor": 11.477293821030104,
    "thrust": 0.24273500000000003,
    "rate": 0.129428367139033,
    "flap": 0.34881285092226516,
-   "yaw": 0.5900776203814073,
-   "power": null
+   "yaw": 0.5878350547345232,
+   "power": null,
+   "pack": 0.2069106255356456
   },
   "new": {
    "rotor": 11.477293821030104,
    "thrust": 0.24273500000000003,
    "rate": 0.10086717907081193,
    "flap": 0.2091729318647316,
-   "yaw": 0.42586512215786165,
-   "power": null
+   "yaw": 0.583584769419992,
+   "power": null,
+   "pack": 0.2069106255356456
   }
  },
  "gates": {
@@ -155,7 +167,11 @@
   "flap_events": 5,
   "flap_rel": 0.35,
   "yaw_r2": 0.3,
-  "yaw_rel": 0.25
+  "yaw_rel": 0.25,
+  "pack_r2": 0.8,
+  "pack_rel_r": 0.3,
+  "pack_rel_c": 0.25,
+  "pack_share": 0.25
  },
  "tolerance": 0.02
 }

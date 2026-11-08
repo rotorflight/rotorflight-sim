@@ -13,7 +13,10 @@
    "aerobatic": 47.9,
    "hover": 4.8,
    "cruise": 113.6,
-   "hover_in_ground_effect": 4.8
+   "hover_in_ground_effect": 4.8,
+   "spoolup": 8.0,
+   "doublet": 93.0,
+   "sweep": 0.0
   },
   "Devil_505_20260129_163848.0": {
    "ground": 11.9,
@@ -22,7 +25,10 @@
    "aerobatic": 74.7,
    "hover": 14.1,
    "cruise": 99.6,
-   "hover_in_ground_effect": 4.7
+   "hover_in_ground_effect": 4.7,
+   "spoolup": 7.8,
+   "doublet": 83.5,
+   "sweep": 0.0
   }
  },
  "motor_fit": [
@@ -104,13 +110,15 @@
    "N_ped": 16.63,
    "N_col": 1.01,
    "N_r": 0.086,
-   "r2": 0.402
+   "r2": 0.402,
+   "collective": 0.35
   },
   "2300": {
    "N_ped": 19.94,
    "N_col": 1.58,
    "N_r": -0.113,
-   "r2": 0.418
+   "r2": 0.418,
+   "collective": 0.232
   }
  },
  "whirl_hz": {
@@ -173,10 +181,12 @@
   "yaw/2200/N_col": 1.102674,
   "yaw/2200/N_r": 0.114776,
   "yaw/2200/r2": 0.059609,
+  "yaw/2200/collective": 0.029216,
   "yaw/2300/N_ped": 1.228633,
   "yaw/2300/N_col": 1.415164,
   "yaw/2300/N_r": 0.478541,
-  "yaw/2300/r2": 0.030077
+  "yaw/2300/r2": 0.030077,
+  "yaw/2300/collective": 0.020322
  },
  "unstable": [
   "hover/2200/seconds",

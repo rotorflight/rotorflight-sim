@@ -1,6 +1,6 @@
 {
  "heli": "Nimbus",
- "trained": "2026-11-08",
+ "trained": "2026-11-09",
  "group": "4062f5c0",
  "setup": {
   "craft": "Nimbus",
@@ -57,6 +57,10 @@
     "before": "RMS throttle error 15.6 % over 50860 samples",
     "after": "RMS throttle error 2.3 % over 50860 samples"
    },
+   "judged_with_refit": [
+    "yaw",
+    "power"
+   ],
    "others_worse": [],
    "decision": "taken: held-out 15.55 -> 2.286"
   },
@@ -80,6 +84,11 @@
     "before": "hover collective error -0.014 at 1700 rpm (9 s)",
     "after": "hover collective error +0.012 at 1700 rpm (9 s)"
    },
+   "judged_with_refit": [
+    "rotor",
+    "yaw",
+    "power"
+   ],
    "others_worse": [],
    "decision": "taken: held-out 0.01426 -> 0.01171"
   },
@@ -136,24 +145,25 @@
    "proposal": {
     "attrs": {
      "Nped": 41.29,
-     "Nr": -0.826
+     "Nr": -0.826,
+     "Ncol": -4.63
     },
     "args": {
      "yaw_trim": 0.394
     }
    },
    "notes": [
-    "N_ped 41.3 at 1900 rpm (R^2 0.82) -> Nped 41.3 at 1900 rpm, Nr -0.83",
+    "N_ped 41.3 at 1900 rpm (R^2 0.82) -> Nped 41.3 at 1900 rpm, Nr -0.83, Ncol -4.6",
     "hover tail trim -0.394 at 1900 rpm"
    ],
-   "score_before": 0.44703754321366984,
-   "score_after": 0.28252724450622124,
+   "score_before": 0.4215558760036451,
+   "score_after": 0.2789811519895995,
    "score_detail": {
-    "before": "R^2 0.553",
-    "after": "R^2 0.717"
+    "before": "R^2 0.578",
+    "after": "R^2 0.721"
    },
    "others_worse": [],
-   "decision": "taken: held-out 0.447 -> 0.2825"
+   "decision": "taken: held-out 0.4216 -> 0.279"
   },
   "power": {
    "proposal": {
@@ -173,6 +183,26 @@
    },
    "others_worse": [],
    "decision": "taken, not validated (over a size prior)"
+  },
+  "pack": {
+   "proposal": {
+    "args": {
+     "pack_r": 0.02561,
+     "pack_ah": 3.058
+    }
+   },
+   "notes": [
+    "25.6 mOhm +- 13 % (6S, RMS 0.11 V over 12 logs)",
+    "3.06 Ah +- 9 %, the largest draw 29 % of it"
+   ],
+   "score_before": 0.19806555757756658,
+   "score_after": 0.1772529290723077,
+   "score_detail": {
+    "before": "RMS Vbat error 0.20 V over 6 logs",
+    "after": "RMS Vbat error 0.18 V over 6 logs"
+   },
+   "others_worse": [],
+   "decision": "taken: held-out 0.1981 -> 0.1773"
   }
  },
  "replay": null,
@@ -183,24 +213,27 @@
    "thrust": 0.014264705882352957,
    "rate": 0.4073704605424955,
    "flap": 0.5961576171371609,
-   "yaw": 0.44703754321366984,
-   "power": null
+   "yaw": 0.42748382971514465,
+   "power": null,
+   "pack": 0.19806555757756658
   },
   "current": {
    "rotor": 15.553650031795533,
    "thrust": 0.014264705882352957,
    "rate": 0.4073704605424955,
    "flap": 0.5961576171371609,
-   "yaw": 0.44703754321366984,
-   "power": null
+   "yaw": 0.42748382971514465,
+   "power": null,
+   "pack": 0.19806555757756658
   },
   "new": {
    "rotor": 2.286309555814488,
    "thrust": 0.011713694035199673,
    "rate": 0.06505699009934925,
    "flap": 0.15926498697980895,
-   "yaw": 0.28252724450622124,
-   "power": null
+   "yaw": 0.2789811519895995,
+   "power": null,
+   "pack": 0.1772529290723077
   }
  },
  "gates": {
@@ -213,7 +246,11 @@
   "flap_events": 5,
   "flap_rel": 0.35,
   "yaw_r2": 0.3,
-  "yaw_rel": 0.25
+  "yaw_rel": 0.25,
+  "pack_r2": 0.8,
+  "pack_rel_r": 0.3,
+  "pack_rel_c": 0.25,
+  "pack_share": 0.25
  },
  "tolerance": 0.02
 }

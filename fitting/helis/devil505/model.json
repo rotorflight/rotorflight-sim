@@ -1,6 +1,6 @@
 {
  "base": "fitted",
- "description": "ALZRC Devil 505: trained 2026-11-08 from 2 logs (setup 683c976e), checked on 0 held-out",
+ "description": "ALZRC Devil 505: trained 2026-11-09 from 2 logs (setup 683c976e), checked on 0 held-out",
  "attrs": {
   "motor_poles": 10,
   "v_hover": 3.4,
@@ -13,7 +13,8 @@
    0.13133333333333333
   ],
   "Nped": 19.94,
-  "Nr": -0.113
+  "Nr": -0.113,
+  "Ncol": 18.66
  },
  "args": {
   "rate_gain_roll": 6.8,
@@ -37,7 +38,7 @@
   "yaw_scale": 1.0
  },
  "provenance": {
-  "trained": "2026-11-08",
+  "trained": "2026-11-09",
   "group": "683c976e",
   "logs": {
    "fit": [
@@ -48,7 +49,7 @@
   },
   "params": {
    "rate_gain_roll": "size prior (500 class, M7R dynamics)",
-   "rate_gain_pitch": "fit 2026-11-08 (rate stage)",
+   "rate_gain_pitch": "fit 2026-11-09 (rate stage)",
    "Lb1s": "size prior (500 class, M7R dynamics)",
    "Ma1s": "size prior (500 class, M7R dynamics)",
    "tf": "size prior (500 class, M7R dynamics)",
@@ -73,8 +74,9 @@
    "ctrl_rpm_exp": "size prior (500 class, M7R dynamics)",
    "Zcol": "size prior (500 class, M7R dynamics)",
    "thrust_inflow": "size prior (500 class, M7R dynamics)",
-   "Nped": "fit 2026-11-08 (yaw stage)",
-   "Nr": "fit 2026-11-08 (yaw stage)"
+   "Nped": "fit 2026-11-09 (yaw stage)",
+   "Nr": "fit 2026-11-09 (yaw stage)",
+   "Ncol": "fit 2026-11-09 (yaw stage)"
   },
   "held_out_scores": {
    "rotor": null,
@@ -82,7 +84,8 @@
    "rate": null,
    "flap": null,
    "yaw": null,
-   "power": null
+   "power": null,
+   "pack": null
   }
  }
 }

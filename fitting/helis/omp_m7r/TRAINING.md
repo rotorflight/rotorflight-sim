@@ -1,6 +1,6 @@
 # OMP M7R - training report
 
-Trained 2026-11-08 on setup `c3771b88` (craft OMP M7R, firmware 4.6, board RDMS NEXUS_XR, tail servo, collective -1250,1250, esc 0/0), from the prior: preset m7r. Written by `scripts/train.py`.
+Trained 2026-11-09 on setup `c3771b88` (craft OMP M7R, firmware 4.6, board RDMS NEXUS_XR, tail servo, collective -1250,1250, esc 0/0), from the prior: preset m7r. Written by `scripts/train.py`.
 
 - fit logs (2): OMP_M7R_20261016_124328, OMP_M7R_20261022_143720
 - held-out logs (1): OMP_M7R_20261022_155150
@@ -13,8 +13,9 @@ Trained 2026-11-08 on setup `c3771b88` (craft OMP M7R, firmware 4.6, board RDMS 
 | thrust | no proposal | - | - |
 | rate | kept | 0.06792 | 0.08319 |
 | flap | taken | 0.06076 | 0.05955 |
-| yaw | taken | 1.214 | 0.7039 |
+| yaw | taken | 0.9906 | 0.6981 |
 | power | no proposal | - | - |
+| pack | no proposal | - | - |
 
 **rotor**: taken: held-out 6.042 -> 1.742
 - R^2 0.950, A 30.12 +- 13 %, B 3.703 +- 13 %
@@ -36,13 +37,17 @@ Trained 2026-11-08 on setup `c3771b88` (craft OMP M7R, firmware 4.6, board RDMS 
 - held-out before: 1 - VAF 0.061 over 11 sharp inputs
 - held-out after: 1 - VAF 0.060 over 11 sharp inputs
 
-**yaw**: taken: held-out 1.214 -> 0.7039
-- N_ped 27.0 at 1800 rpm (R^2 0.38) -> Nped 27.0 at 1800 rpm, Nr -0.60
-- held-out before: R^2 -0.214
-- held-out after: R^2 0.296
+**yaw**: taken: held-out 0.9906 -> 0.6981
+- N_ped 27.0 at 1800 rpm (R^2 0.38) -> Nped 27.0 at 1800 rpm, Nr -0.60, Ncol 4.0
+- held-out before: R^2 0.009
+- held-out after: R^2 0.302
 
 **power**: no proposal
 - no gated hover at 1800 rpm with Vbat and Ibat
+
+**pack**: no proposal
+- resistance not identified (R^2 0.96, +- inf %)
+- capacity not identified (6.02 Ah +- inf %, the largest draw 53 % of it)
 
 ## Held-out scores
 
@@ -54,7 +59,8 @@ Lower is better (`scripts/holdout.py`).
 | thrust | 0.00344 | 0.00344 | 0.00344 |
 | rate | 0.06792 | 0.06792 | 0.0683 |
 | flap | 0.06076 | 0.06076 | 0.05955 |
-| yaw | 1.214 | 1.214 | 0.7039 |
+| yaw | 0.9993 | 0.9993 | 0.6981 |
 | power | - | - | - |
+| pack | 0.4466 | 0.4466 | 0.4466 |
 
 Model changed: yes.

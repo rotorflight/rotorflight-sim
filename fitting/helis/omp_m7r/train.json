@@ -1,6 +1,6 @@
 {
  "heli": "OMP M7R",
- "trained": "2026-11-08",
+ "trained": "2026-11-09",
  "group": "c3771b88",
  "setup": {
   "craft": "OMP M7R",
@@ -42,6 +42,9 @@
     "before": "RMS throttle error 6.0 % over 31830 samples",
     "after": "RMS throttle error 1.7 % over 31830 samples"
    },
+   "judged_with_refit": [
+    "yaw"
+   ],
    "others_worse": [],
    "decision": "taken: held-out 6.042 -> 1.742"
   },
@@ -105,25 +108,34 @@
    "proposal": {
     "attrs": {
      "Nped": 27.0,
-     "Nr": -0.597
+     "Nr": -0.597,
+     "Ncol": 4.04
     }
    },
    "notes": [
-    "N_ped 27.0 at 1800 rpm (R^2 0.38) -> Nped 27.0 at 1800 rpm, Nr -0.60"
+    "N_ped 27.0 at 1800 rpm (R^2 0.38) -> Nped 27.0 at 1800 rpm, Nr -0.60, Ncol 4.0"
    ],
-   "score_before": 1.2141400783474583,
-   "score_after": 0.7038983655716834,
+   "score_before": 0.9906243233225968,
+   "score_after": 0.6980603659972509,
    "score_detail": {
-    "before": "R^2 -0.214",
-    "after": "R^2 0.296"
+    "before": "R^2 0.009",
+    "after": "R^2 0.302"
    },
    "others_worse": [],
-   "decision": "taken: held-out 1.214 -> 0.7039"
+   "decision": "taken: held-out 0.9906 -> 0.6981"
   },
   "power": {
    "proposal": null,
    "notes": [
     "no gated hover at 1800 rpm with Vbat and Ibat"
+   ],
+   "decision": "no proposal"
+  },
+  "pack": {
+   "proposal": null,
+   "notes": [
+    "resistance not identified (R^2 0.96, +- inf %)",
+    "capacity not identified (6.02 Ah +- inf %, the largest draw 53 % of it)"
    ],
    "decision": "no proposal"
   }
@@ -136,24 +148,27 @@
    "thrust": 0.0034399999999999986,
    "rate": 0.06792242562320115,
    "flap": 0.06076356312970467,
-   "yaw": 1.2141400783474583,
-   "power": null
+   "yaw": 0.9992525966651447,
+   "power": null,
+   "pack": 0.4465969891642816
   },
   "current": {
    "rotor": 6.0421687202212135,
    "thrust": 0.0034399999999999986,
    "rate": 0.06792242562320115,
    "flap": 0.06076356312970467,
-   "yaw": 1.2141400783474583,
-   "power": null
+   "yaw": 0.9992525966651447,
+   "power": null,
+   "pack": 0.4465969891642816
   },
   "new": {
    "rotor": 1.7424185287531584,
    "thrust": 0.0034399999999999986,
    "rate": 0.06829823323251588,
    "flap": 0.05955002857924738,
-   "yaw": 0.7038983655716834,
-   "power": null
+   "yaw": 0.6980603659972509,
+   "power": null,
+   "pack": 0.4465969891642816
   }
  },
  "gates": {
@@ -166,7 +181,11 @@
   "flap_events": 5,
   "flap_rel": 0.35,
   "yaw_r2": 0.3,
-  "yaw_rel": 0.25
+  "yaw_rel": 0.25,
+  "pack_r2": 0.8,
+  "pack_rel_r": 0.3,
+  "pack_rel_c": 0.25,
+  "pack_share": 0.25
  },
  "tolerance": 0.02
 }

@@ -1,0 +1,15 @@
+{
+ "heli": "ALZRC Devil 505",
+ "group": "683c976e",
+ "capacity_ah": 4.415,
+ "resistance_ohm": 0.02621,
+ "cells": 6,
+ "rms_v": 0.187,
+ "r2": 0.939,
+ "soc0": [
+  0.534,
+  0.817
+ ],
+ "ah_share": 0.54,
+ "logs": 2
+}

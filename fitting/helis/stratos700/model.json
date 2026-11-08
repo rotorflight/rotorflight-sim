@@ -1,26 +1,19 @@
 {
  "base": "fitted",
- "description": "Stratos 700: trained 2026-11-08 from 14 logs (setup 7180bcda), checked on 8 held-out",
+ "description": "Stratos 700: trained 2026-11-09 from 14 logs (setup 7180bcda), checked on 8 held-out",
  "attrs": {
   "motor_poles": 10,
   "v_hover": 3.3,
   "rotor_radius": 0.79,
   "hub_height": 0.395,
   "ctrl_rpm_exp": 0.162,
-  "Zcol": -27.46526,
+  "Zcol": -35.921794871794866,
   "thrust_inflow": [
-   8.51296,
-   0.0031
+   39.21568627450981,
+   0.13133333333333333
   ],
-  "Nped": 43.6,
-  "Nr": -0.373,
-  "motor_fit": [
-   11.983512,
-   1.936584,
-   0.0,
-   0.001153,
-   2.0
-  ]
+  "Nped": 55.0,
+  "Nr": -2.0
  },
  "args": {
   "rate_gain_roll": 3.997,
@@ -32,13 +25,13 @@
   "tf_rpm_exp": 1.0,
   "turb": 0.0,
   "turb_hz": 2.5,
-  "yaw_trim": 0.207,
+  "yaw_trim": 0.2,
   "nominal_rpm": 1900.0,
   "gear_ratio": 8.75,
   "hover_throttle": 0.699,
   "pack_cells": 12,
-  "pack_ah": 4.5,
-  "pack_r": 0.047,
+  "pack_ah": 6.351,
+  "pack_r": 0.02687,
   "hover_power_w": 1487.7,
   "cyclic_scale": 1.0,
   "yaw_scale": 1.0,
@@ -46,7 +39,7 @@
   "tf_pitch": 0.067
  },
  "provenance": {
-  "trained": "2026-11-08",
+  "trained": "2026-11-09",
   "group": "7180bcda",
   "logs": {
    "fit": [
@@ -77,45 +70,45 @@
    ]
   },
   "params": {
-   "rate_gain_roll": "fit 2026-11-08 (flap stage)",
-   "rate_gain_pitch": "fit 2026-11-08 (flap stage)",
-   "Lb1s": "fit 2026-11-08 (flap stage)",
-   "Ma1s": "fit 2026-11-08 (flap stage)",
+   "rate_gain_roll": "fit 2026-11-09 (flap stage)",
+   "rate_gain_pitch": "fit 2026-11-09 (flap stage)",
+   "Lb1s": "fit 2026-11-09 (flap stage)",
+   "Ma1s": "fit 2026-11-09 (flap stage)",
    "tf": "size prior (700 class, M7R dynamics)",
    "stiff_rpm_exp": "size prior (700 class, M7R dynamics)",
    "tf_rpm_exp": "size prior (700 class, M7R dynamics)",
    "turb": "size prior (700 class, M7R dynamics)",
    "turb_hz": "size prior (700 class, M7R dynamics)",
-   "yaw_trim": "fit 2026-11-08 (yaw stage)",
+   "yaw_trim": "size prior (700 class, M7R dynamics)",
    "nominal_rpm": "most flown headspeed",
    "gear_ratio": "size prior (700 class, M7R dynamics)",
-   "hover_throttle": "fit 2026-11-08 (power stage)",
+   "hover_throttle": "fit 2026-11-09 (power stage)",
    "pack_cells": "estimated from Vbat",
-   "pack_ah": "size prior (700 class, M7R dynamics)",
-   "pack_r": "size prior (700 class, M7R dynamics)",
-   "hover_power_w": "fit 2026-11-08 (power stage)",
+   "pack_ah": "fit 2026-11-09 (pack stage)",
+   "pack_r": "fit 2026-11-09 (pack stage)",
+   "hover_power_w": "fit 2026-11-09 (power stage)",
    "cyclic_scale": "size prior (700 class, M7R dynamics)",
    "yaw_scale": "size prior (700 class, M7R dynamics)",
-   "tf_roll": "fit 2026-11-08 (flap stage)",
-   "tf_pitch": "fit 2026-11-08 (flap stage)",
+   "tf_roll": "fit 2026-11-09 (flap stage)",
+   "tf_pitch": "fit 2026-11-09 (flap stage)",
    "motor_poles": "size prior (700 class, M7R dynamics)",
    "v_hover": "size prior (700 class, M7R dynamics)",
    "rotor_radius": "size prior (700 class, M7R dynamics)",
    "hub_height": "size prior (700 class, M7R dynamics)",
-   "ctrl_rpm_exp": "fit 2026-11-08 (rate stage)",
-   "Zcol": "fit 2026-11-08 (thrust stage)",
-   "thrust_inflow": "fit 2026-11-08 (thrust stage)",
-   "Nped": "fit 2026-11-08 (yaw stage)",
-   "Nr": "fit 2026-11-08 (yaw stage)",
-   "motor_fit": "fit 2026-11-08 (rotor stage)"
+   "ctrl_rpm_exp": "fit 2026-11-09 (rate stage)",
+   "Zcol": "size prior (700 class, M7R dynamics)",
+   "thrust_inflow": "size prior (700 class, M7R dynamics)",
+   "Nped": "size prior (700 class, M7R dynamics)",
+   "Nr": "size prior (700 class, M7R dynamics)"
   },
   "held_out_scores": {
-   "rotor": 3.3017703585076275,
-   "thrust": 0.028059595271838295,
+   "rotor": 8.651530841131617,
+   "thrust": 0.11734722559822827,
    "rate": 0.0655971329497327,
    "flap": 0.06084440165561199,
-   "yaw": 0.2227925180825708,
-   "power": 0.0314059900166389
+   "yaw": 0.22501368498703123,
+   "power": 0.0314059900166389,
+   "pack": 0.15147716694452198
   }
  }
 }

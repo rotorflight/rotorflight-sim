@@ -23,7 +23,10 @@
    "aerobatic": 3.2,
    "hover": 7.7,
    "cruise": 26.3,
-   "hover_in_ground_effect": 7.7
+   "hover_in_ground_effect": 7.7,
+   "spoolup": 9.0,
+   "doublet": 14.8,
+   "sweep": 0.0
   },
   "Nimbus_all_20260811_112712.5": {
    "ground": 13.3,
@@ -32,7 +35,10 @@
    "aerobatic": 0.0,
    "hover": 3.7,
    "cruise": 30.7,
-   "hover_in_ground_effect": 2.0
+   "hover_in_ground_effect": 2.0,
+   "spoolup": 5.2,
+   "doublet": 10.9,
+   "sweep": 0.0
   },
   "Nimbus_all_20260811_112712.6": {
    "ground": 12.5,
@@ -41,7 +47,10 @@
    "aerobatic": 20.2,
    "hover": 8.1,
    "cruise": 51.2,
-   "hover_in_ground_effect": 1.8
+   "hover_in_ground_effect": 1.8,
+   "spoolup": 11.3,
+   "doublet": 18.7,
+   "sweep": 0.0
   },
   "Nimbus_all_20260811_112712.7": {
    "ground": 12.2,
@@ -50,7 +59,10 @@
    "aerobatic": 12.9,
    "hover": 1.8,
    "cruise": 36.8,
-   "hover_in_ground_effect": 1.8
+   "hover_in_ground_effect": 1.8,
+   "spoolup": 6.1,
+   "doublet": 16.1,
+   "sweep": 0.0
   },
   "Nimbus_all_20260811_112712.8": {
    "ground": 14.6,
@@ -59,7 +71,10 @@
    "aerobatic": 26.4,
    "hover": 7.8,
    "cruise": 52.0,
-   "hover_in_ground_effect": 1.9
+   "hover_in_ground_effect": 1.9,
+   "spoolup": 6.1,
+   "doublet": 29.2,
+   "sweep": 0.0
   },
   "Nimbus_all_20260811_112712.9": {
    "ground": 12.1,
@@ -68,7 +83,10 @@
    "aerobatic": 8.7,
    "hover": 3.6,
    "cruise": 15.1,
-   "hover_in_ground_effect": 3.6
+   "hover_in_ground_effect": 3.6,
+   "spoolup": 6.4,
+   "doublet": 4.0,
+   "sweep": 0.0
   },
   "Nimbus_all_20260811_112712.10": {
    "ground": 13.1,
@@ -77,7 +95,10 @@
    "aerobatic": 13.7,
    "hover": 9.0,
    "cruise": 31.0,
-   "hover_in_ground_effect": 5.6
+   "hover_in_ground_effect": 5.6,
+   "spoolup": 6.5,
+   "doublet": 23.9,
+   "sweep": 0.0
   },
   "Nimbus_all_20260811_112712.11": {
    "ground": 12.2,
@@ -86,7 +107,10 @@
    "aerobatic": 19.7,
    "hover": 10.9,
    "cruise": 29.2,
-   "hover_in_ground_effect": 10.9
+   "hover_in_ground_effect": 10.9,
+   "spoolup": 6.6,
+   "doublet": 15.4,
+   "sweep": 0.0
   },
   "Nimbus_all_20260811_112712.12": {
    "ground": 12.6,
@@ -95,7 +119,10 @@
    "aerobatic": 0.0,
    "hover": 7.9,
    "cruise": 14.6,
-   "hover_in_ground_effect": 7.9
+   "hover_in_ground_effect": 7.9,
+   "spoolup": 8.3,
+   "doublet": 2.6,
+   "sweep": 0.0
   },
   "Nimbus_all_20260811_112712.19": {
    "ground": 15.5,
@@ -104,7 +131,10 @@
    "aerobatic": 0.0,
    "hover": 3.3,
    "cruise": 21.4,
-   "hover_in_ground_effect": 3.3
+   "hover_in_ground_effect": 3.3,
+   "spoolup": 9.0,
+   "doublet": 5.2,
+   "sweep": 0.0
   },
   "Nimbus_all_20260811_112712.20": {
    "ground": 12.3,
@@ -113,7 +143,10 @@
    "aerobatic": 0.0,
    "hover": 10.1,
    "cruise": 13.6,
-   "hover_in_ground_effect": 10.1
+   "hover_in_ground_effect": 10.1,
+   "spoolup": 8.9,
+   "doublet": 2.5,
+   "sweep": 0.0
   },
   "Nimbus_all_20260811_112712.21": {
    "ground": 12.2,
@@ -122,7 +155,10 @@
    "aerobatic": 0.0,
    "hover": 14.3,
    "cruise": 43.5,
-   "hover_in_ground_effect": 14.3
+   "hover_in_ground_effect": 14.3,
+   "spoolup": 11.6,
+   "doublet": 11.5,
+   "sweep": 0.0
   }
  },
  "motor_fit": [
@@ -224,19 +260,22 @@
    "N_ped": 36.64,
    "N_col": 22.33,
    "N_r": -0.35,
-   "r2": 0.87
+   "r2": 0.87,
+   "collective": 0.361
   },
   "1900": {
    "N_ped": 41.29,
    "N_col": 12.01,
    "N_r": -0.826,
-   "r2": 0.821
+   "r2": 0.821,
+   "collective": 0.29
   },
   "2200": {
    "N_ped": 49.92,
    "N_col": 15.4,
    "N_r": -0.834,
-   "r2": 0.737
+   "r2": 0.737,
+   "collective": 0.236
   }
  },
  "whirl_hz": {
@@ -321,10 +360,12 @@
   "yaw/1700/N_col": 8.084182,
   "yaw/1700/N_r": 0.557191,
   "yaw/1700/r2": 0.011303,
+  "yaw/1700/collective": 0.009331,
   "yaw/1900/N_ped": 0.815522,
   "yaw/1900/N_col": 1.345697,
   "yaw/1900/N_r": 0.106829,
-  "yaw/1900/r2": 0.010161
+  "yaw/1900/r2": 0.010161,
+  "yaw/1900/collective": 0.003085
  },
  "unstable": [
   "rate_gains/2200/roll/gain",
@@ -343,6 +384,7 @@
   "yaw/2200/N_col",
   "yaw/2200/N_r",
   "yaw/2200/r2",
+  "yaw/2200/collective",
   "whirl_hz/2200/roll",
   "whirl_hz/2200/pitch",
   "whirl_hz/2200/yaw",

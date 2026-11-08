@@ -1,6 +1,6 @@
 {
  "heli": "Stratos 700",
- "trained": "2026-11-08",
+ "trained": "2026-11-09",
  "group": "7180bcda",
  "setup": {
   "craft": "Stratos700",
@@ -61,8 +61,14 @@
     "before": "RMS throttle error 12.4 % over 92580 samples",
     "after": "RMS throttle error 3.3 % over 92580 samples"
    },
-   "others_worse": [],
-   "decision": "taken: held-out 12.41 -> 3.302"
+   "judged_with_refit": [
+    "yaw",
+    "power"
+   ],
+   "others_worse": [
+    "yaw 0.225 -> 0.8668"
+   ],
+   "decision": "kept: makes yaw 0.225 -> 0.8668 worse"
   },
   "thrust": {
    "proposal": {
@@ -84,8 +90,15 @@
     "before": "hover collective error -0.145 at 1700 rpm (77 s), -0.137 at 1800 rpm (55 s), -0.083 at 1900 rpm (38 s), -0.104 at 2200 rpm (2 s)",
     "after": "hover collective error -0.016 at 1700 rpm (77 s), -0.032 at 1800 rpm (55 s), +0.000 at 1900 rpm (38 s), -0.064 at 2200 rpm (2 s)"
    },
-   "others_worse": [],
-   "decision": "taken: held-out 0.1173 -> 0.02806"
+   "judged_with_refit": [
+    "rotor",
+    "yaw",
+    "power"
+   ],
+   "others_worse": [
+    "yaw 0.225 -> 0.4061"
+   ],
+   "decision": "kept: makes yaw 0.225 -> 0.4061 worse"
   },
   "rate": {
    "proposal": {
@@ -138,24 +151,25 @@
    "proposal": {
     "attrs": {
      "Nped": 43.6,
-     "Nr": -0.373
+     "Nr": -0.373,
+     "Ncol": 21.37
     },
     "args": {
      "yaw_trim": 0.207
     }
    },
    "notes": [
-    "N_ped 43.6 at 1900 rpm (R^2 0.71) -> Nped 43.6 at 1900 rpm, Nr -0.37",
+    "N_ped 43.6 at 1900 rpm (R^2 0.71) -> Nped 43.6 at 1900 rpm, Nr -0.37, Ncol 21.4",
     "hover tail trim -0.207 at 1900 rpm"
    ],
-   "score_before": 0.24484179685608654,
-   "score_after": 0.2227925180825708,
+   "score_before": 0.22501368498702934,
+   "score_after": 0.2384091871453081,
    "score_detail": {
-    "before": "R^2 0.759, tail trim error 0.004",
-    "after": "R^2 0.788, tail trim error 0.011"
+    "before": "R^2 0.779, tail trim error 0.004",
+    "after": "R^2 0.773, tail trim error 0.011"
    },
    "others_worse": [],
-   "decision": "taken: held-out 0.2448 -> 0.2228"
+   "decision": "kept (worse): held-out 0.225 -> 0.2384"
   },
   "power": {
    "proposal": {
@@ -175,6 +189,26 @@
    },
    "others_worse": [],
    "decision": "taken: held-out 0.2027 -> 0.03141"
+  },
+  "pack": {
+   "proposal": {
+    "args": {
+     "pack_r": 0.02687,
+     "pack_ah": 6.351
+    }
+   },
+   "notes": [
+    "26.9 mOhm +- 11 % (12S, RMS 0.18 V over 14 logs)",
+    "6.35 Ah +- 20 %, the largest draw 44 % of it"
+   ],
+   "score_before": 0.2983665896663098,
+   "score_after": 0.15147716694452198,
+   "score_detail": {
+    "before": "RMS Vbat error 0.30 V over 8 logs",
+    "after": "RMS Vbat error 0.15 V over 8 logs"
+   },
+   "others_worse": [],
+   "decision": "taken: held-out 0.2984 -> 0.1515"
   }
  },
  "replay": null,
@@ -185,24 +219,27 @@
    "thrust": 0.11734722559822827,
    "rate": 0.3962828114112376,
    "flap": 0.455777802834554,
-   "yaw": 0.24484179685608654,
-   "power": 0.2027176927343317
+   "yaw": 0.22501368498702934,
+   "power": 0.2027176927343317,
+   "pack": 0.2983665896663098
   },
   "current": {
    "rotor": 12.413363710372561,
    "thrust": 0.11734722559822827,
    "rate": 0.3962828114112376,
    "flap": 0.455777802834554,
-   "yaw": 0.24484179685608654,
-   "power": 0.2027176927343317
+   "yaw": 0.22501368498702934,
+   "power": 0.2027176927343317,
+   "pack": 0.2983665896663098
   },
   "new": {
-   "rotor": 3.3017703585076275,
-   "thrust": 0.028059595271838295,
+   "rotor": 8.651530841131617,
+   "thrust": 0.11734722559822827,
    "rate": 0.0655971329497327,
    "flap": 0.06084440165561199,
-   "yaw": 0.2227925180825708,
-   "power": 0.0314059900166389
+   "yaw": 0.22501368498703123,
+   "power": 0.0314059900166389,
+   "pack": 0.15147716694452198
   }
  },
  "gates": {
@@ -215,7 +252,11 @@
   "flap_events": 5,
   "flap_rel": 0.35,
   "yaw_r2": 0.3,
-  "yaw_rel": 0.25
+  "yaw_rel": 0.25,
+  "pack_r2": 0.8,
+  "pack_rel_r": 0.3,
+  "pack_rel_c": 0.25,
+  "pack_share": 0.25
  },
  "tolerance": 0.02
 }

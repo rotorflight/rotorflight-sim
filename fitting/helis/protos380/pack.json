@@ -1,0 +1,21 @@
+{
+ "heli": "MSH Protos 380",
+ "group": "b8916a32",
+ "capacity_ah": 2.824,
+ "resistance_ohm": 0.01326,
+ "cells": 6,
+ "rms_v": 0.236,
+ "r2": 0.931,
+ "soc0": [
+  0.591,
+  0.251,
+  0.376,
+  0.22,
+  0.505,
+  0.99
+ ],
+ "ah_share": 0.415,
+ "logs": 6,
+ "capacity_se": 1.29452,
+ "resistance_se": 0.01048
+}

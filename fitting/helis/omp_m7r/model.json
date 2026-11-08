@@ -1,6 +1,6 @@
 {
  "base": "fitted",
- "description": "OMP M7R: trained 2026-11-08 from 2 logs (setup c3771b88), checked on 1 held-out",
+ "description": "OMP M7R: trained 2026-11-09 from 2 logs (setup c3771b88), checked on 1 held-out",
  "attrs": {
   "motor_fit": [
    30.123753,
@@ -21,7 +21,8 @@
   ],
   "Nped": 27.0,
   "Nr": -0.597,
-  "tail_motor": false
+  "tail_motor": false,
+  "Ncol": 4.04
  },
  "args": {
   "rate_gain_roll": 6.691,
@@ -47,7 +48,7 @@
   "tf_pitch": 0.0811
  },
  "provenance": {
-  "trained": "2026-11-08",
+  "trained": "2026-11-09",
   "group": "c3771b88",
   "logs": {
    "fit": [
@@ -59,10 +60,10 @@
    ]
   },
   "params": {
-   "rate_gain_roll": "fit 2026-11-08 (flap stage)",
-   "rate_gain_pitch": "fit 2026-11-08 (flap stage)",
-   "Lb1s": "fit 2026-11-08 (flap stage)",
-   "Ma1s": "fit 2026-11-08 (flap stage)",
+   "rate_gain_roll": "fit 2026-11-09 (flap stage)",
+   "rate_gain_pitch": "fit 2026-11-09 (flap stage)",
+   "Lb1s": "fit 2026-11-09 (flap stage)",
+   "Ma1s": "fit 2026-11-09 (flap stage)",
    "tf": "preset m7r",
    "stiff_rpm_exp": "preset m7r",
    "tf_rpm_exp": "preset m7r",
@@ -78,9 +79,9 @@
    "hover_power_w": "preset m7r",
    "cyclic_scale": "preset m7r",
    "yaw_scale": "preset m7r",
-   "tf_roll": "fit 2026-11-08 (flap stage)",
-   "tf_pitch": "fit 2026-11-08 (flap stage)",
-   "motor_fit": "fit 2026-11-08 (rotor stage)",
+   "tf_roll": "fit 2026-11-09 (flap stage)",
+   "tf_pitch": "fit 2026-11-09 (flap stage)",
+   "motor_fit": "fit 2026-11-09 (rotor stage)",
    "motor_poles": "preset m7r",
    "v_hover": "preset m7r",
    "rotor_radius": "preset m7r",
@@ -88,17 +89,19 @@
    "ctrl_rpm_exp": "preset m7r",
    "Zcol": "preset m7r",
    "thrust_inflow": "preset m7r",
-   "Nped": "fit 2026-11-08 (yaw stage)",
-   "Nr": "fit 2026-11-08 (yaw stage)",
-   "tail_motor": "heli file"
+   "Nped": "fit 2026-11-09 (yaw stage)",
+   "Nr": "fit 2026-11-09 (yaw stage)",
+   "tail_motor": "heli file",
+   "Ncol": "fit 2026-11-09 (yaw stage)"
   },
   "held_out_scores": {
    "rotor": 1.7424185287531584,
    "thrust": 0.0034399999999999986,
    "rate": 0.06829823323251588,
    "flap": 0.05955002857924738,
-   "yaw": 0.7038983655716834,
-   "power": null
+   "yaw": 0.6980603659972509,
+   "power": null,
+   "pack": 0.4465969891642816
   }
  }
 }

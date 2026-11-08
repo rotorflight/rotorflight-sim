@@ -1,6 +1,6 @@
 # Nimbus - training report
 
-Trained 2026-11-08 on setup `4062f5c0` (craft Nimbus, firmware 4.6, board RDMS NEXUS_XR, tail servo, collective -1125,1125, esc 0/0), from the prior: size prior (? class, M7R dynamics). Written by `scripts/train.py`.
+Trained 2026-11-09 on setup `4062f5c0` (craft Nimbus, firmware 4.6, board RDMS NEXUS_XR, tail servo, collective -1125,1125, esc 0/0), from the prior: size prior (? class, M7R dynamics). Written by `scripts/train.py`.
 
 - fit logs (12): Nimbus_20260811_161206.0, Nimbus_all_20260811_112712.5, Nimbus_all_20260811_112712.6, Nimbus_all_20260811_112712.7, Nimbus_all_20260811_112712.8, Nimbus_all_20260811_112712.9, Nimbus_all_20260811_112712.10, Nimbus_all_20260811_112712.11, Nimbus_all_20260811_112712.12, Nimbus_all_20260811_112712.19, Nimbus_all_20260811_112712.20, Nimbus_all_20260811_112712.21
 - held-out logs (6): Nimbus_20260811_160756.0, Nimbus_all_20260811_112712.2, Nimbus_all_20260811_112712.4, Nimbus_all_20260811_112712.22, Nimbus_all_20260811_112712.28, Nimbus_all_20260811_112712.29
@@ -13,8 +13,9 @@ Trained 2026-11-08 on setup `4062f5c0` (craft Nimbus, firmware 4.6, board RDMS N
 | thrust | taken | 0.01426 | 0.01171 |
 | rate | taken | 0.4074 | 0.06506 |
 | flap | kept | 0.1593 | 0.07986 |
-| yaw | taken | 0.447 | 0.2825 |
+| yaw | taken | 0.4216 | 0.279 |
 | power | taken, not validated (over a size prior) | - | - |
+| pack | taken | 0.1981 | 0.1773 |
 
 **rotor**: taken: held-out 15.55 -> 2.286
 - R^2 0.967, A 56.63 +- 14 %, B 3.799 +- 6 %
@@ -39,16 +40,22 @@ Trained 2026-11-08 on setup `4062f5c0` (craft Nimbus, firmware 4.6, board RDMS N
 - held-out before: 1 - VAF 0.159 over 83 sharp inputs
 - held-out after: 1 - VAF 0.080 over 83 sharp inputs
 
-**yaw**: taken: held-out 0.447 -> 0.2825
-- N_ped 41.3 at 1900 rpm (R^2 0.82) -> Nped 41.3 at 1900 rpm, Nr -0.83
+**yaw**: taken: held-out 0.4216 -> 0.279
+- N_ped 41.3 at 1900 rpm (R^2 0.82) -> Nped 41.3 at 1900 rpm, Nr -0.83, Ncol -4.6
 - hover tail trim -0.394 at 1900 rpm
-- held-out before: R^2 0.553
-- held-out after: R^2 0.717
+- held-out before: R^2 0.578
+- held-out after: R^2 0.721
 
 **power**: taken, not validated (over a size prior)
 - hover 626 W at 21.8 V, throttle 0.75 (1900 rpm)
 - held-out before: no hover with power at 1900 rpm in the held-out logs
 - held-out after: no hover with power at 1900 rpm in the held-out logs
+
+**pack**: taken: held-out 0.1981 -> 0.1773
+- 25.6 mOhm +- 13 % (6S, RMS 0.11 V over 12 logs)
+- 3.06 Ah +- 9 %, the largest draw 29 % of it
+- held-out before: RMS Vbat error 0.20 V over 6 logs
+- held-out after: RMS Vbat error 0.18 V over 6 logs
 
 ## Held-out scores
 
@@ -60,7 +67,8 @@ Lower is better (`scripts/holdout.py`).
 | thrust | 0.01426 | 0.01426 | 0.01171 |
 | rate | 0.4074 | 0.4074 | 0.06506 |
 | flap | 0.5962 | 0.5962 | 0.1593 |
-| yaw | 0.447 | 0.447 | 0.2825 |
+| yaw | 0.4275 | 0.4275 | 0.279 |
 | power | - | - | - |
+| pack | 0.1981 | 0.1981 | 0.1773 |
 
 Model changed: yes.

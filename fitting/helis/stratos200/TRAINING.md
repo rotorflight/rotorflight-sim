@@ -1,6 +1,6 @@
 # Stratos 200 (Bo105 fuselage) - training report
 
-Trained 2026-11-08 on setup `cfbc5200` (craft Stratos 200, firmware 4.7, board RDMS NEXUS_XR, tail motor, collective -1083,1083, esc 6/1), from the prior: preset stratos200. Written by `scripts/train.py`.
+Trained 2026-11-09 on setup `cfbc5200` (craft Stratos 200, firmware 4.7, board RDMS NEXUS_XR, tail motor, collective -1083,1083, esc 6/1), from the prior: preset stratos200. Written by `scripts/train.py`.
 
 - fit logs (5): 20261008_160146_11, 20261008_160146_12, 20261008_174938_00, 20261008_180641_00, 20261008_182311_01
 - held-out logs (1): 20261008_172721_00
@@ -15,6 +15,7 @@ Trained 2026-11-08 on setup `cfbc5200` (craft Stratos 200, firmware 4.7, board R
 | flap | no proposal | - | - |
 | yaw | no proposal | - | - |
 | power | no proposal | - | - |
+| pack | kept (worse) | 0.05821 | 0.08685 |
 
 **rotor**: kept (worse): held-out 0.6944 -> 0.6994
 - R^2 0.995, A 632.8 +- 15 %, B 10.6 +- 15 %
@@ -38,6 +39,12 @@ Trained 2026-11-08 on setup `cfbc5200` (craft Stratos 200, firmware 4.7, board R
 **power**: no proposal
 - no gated hover at 3600 rpm with Vbat and Ibat
 
+**pack**: kept (worse): held-out 0.05821 -> 0.08685
+- 105.1 mOhm +- 10 % (4S, RMS 0.06 V over 5 logs)
+- capacity not identified (0.55 Ah +- 20 %, the largest draw 22 % of it)
+- held-out before: RMS Vbat error 0.06 V over 1 logs
+- held-out after: RMS Vbat error 0.09 V over 1 logs
+
 ## Held-out scores
 
 Lower is better (`scripts/holdout.py`).
@@ -50,5 +57,6 @@ Lower is better (`scripts/holdout.py`).
 | flap | - | - | - |
 | yaw | - | - | - |
 | power | - | - | - |
+| pack | 0.05821 | 0.05821 | 0.05821 |
 
 Model changed: yes.
