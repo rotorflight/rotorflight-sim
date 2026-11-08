@@ -1,0 +1,103 @@
+{
+ "base": "fitted",
+ "description": "Stratos 200 (Bo105 fuselage): trained 2026-11-08 from 5 logs (setup cfbc5200), checked on 1 held-out",
+ "attrs": {
+  "motor_fit": [
+   987.74,
+   16.843,
+   0.0007003,
+   0.01101,
+   2.0
+  ],
+  "motor_poles": 24,
+  "v_hover": 3.8,
+  "rotor_radius": 0.21,
+  "hub_height": 0.15,
+  "tail_motor": true,
+  "Zcol": -15.419261006289307,
+  "thrust_inflow": [
+   16.685205784204673,
+   0.30646666666666667
+  ],
+  "Nped": -66.0,
+  "Nr": -0.5
+ },
+ "args": {
+  "rate_gain_roll": 6.717,
+  "rate_gain_pitch": 5.41,
+  "Lb1s": 1400.0,
+  "Ma1s": 2000.0,
+  "tf": 0.05,
+  "stiff_rpm_exp": 2.0,
+  "tf_rpm_exp": 1.0,
+  "turb": 0.0,
+  "turb_hz": 5.0,
+  "yaw_trim": 0.215,
+  "tail_rpm_hover": 14340.0,
+  "nominal_rpm": 3600.0,
+  "gear_ratio": 1.0,
+  "hover_throttle": 0.47,
+  "pack_cells": 4,
+  "pack_ah": 0.85,
+  "pack_r": 0.05,
+  "hover_power_w": 50.0,
+  "cyclic_scale": 1.0,
+  "yaw_scale": 1.0
+ },
+ "provenance": {
+  "trained": "2026-11-08",
+  "group": "cfbc5200",
+  "logs": {
+   "fit": [
+    "20261008_160146_11",
+    "20261008_160146_12",
+    "20261008_174938_00",
+    "20261008_180641_00",
+    "20261008_182311_01"
+   ],
+   "validate": [
+    "20261008_172721_00"
+   ]
+  },
+  "params": {
+   "rate_gain_roll": "fit 2026-11-08 (rate stage)",
+   "rate_gain_pitch": "fit 2026-11-08 (rate stage)",
+   "Lb1s": "preset stratos200",
+   "Ma1s": "preset stratos200",
+   "tf": "preset stratos200",
+   "stiff_rpm_exp": "preset stratos200",
+   "tf_rpm_exp": "preset stratos200",
+   "turb": "preset stratos200",
+   "turb_hz": "preset stratos200",
+   "yaw_trim": "preset stratos200",
+   "tail_rpm_hover": "preset stratos200",
+   "nominal_rpm": "preset stratos200",
+   "gear_ratio": "heli file",
+   "hover_throttle": "preset stratos200",
+   "pack_cells": "heli file",
+   "pack_ah": "heli file",
+   "pack_r": "heli file",
+   "hover_power_w": "preset stratos200",
+   "cyclic_scale": "preset stratos200",
+   "yaw_scale": "preset stratos200",
+   "motor_fit": "preset stratos200",
+   "motor_poles": "heli file",
+   "v_hover": "preset stratos200",
+   "rotor_radius": "preset stratos200",
+   "hub_height": "preset stratos200",
+   "tail_motor": "heli file",
+   "Zcol": "preset stratos200",
+   "thrust_inflow": "preset stratos200",
+   "Nped": "preset stratos200",
+   "Nr": "preset stratos200"
+  },
+  "held_out_scores": {
+   "rotor": 0.6944241042620791,
+   "thrust": null,
+   "rate": 0.006304489637541629,
+   "flap": null,
+   "yaw": null,
+   "power": null
+  }
+ }
+}

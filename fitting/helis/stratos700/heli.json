@@ -1,0 +1,692 @@
+{
+  "name": "Stratos 700",
+  "size_class": 700,
+  "firmware": null,
+  "board": null,
+  "gyro_chip": null,
+  "pack": {
+    "cells": null,
+    "capacity_ah": null,
+    "resistance_ohm": null
+  },
+  "drive": {
+    "gear_ratio": null,
+    "motor_poles": null,
+    "esc": null
+  },
+  "tail": {
+    "type": null
+  },
+  "rotor": {
+    "radius_m": null,
+    "chord_m": null,
+    "blades": 2,
+    "blade_mass_kg": null
+  },
+  "mass_kg": null,
+  "preset": null,
+  "logs": [
+    {
+      "file": "Stratos700_20261008_133322.0",
+      "source": "Stratos700_20261008_133322.bbl",
+      "sha256": "b2b02f9cbb29bd1148e4b401c9bf56ddc55f8f3ee2ee54d99dd3f4ce155cc32d",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-08T13:33:23.798+00:00",
+      "headspeed": [
+        1700,
+        2000
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 60.1,
+        "hover_s": {
+          "1700": 10.5,
+          "1800": 0.2,
+          "1900": 0.2,
+          "2000": 3.4
+        },
+        "sharp_inputs": 5,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_20261008_133504.0",
+      "source": "Stratos700_20261008_133504.bbl",
+      "sha256": "bc05a2a3872d2e42fd7df7f72c55342a9d58d5d7bf35f3076ad4495c94418ae7",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-08T13:35:04.549+00:00",
+      "headspeed": [
+        1700
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 66.4,
+        "hover_s": {
+          "1700": 14.8
+        },
+        "sharp_inputs": 0,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_20261008_133648.0",
+      "source": "Stratos700_20261008_133648.bbl",
+      "sha256": "6b0bae33b4f5d3006745b92d4f49403b70e9fa2cfb6568ca9aa1ff839db1cc4a",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-08T13:36:48.758+00:00",
+      "headspeed": [
+        1700
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 104.3,
+        "hover_s": {
+          "1700": 16.0
+        },
+        "sharp_inputs": 4,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    },
+    {
+      "file": "Stratos700_20261008_134002.0",
+      "source": "Stratos700_20261008_134002.bbl",
+      "sha256": "67eef125e957bb72357ece80293b1997da87f7fc987674f696cab2a1fa6f3a34",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-08T13:40:02.808+00:00",
+      "headspeed": [
+        1700
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 34.6,
+        "hover_s": {
+          "1300": 0.0,
+          "1400": 0.2,
+          "1500": 0.2,
+          "1600": 0.2,
+          "1700": 14.0
+        },
+        "sharp_inputs": 2,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_20261008_134116.0",
+      "source": "Stratos700_20261008_134116.bbl",
+      "sha256": "49f0654c1756e2d5d2d7284c8f4a36405fcef5332156416eebe7f98c0f788d05",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-08T13:41:16.848+00:00",
+      "headspeed": [
+        1700,
+        2000
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 165.7,
+        "hover_s": {
+          "1700": 23.1,
+          "1800": 0.4,
+          "1900": 0.4,
+          "2000": 2.4
+        },
+        "sharp_inputs": 22,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    },
+    {
+      "file": "Stratos700_20261008_134448.0",
+      "source": "Stratos700_20261008_134448.bbl",
+      "sha256": "dec8cbce91e1cad2bc753fd4bc9b2a5c3abfadb3cc2b733c4a1b0efd7660e9f2",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-08T13:44:49.907+00:00",
+      "headspeed": [
+        1700
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 97.7,
+        "hover_s": {
+          "1700": 9.3
+        },
+        "sharp_inputs": 7,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_all_20261008_001340.3",
+      "source": "Stratos700_all_20261008_001340.bbl",
+      "sha256": "98d317873b34ea29518c05f02449c9853193080379af5a1bfd00aab9d67492e0",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-05T10:54:50.972+00:00",
+      "headspeed": [],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 9.5,
+        "hover_s": {
+          "400": 0.6,
+          "500": 0.9,
+          "600": 0.9,
+          "700": 1.0,
+          "800": 0.8,
+          "900": 0.8,
+          "1000": 0.5,
+          "1100": 0.4,
+          "1200": 0.4,
+          "1300": 3.3
+        },
+        "sharp_inputs": 0,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_all_20261008_001340.5",
+      "source": "Stratos700_all_20261008_001340.bbl",
+      "sha256": "98d317873b34ea29518c05f02449c9853193080379af5a1bfd00aab9d67492e0",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "0000-01-01T00:00:00.000+00:00",
+      "headspeed": [
+        1700,
+        1800,
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 88.8,
+        "hover_s": {
+          "1200": 0.0,
+          "1300": 0.2,
+          "1400": 0.2,
+          "1500": 0.2,
+          "1600": 0.2,
+          "1700": 21.8,
+          "1800": 7.8,
+          "1900": 3.1
+        },
+        "sharp_inputs": 4,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_all_20261008_001340.6",
+      "source": "Stratos700_all_20261008_001340.bbl",
+      "sha256": "98d317873b34ea29518c05f02449c9853193080379af5a1bfd00aab9d67492e0",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "0000-01-01T00:00:00.000+00:00",
+      "headspeed": [
+        1700,
+        1800
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 91.2,
+        "hover_s": {
+          "1700": 14.4,
+          "1800": 30.1
+        },
+        "sharp_inputs": 2,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_all_20261008_001340.7",
+      "source": "Stratos700_all_20261008_001340.bbl",
+      "sha256": "98d317873b34ea29518c05f02449c9853193080379af5a1bfd00aab9d67492e0",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "0000-01-01T00:00:00.000+00:00",
+      "headspeed": [
+        1700,
+        1800
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 85.1,
+        "hover_s": {
+          "1700": 9.1,
+          "1800": 5.1
+        },
+        "sharp_inputs": 0,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    },
+    {
+      "file": "Stratos700_all_20261008_001340.8",
+      "source": "Stratos700_all_20261008_001340.bbl",
+      "sha256": "98d317873b34ea29518c05f02449c9853193080379af5a1bfd00aab9d67492e0",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "0000-01-01T00:00:00.000+00:00",
+      "headspeed": [
+        1700,
+        1800
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 172.6,
+        "hover_s": {
+          "1500": 0.2,
+          "1600": 0.2,
+          "1700": 10.2,
+          "1800": 16.6
+        },
+        "sharp_inputs": 1,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    },
+    {
+      "file": "Stratos700_all_20261008_001340.9",
+      "source": "Stratos700_all_20261008_001340.bbl",
+      "sha256": "98d317873b34ea29518c05f02449c9853193080379af5a1bfd00aab9d67492e0",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-07T13:12:28.430+00:00",
+      "headspeed": [
+        1700,
+        1800
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 122.6,
+        "hover_s": {
+          "1500": 0.0,
+          "1600": 0.2,
+          "1700": 21.2,
+          "1800": 3.8
+        },
+        "sharp_inputs": 19,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_all_20261008_001340.10",
+      "source": "Stratos700_all_20261008_001340.bbl",
+      "sha256": "98d317873b34ea29518c05f02449c9853193080379af5a1bfd00aab9d67492e0",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-07T13:15:56.990+00:00",
+      "headspeed": [
+        1700,
+        1800
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 55.3,
+        "hover_s": {
+          "1700": 3.4,
+          "1800": 8.5
+        },
+        "sharp_inputs": 0,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    },
+    {
+      "file": "Stratos700_all_20261008_001340.11",
+      "source": "Stratos700_all_20261008_001340.bbl",
+      "sha256": "98d317873b34ea29518c05f02449c9853193080379af5a1bfd00aab9d67492e0",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-07T13:17:40.774+00:00",
+      "headspeed": [
+        1700,
+        1800
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 94.8,
+        "hover_s": {
+          "1700": 15.1,
+          "1800": 24.1,
+          "1900": 2.6
+        },
+        "sharp_inputs": 10,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    },
+    {
+      "file": "Stratos700_all_20261008_001340.12",
+      "source": "Stratos700_all_20261008_001340.bbl",
+      "sha256": "98d317873b34ea29518c05f02449c9853193080379af5a1bfd00aab9d67492e0",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-07T13:19:57.432+00:00",
+      "headspeed": [
+        1700,
+        1800
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 98.2,
+        "hover_s": {
+          "1600": 0.0,
+          "1700": 4.3,
+          "1800": 4.0
+        },
+        "sharp_inputs": 31,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_all_20261016_182858.0",
+      "source": "Stratos700_all_20261016_182858.bbl",
+      "sha256": "49114d0389c4592b562fbdad94b58f4faa27fc4d5696484b653230375e0b76d1",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-08T16:18:47.366+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 27.9,
+        "hover_s": {
+          "1900": 7.2
+        },
+        "sharp_inputs": 3,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_all_20261016_182858.1",
+      "source": "Stratos700_all_20261016_182858.bbl",
+      "sha256": "49114d0389c4592b562fbdad94b58f4faa27fc4d5696484b653230375e0b76d1",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-08T16:19:54.892+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 75.3,
+        "hover_s": {
+          "1900": 4.8
+        },
+        "sharp_inputs": 10,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_all_20261016_182858.2",
+      "source": "Stratos700_all_20261016_182858.bbl",
+      "sha256": "49114d0389c4592b562fbdad94b58f4faa27fc4d5696484b653230375e0b76d1",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-08T16:21:51.821+00:00",
+      "headspeed": [
+        1900,
+        2200
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 105.6,
+        "hover_s": {
+          "1300": 0.1,
+          "1400": 0.2,
+          "1500": 0.2,
+          "1600": 0.2,
+          "1700": 0.2,
+          "1800": 0.4,
+          "1900": 20.2,
+          "2000": 0.2,
+          "2100": 0.2,
+          "2200": 2.6
+        },
+        "sharp_inputs": 8,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    },
+    {
+      "file": "Stratos700_all_20261016_182858.3",
+      "source": "Stratos700_all_20261016_182858.bbl",
+      "sha256": "49114d0389c4592b562fbdad94b58f4faa27fc4d5696484b653230375e0b76d1",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-08T16:24:20.653+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 16.6,
+        "hover_s": {
+          "800": 0.2,
+          "900": 0.4,
+          "1000": 0.4,
+          "1100": 0.4,
+          "1200": 0.4,
+          "1300": 0.6,
+          "1400": 0.6,
+          "1500": 0.7,
+          "1600": 0.4,
+          "1700": 0.2,
+          "1800": 0.2,
+          "1900": 4.1
+        },
+        "sharp_inputs": 0,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_all_20261016_182858.4",
+      "source": "Stratos700_all_20261016_182858.bbl",
+      "sha256": "49114d0389c4592b562fbdad94b58f4faa27fc4d5696484b653230375e0b76d1",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-08T16:25:58.865+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 244.9,
+        "hover_s": {
+          "1900": 12.6
+        },
+        "sharp_inputs": 32,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_all_20261016_182858.5",
+      "source": "Stratos700_all_20261016_182858.bbl",
+      "sha256": "49114d0389c4592b562fbdad94b58f4faa27fc4d5696484b653230375e0b76d1",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-16T15:47:02.272+00:00",
+      "headspeed": [
+        1900,
+        2200
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 127.8,
+        "hover_s": {
+          "1700": 0.2,
+          "1800": 0.2,
+          "1900": 43.0,
+          "2000": 0.4,
+          "2100": 0.4,
+          "2200": 5.7
+        },
+        "sharp_inputs": 10,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_all_20261016_182858.6",
+      "source": "Stratos700_all_20261016_182858.bbl",
+      "sha256": "49114d0389c4592b562fbdad94b58f4faa27fc4d5696484b653230375e0b76d1",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-16T15:51:30.752+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 209.2,
+        "hover_s": {
+          "1900": 31.7
+        },
+        "sharp_inputs": 43,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_all_20261016_182858.8",
+      "source": "Stratos700_all_20261016_182858.bbl",
+      "sha256": "49114d0389c4592b562fbdad94b58f4faa27fc4d5696484b653230375e0b76d1",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-16T15:58:50.152+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 61.8,
+        "hover_s": {
+          "1900": 2.6
+        },
+        "sharp_inputs": 19,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Stratos700_all_20261016_182858.9",
+      "source": "Stratos700_all_20261016_182858.bbl",
+      "sha256": "49114d0389c4592b562fbdad94b58f4faa27fc4d5696484b653230375e0b76d1",
+      "consent": "private",
+      "group": "7180bcda",
+      "start": "2026-10-16T16:00:32.711+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 91.7,
+        "hover_s": {
+          "1800": 0.1,
+          "1900": 14.9
+        },
+        "sharp_inputs": 16,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    }
+  ],
+  "groups": {
+    "7180bcda": {
+      "craft": "Stratos700",
+      "firmware": "4.6",
+      "board": "RDMS NEXUS_XR",
+      "tail": "servo",
+      "collective": "-1042,1042",
+      "esc": "0/0"
+    }
+  }
+}

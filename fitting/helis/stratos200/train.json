@@ -1,0 +1,140 @@
+{
+ "heli": "Stratos 200 (Bo105 fuselage)",
+ "trained": "2026-11-08",
+ "group": "cfbc5200",
+ "setup": {
+  "craft": "Stratos 200",
+  "firmware": "4.7",
+  "board": "RDMS NEXUS_XR",
+  "tail": "motor",
+  "collective": "-1083,1083",
+  "esc": "6/1"
+ },
+ "logs": {
+  "fit": [
+   "20261008_160146_11",
+   "20261008_160146_12",
+   "20261008_174938_00",
+   "20261008_180641_00",
+   "20261008_182311_01"
+  ],
+  "validate": [
+   "20261008_172721_00"
+  ]
+ },
+ "start": "prior: preset stratos200",
+ "stages": {
+  "rotor": {
+   "proposal": {
+    "attrs": {
+     "motor_fit": [
+      632.806926,
+      10.600064,
+      0.001028,
+      0.006865,
+      2.0
+     ]
+    }
+   },
+   "notes": [
+    "R^2 0.995, A 632.8 +- 15 %, B 10.6 +- 15 %"
+   ],
+   "score_before": 0.6944241042620791,
+   "score_after": 0.6993757780219412,
+   "score_detail": {
+    "before": "RMS throttle error 0.7 % over 6607 samples",
+    "after": "RMS throttle error 0.7 % over 6607 samples"
+   },
+   "others_worse": [],
+   "decision": "kept (worse): held-out 0.6944 -> 0.6994"
+  },
+  "thrust": {
+   "proposal": null,
+   "notes": [
+    "no gated hover with a stable collective (3300 rpm 0.4 s insufficient, 3600 rpm 3.3 s insufficient)"
+   ],
+   "decision": "no proposal"
+  },
+  "rate": {
+   "proposal": {
+    "args": {
+     "rate_gain_roll": 6.717,
+     "rate_gain_pitch": 5.41
+    }
+   },
+   "notes": [
+    "at 3600 rpm: roll 6.72, pitch 5.41"
+   ],
+   "score_before": 0.12590746751386325,
+   "score_after": 0.006304489637541629,
+   "score_detail": {
+    "before": "ln(model/measured) pitch 3600 -0.13",
+    "after": "ln(model/measured) pitch 3600 +0.01"
+   },
+   "others_worse": [],
+   "decision": "taken: held-out 0.1259 -> 0.006304"
+  },
+  "flap": {
+   "proposal": null,
+   "notes": [
+    "no sharp-input fit passes VAF >= 0.85 with >= 5 events"
+   ],
+   "decision": "no proposal"
+  },
+  "yaw": {
+   "proposal": null,
+   "notes": [
+    "motorized tail: the yaw stage fits servo tails only"
+   ],
+   "decision": "no proposal"
+  },
+  "power": {
+   "proposal": null,
+   "notes": [
+    "no gated hover at 3600 rpm with Vbat and Ibat"
+   ],
+   "decision": "no proposal"
+  }
+ },
+ "replay": null,
+ "changed": true,
+ "scores": {
+  "prior": {
+   "rotor": 0.6944241042620791,
+   "thrust": null,
+   "rate": 0.12590746751386325,
+   "flap": null,
+   "yaw": null,
+   "power": null
+  },
+  "current": {
+   "rotor": 0.6944241042620791,
+   "thrust": null,
+   "rate": 0.12590746751386325,
+   "flap": null,
+   "yaw": null,
+   "power": null
+  },
+  "new": {
+   "rotor": 0.6944241042620791,
+   "thrust": null,
+   "rate": 0.006304489637541629,
+   "flap": null,
+   "yaw": null,
+   "power": null
+  }
+ },
+ "gates": {
+  "rotor_r2": 0.6,
+  "rotor_rel": 0.25,
+  "hover_rel": 0.1,
+  "coherence": 0.6,
+  "rate_rel": 0.2,
+  "flap_vaf": 0.85,
+  "flap_events": 5,
+  "flap_rel": 0.35,
+  "yaw_r2": 0.3,
+  "yaw_rel": 0.25
+ },
+ "tolerance": 0.02
+}

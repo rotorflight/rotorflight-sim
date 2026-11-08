@@ -1,0 +1,212 @@
+{
+ "heli": "Stratos 200 (Bo105 fuselage)",
+ "group": "cfbc5200",
+ "logs": [
+  "20261008_160146_11",
+  "20261008_160146_12",
+  "20261008_174938_00",
+  "20261008_180641_00",
+  "20261008_182311_01"
+ ],
+ "segments": {
+  "20261008_160146_11": {
+   "ground": 103.3,
+   "autorotation": 0.0,
+   "inverted": 0.0,
+   "aerobatic": 0.0,
+   "hover": 24.9,
+   "cruise": 77.7,
+   "hover_in_ground_effect": 24.5
+  },
+  "20261008_160146_12": {
+   "ground": 25.4,
+   "autorotation": 0.0,
+   "inverted": 0.0,
+   "aerobatic": 0.0,
+   "hover": 19.2,
+   "cruise": 72.6,
+   "hover_in_ground_effect": 19.2
+  },
+  "20261008_174938_00": {
+   "ground": 90.7,
+   "autorotation": 0.0,
+   "inverted": 0.0,
+   "aerobatic": 0.0,
+   "hover": 29.9,
+   "cruise": 34.3,
+   "hover_in_ground_effect": 25.7
+  },
+  "20261008_180641_00": {
+   "ground": 28.9,
+   "autorotation": 0.0,
+   "inverted": 0.0,
+   "aerobatic": 0.0,
+   "hover": 51.7,
+   "cruise": 21.0,
+   "hover_in_ground_effect": 51.7
+  },
+  "20261008_182311_01": {
+   "ground": 20.5,
+   "autorotation": 0.0,
+   "inverted": 0.0,
+   "aerobatic": 0.0,
+   "hover": 35.4,
+   "cruise": 65.7,
+   "hover_in_ground_effect": 35.4
+  }
+ },
+ "motor_fit": [
+  632.8069255527848,
+  10.600063981499552,
+  0.0010279102530136124,
+  0.006865482786974327,
+  2.0
+ ],
+ "motor_fit_r2": 0.995,
+ "hover": {
+  "3300": {
+   "seconds": 0.4,
+   "in_ground_effect_s": 43.8,
+   "height_unknown_s": 0.0,
+   "gate": "insufficient",
+   "collective": 0.727,
+   "throttle": 0.461,
+   "volts": 14.5,
+   "yaw_mixer": 0.267,
+   "power_w": 58.9
+  },
+  "3600": {
+   "seconds": 3.3,
+   "in_ground_effect_s": 112.8,
+   "height_unknown_s": 0.0,
+   "gate": "insufficient",
+   "collective": 0.663,
+   "throttle": 0.464,
+   "volts": 15.5,
+   "yaw_mixer": 0.23,
+   "power_w": 56.4
+  }
+ },
+ "rate_gains": {
+  "3300": {
+   "roll": {
+    "gain": 5.174,
+    "coherence": 0.645,
+    "median_gain": 5.416,
+    "L": 2247.2,
+    "tf": 0.5
+   },
+   "pitch": {
+    "gain": 4.921,
+    "coherence": 0.822,
+    "median_gain": 5.468,
+    "L": 1733.0,
+    "tf": 0.5
+   },
+   "yaw": {
+    "gain": 10.404,
+    "coherence": 0.894
+   }
+  },
+  "3600": {
+   "roll": {
+    "gain": 5.449,
+    "coherence": 0.189
+   },
+   "pitch": {
+    "gain": 5.41,
+    "coherence": 0.755,
+    "median_gain": 5.67,
+    "L": 2450.7,
+    "tf": 0.5
+   },
+   "yaw": {
+    "gain": 11.531,
+    "coherence": 0.867
+   }
+  }
+ },
+ "yaw": {
+  "3300": {
+   "N_ped": -32.77,
+   "N_col": 11.57,
+   "N_r": 1.966,
+   "r2": 0.081
+  },
+  "3600": {
+   "N_ped": -36.05,
+   "N_col": 11.91,
+   "N_r": 1.193,
+   "r2": 0.101
+  }
+ },
+ "whirl_hz": {
+  "3300": {
+   "roll": 4.9,
+   "pitch": 4.89,
+   "yaw": 4.3
+  },
+  "3600": {
+   "roll": 5.99,
+   "pitch": 5.98,
+   "yaw": 4.4
+  }
+ },
+ "airborne_s": {
+  "3300": 194.5,
+  "3600": 238.0
+ },
+ "uncertainty": {
+  "motor_fit/0": 97.667971,
+  "motor_fit/1": 1.623216,
+  "motor_fit/2": 0.000224,
+  "motor_fit/3": 0.001205,
+  "motor_fit/4": 0.0,
+  "motor_fit_r2": 0.002562,
+  "hover/3600/collective": 0.013487,
+  "hover/3600/throttle": 0.006125,
+  "hover/3600/volts": 0.16625,
+  "hover/3600/yaw_mixer": 0.004375,
+  "hover/3600/power_w": 5.568269,
+  "rate_gains/3300/roll/gain": 0.806491,
+  "rate_gains/3300/roll/coherence": 0.366784,
+  "rate_gains/3300/roll/median_gain": 0.318554,
+  "rate_gains/3300/roll/L": 2650.616577,
+  "rate_gains/3300/roll/tf": 0.31255,
+  "rate_gains/3300/pitch/gain": 0.262481,
+  "rate_gains/3300/pitch/coherence": 0.117205,
+  "rate_gains/3300/pitch/median_gain": 0.251864,
+  "rate_gains/3300/pitch/L": 155.252911,
+  "rate_gains/3300/pitch/tf": 0.0,
+  "rate_gains/3300/yaw/gain": 2.488693,
+  "rate_gains/3300/yaw/coherence": 0.033668,
+  "rate_gains/3600/roll/gain": 0.848668,
+  "rate_gains/3600/roll/coherence": 0.089819,
+  "rate_gains/3600/pitch/gain": 0.223896,
+  "rate_gains/3600/pitch/coherence": 0.154215,
+  "rate_gains/3600/pitch/median_gain": 0.281174,
+  "rate_gains/3600/pitch/L": 1188.945628,
+  "rate_gains/3600/pitch/tf": 0.0,
+  "rate_gains/3600/yaw/gain": 1.000566,
+  "rate_gains/3600/yaw/coherence": 0.018414,
+  "yaw/3300/N_ped": 1.770576,
+  "yaw/3300/N_col": 1.241527,
+  "yaw/3300/N_r": 0.342819,
+  "yaw/3300/r2": 0.006447,
+  "yaw/3600/N_ped": 4.928821,
+  "yaw/3600/N_col": 1.753269,
+  "yaw/3600/N_r": 0.230249,
+  "yaw/3600/r2": 0.021593
+ },
+ "unstable": [
+  "hover/3300/seconds",
+  "hover/3300/in_ground_effect_s",
+  "hover/3300/height_unknown_s",
+  "hover/3300/collective",
+  "hover/3300/throttle",
+  "hover/3300/volts",
+  "hover/3300/yaw_mixer",
+  "hover/3300/power_w"
+ ],
+ "folds": 8
+}

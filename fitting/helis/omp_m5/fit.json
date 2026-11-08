@@ -1,19 +1,10 @@
 {
  "heli": "OMP M5",
+ "group": "1cfbd66a",
  "logs": [
-  "OMP_M5_20260822_104240",
   "OMP_M5_20260829_130626"
  ],
  "segments": {
-  "OMP_M5_20260822_104240": {
-   "ground": 32.9,
-   "autorotation": 0.0,
-   "inverted": 42.3,
-   "aerobatic": 17.0,
-   "hover": 13.0,
-   "cruise": 172.9,
-   "hover_in_ground_effect": 8.6
-  },
   "OMP_M5_20260829_130626": {
    "ground": 28.5,
    "autorotation": 0.0,
@@ -25,88 +16,49 @@
   }
  },
  "motor_fit": [
-  2.395889424641812,
-  0.28914484431230525,
-  0.00024573369612991525,
-  0.00017893661643185623,
+  42.47693171298588,
+  5.020459827357672,
+  0.004922952638368582,
+  0.002719957128104907,
   1.5
  ],
- "motor_fit_r2": 0.666,
- "hover": {
-  "1600": {
-   "seconds": 0.7,
-   "in_ground_effect_s": 8.6,
-   "gate": "insufficient",
-   "collective": 0.303,
-   "throttle": 0.512,
-   "volts": 46.24,
-   "yaw_mixer": -0.133
-  },
-  "1700": {
-   "seconds": 0.3,
-   "in_ground_effect_s": 0.0,
-   "gate": "insufficient",
-   "collective": 0.229,
-   "throttle": 0.537,
-   "volts": 46.36,
-   "yaw_mixer": 0.011
-  },
-  "1800": {
-   "seconds": 0.3,
-   "in_ground_effect_s": 0.0,
-   "gate": "insufficient",
-   "collective": 0.241,
-   "throttle": 0.571,
-   "volts": 46.29,
-   "yaw_mixer": -0.068
-  },
-  "1900": {
-   "seconds": 2.6,
-   "in_ground_effect_s": 0.0,
-   "gate": "insufficient",
-   "collective": 0.195,
-   "throttle": 0.615,
-   "volts": 46.12,
-   "yaw_mixer": -0.18
-  }
- },
+ "motor_fit_r2": 0.98,
+ "hover": {},
  "rate_gains": {
   "1600": {
    "roll": {
-    "gain": 4.951,
-    "coherence": 0.762
+    "gain": 4.758,
+    "coherence": 0.841,
+    "median_gain": 5.097,
+    "L": 2545.3,
+    "tf": 0.5
    },
    "pitch": {
-    "gain": 4.393,
-    "coherence": 0.499
+    "gain": 3.908,
+    "coherence": 0.532,
+    "median_gain": 4.402,
+    "L": 1472.3,
+    "tf": 0.5
    },
    "yaw": {
-    "gain": 2.138,
-    "coherence": 0.895
-   }
-  },
-  "1900": {
-   "roll": {
-    "gain": 5.363,
-    "coherence": 0.36
-   },
-   "pitch": {
-    "gain": 6.661,
-    "coherence": 0.85
-   },
-   "yaw": {
-    "gain": 3.938,
-    "coherence": 0.315
+    "gain": 2.145,
+    "coherence": 0.899
    }
   },
   "2200": {
    "roll": {
-    "gain": 8.221,
-    "coherence": 0.773
+    "gain": 7.721,
+    "coherence": 0.773,
+    "median_gain": 8.221,
+    "L": 2849.0,
+    "tf": 0.0264
    },
    "pitch": {
-    "gain": 7.439,
-    "coherence": 0.807
+    "gain": 6.516,
+    "coherence": 0.807,
+    "median_gain": 7.439,
+    "L": 437.9,
+    "tf": 0.0645
    },
    "yaw": {
     "gain": 7.094,
@@ -116,16 +68,10 @@
  },
  "yaw": {
   "1600": {
-   "N_ped": 22.26,
-   "N_col": 11.53,
-   "N_r": 0.284,
-   "r2": 0.5
-  },
-  "1900": {
-   "N_ped": 7.16,
-   "N_col": 1.55,
-   "N_r": 1.447,
-   "r2": 0.115
+   "N_ped": 22.41,
+   "N_col": 10.77,
+   "N_r": 0.241,
+   "r2": 0.509
   },
   "2200": {
    "N_ped": 31.69,
@@ -137,18 +83,64 @@
  "whirl_hz": {
   "1600": {
    "roll": 2.31,
-   "pitch": 4.17,
+   "pitch": 4.24,
    "yaw": 2.32
-  },
-  "1900": {
-   "roll": 2.41,
-   "pitch": 2.39,
-   "yaw": 2.52
   },
   "2200": {
    "roll": 2.52,
    "pitch": 2.4,
    "yaw": 2.39
   }
- }
+ },
+ "airborne_s": {
+  "1600": 39.4,
+  "1700": 0.5,
+  "1800": 0.5,
+  "1900": 0.6,
+  "2000": 0.6,
+  "2100": 0.6,
+  "2200": 177.4
+ },
+ "uncertainty": {
+  "motor_fit/0": 7.037766,
+  "motor_fit/1": 0.809531,
+  "motor_fit/2": 0.000862,
+  "motor_fit/3": 0.000821,
+  "motor_fit/4": 0.875,
+  "motor_fit_r2": 0.009721,
+  "rate_gains/1600/roll/gain": 1.438982,
+  "rate_gains/1600/roll/coherence": 0.519881,
+  "rate_gains/1600/roll/median_gain": 0.173695,
+  "rate_gains/1600/roll/L": 2832.374194,
+  "rate_gains/1600/roll/tf": 0.0,
+  "rate_gains/1600/pitch/gain": 0.741233,
+  "rate_gains/1600/pitch/coherence": 0.113644,
+  "rate_gains/1600/pitch/median_gain": 1.399193,
+  "rate_gains/1600/pitch/L": 1204.350732,
+  "rate_gains/1600/pitch/tf": 0.507738,
+  "rate_gains/1600/yaw/gain": 1.323852,
+  "rate_gains/1600/yaw/coherence": 0.151987,
+  "rate_gains/2200/roll/gain": 0.612164,
+  "rate_gains/2200/roll/coherence": 0.154748,
+  "rate_gains/2200/roll/median_gain": 0.668449,
+  "rate_gains/2200/roll/L": 2526.272447,
+  "rate_gains/2200/roll/tf": 0.413593,
+  "rate_gains/2200/pitch/gain": 0.571502,
+  "rate_gains/2200/pitch/coherence": 0.06651,
+  "rate_gains/2200/pitch/median_gain": 0.586772,
+  "rate_gains/2200/pitch/L": 55.924637,
+  "rate_gains/2200/pitch/tf": 0.013668,
+  "rate_gains/2200/yaw/gain": 0.772646,
+  "rate_gains/2200/yaw/coherence": 0.099567,
+  "yaw/1600/N_ped": 1.230843,
+  "yaw/1600/N_col": 5.112644,
+  "yaw/1600/N_r": 0.085331,
+  "yaw/1600/r2": 0.142374,
+  "yaw/2200/N_ped": 10.821648,
+  "yaw/2200/N_col": 1.716068,
+  "yaw/2200/N_r": 0.385658,
+  "yaw/2200/r2": 0.098363
+ },
+ "unstable": [],
+ "folds": 8
 }

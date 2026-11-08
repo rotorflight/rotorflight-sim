@@ -4,13 +4,60 @@
   "firmware": "Rotorflight 4.6.0 (118e912)",
   "board": "RDMS NEXUS_XR",
   "gyro_chip": null,
-  "pack": {"cells": 12},
-  "drive": {"gear_ratio": 9.308, "gear_ratio_from": "motor 1x order in gyroRAW (121/13)", "motor_poles": null},
-  "tail": {"type": "servo", "gear_ratio": 4.75, "gear_ratio_from": "tail 1x order in gyroRAW"},
-  "rotor": {"radius_m": null, "chord_m": null, "blades": 2, "blade_mass_kg": null},
+  "pack": {
+    "cells": 12
+  },
+  "drive": {
+    "gear_ratio": 9.308,
+    "gear_ratio_from": "motor 1x order in gyroRAW (121/13)",
+    "motor_poles": null
+  },
+  "tail": {
+    "type": "servo",
+    "gear_ratio": 4.75,
+    "gear_ratio_from": "tail 1x order in gyroRAW"
+  },
+  "rotor": {
+    "radius_m": null,
+    "chord_m": null,
+    "blades": 2,
+    "blade_mass_kg": null
+  },
   "mass_kg": null,
   "logs": [
-    {"file": "OMP_M6_20260821_112524.bbl", "headspeed": [2200]},
-    {"file": "OMP_M6_20260822_102430.bbl", "headspeed": [1900]}
-  ]
+    {
+      "file": "OMP_M6_20260821_112524.bbl",
+      "headspeed": [
+        2200
+      ],
+      "group": "3e472a5b",
+      "start": "2026-08-21T11:25:25.921+00:00",
+      "role": "fit",
+      "source": "OMP_M6_20260821_112524.bbl",
+      "sha256": "58aab3a322d796af2a3ff007c6d13e3c07ad0a9a95511bbe182050d85ecab58e",
+      "consent": "private"
+    },
+    {
+      "file": "OMP_M6_20260822_102430.bbl",
+      "headspeed": [
+        1900
+      ],
+      "group": "3e472a5b",
+      "start": "2026-08-22T10:24:30.913+00:00",
+      "role": "validate",
+      "source": "OMP_M6_20260822_102430.bbl",
+      "sha256": "929732df621425eb7c12dfb6a57579a2b7454585ef507b6d3f88eaa2eb9c8168",
+      "consent": "private"
+    }
+  ],
+  "groups": {
+    "3e472a5b": {
+      "craft": "OMP M6",
+      "firmware": "4.6",
+      "board": "RDMS NEXUS_XR",
+      "tail": "servo",
+      "collective": "-1250,1250",
+      "esc": "0/0"
+    }
+  }
 }

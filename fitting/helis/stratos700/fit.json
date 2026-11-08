@@ -1,0 +1,526 @@
+{
+ "heli": "Stratos 700",
+ "group": "7180bcda",
+ "logs": [
+  "Stratos700_20261008_133322.0",
+  "Stratos700_20261008_133504.0",
+  "Stratos700_20261008_134002.0",
+  "Stratos700_20261008_134448.0",
+  "Stratos700_all_20261008_001340.5",
+  "Stratos700_all_20261008_001340.6",
+  "Stratos700_all_20261008_001340.9",
+  "Stratos700_all_20261008_001340.12",
+  "Stratos700_all_20261016_182858.0",
+  "Stratos700_all_20261016_182858.1",
+  "Stratos700_all_20261016_182858.4",
+  "Stratos700_all_20261016_182858.5",
+  "Stratos700_all_20261016_182858.6",
+  "Stratos700_all_20261016_182858.8"
+ ],
+ "segments": {
+  "Stratos700_20261008_133322.0": {
+   "ground": 15.6,
+   "autorotation": 0.0,
+   "inverted": 0.0,
+   "aerobatic": 11.8,
+   "hover": 14.3,
+   "cruise": 34.0,
+   "hover_in_ground_effect": 0.0
+  },
+  "Stratos700_20261008_133504.0": {
+   "ground": 10.9,
+   "autorotation": 0.0,
+   "inverted": 0.0,
+   "aerobatic": 13.2,
+   "hover": 14.8,
+   "cruise": 38.4,
+   "hover_in_ground_effect": 0.0
+  },
+  "Stratos700_20261008_134002.0": {
+   "ground": 14.2,
+   "autorotation": 0.0,
+   "inverted": 0.0,
+   "aerobatic": 5.6,
+   "hover": 14.6,
+   "cruise": 14.4,
+   "hover_in_ground_effect": 0.0
+  },
+  "Stratos700_20261008_134448.0": {
+   "ground": 14.0,
+   "autorotation": 0.0,
+   "inverted": 14.5,
+   "aerobatic": 15.8,
+   "hover": 9.3,
+   "cruise": 58.1,
+   "hover_in_ground_effect": 0.0
+  },
+  "Stratos700_all_20261008_001340.5": {
+   "ground": 16.9,
+   "autorotation": 0.0,
+   "inverted": 0.0,
+   "aerobatic": 21.9,
+   "hover": 33.4,
+   "cruise": 33.5,
+   "hover_in_ground_effect": 0.0
+  },
+  "Stratos700_all_20261008_001340.6": {
+   "ground": 14.7,
+   "autorotation": 0.0,
+   "inverted": 13.8,
+   "aerobatic": 9.7,
+   "hover": 44.5,
+   "cruise": 23.2,
+   "hover_in_ground_effect": 0.0
+  },
+  "Stratos700_all_20261008_001340.9": {
+   "ground": 15.1,
+   "autorotation": 0.0,
+   "inverted": 3.9,
+   "aerobatic": 29.8,
+   "hover": 25.3,
+   "cruise": 63.7,
+   "hover_in_ground_effect": 0.0
+  },
+  "Stratos700_all_20261008_001340.12": {
+   "ground": 10.9,
+   "autorotation": 0.0,
+   "inverted": 20.6,
+   "aerobatic": 29.9,
+   "hover": 8.4,
+   "cruise": 39.4,
+   "hover_in_ground_effect": 0.0
+  },
+  "Stratos700_all_20261016_182858.0": {
+   "ground": 19.6,
+   "autorotation": 0.0,
+   "inverted": 0.0,
+   "aerobatic": 9.8,
+   "hover": 7.2,
+   "cruise": 10.8,
+   "hover_in_ground_effect": 0.0
+  },
+  "Stratos700_all_20261016_182858.1": {
+   "ground": 11.1,
+   "autorotation": 0.0,
+   "inverted": 16.1,
+   "aerobatic": 11.1,
+   "hover": 4.8,
+   "cruise": 43.3,
+   "hover_in_ground_effect": 0.0
+  },
+  "Stratos700_all_20261016_182858.4": {
+   "ground": 17.8,
+   "autorotation": 0.0,
+   "inverted": 50.5,
+   "aerobatic": 69.7,
+   "hover": 12.6,
+   "cruise": 112.1,
+   "hover_in_ground_effect": 0.0
+  },
+  "Stratos700_all_20261016_182858.5": {
+   "ground": 15.7,
+   "autorotation": 0.0,
+   "inverted": 8.5,
+   "aerobatic": 26.3,
+   "hover": 49.8,
+   "cruise": 43.3,
+   "hover_in_ground_effect": 0.0
+  },
+  "Stratos700_all_20261016_182858.6": {
+   "ground": 15.7,
+   "autorotation": 0.0,
+   "inverted": 42.5,
+   "aerobatic": 43.2,
+   "hover": 31.7,
+   "cruise": 91.8,
+   "hover_in_ground_effect": 0.0
+  },
+  "Stratos700_all_20261016_182858.8": {
+   "ground": 15.6,
+   "autorotation": 0.0,
+   "inverted": 16.7,
+   "aerobatic": 19.5,
+   "hover": 2.6,
+   "cruise": 23.0,
+   "hover_in_ground_effect": 0.0
+  }
+ },
+ "motor_fit": [
+  11.983511871391597,
+  1.9365837565425996,
+  1.7567483295851585e-21,
+  0.0011531527772250716,
+  2.0
+ ],
+ "motor_fit_r2": 0.812,
+ "hover": {
+  "1300": {
+   "seconds": 0.1,
+   "in_ground_effect_s": 0.0,
+   "height_unknown_s": 0.1,
+   "gate": "insufficient",
+   "collective": 0.522,
+   "throttle": 0.433,
+   "volts": 48.1,
+   "yaw_mixer": 0.004,
+   "power_w": 203.5
+  },
+  "1400": {
+   "seconds": 0.2,
+   "in_ground_effect_s": 0.0,
+   "height_unknown_s": 0.2,
+   "gate": "insufficient",
+   "collective": 0.567,
+   "throttle": 0.469,
+   "volts": 46.19,
+   "yaw_mixer": 0.076,
+   "power_w": 220.7
+  },
+  "1500": {
+   "seconds": 0.2,
+   "in_ground_effect_s": 0.0,
+   "height_unknown_s": 0.2,
+   "gate": "insufficient",
+   "collective": 0.422,
+   "throttle": 0.504,
+   "volts": 46.08,
+   "yaw_mixer": 0.106,
+   "power_w": 275.1
+  },
+  "1600": {
+   "seconds": 0.3,
+   "in_ground_effect_s": 0.0,
+   "height_unknown_s": 0.3,
+   "gate": "insufficient",
+   "collective": 0.391,
+   "throttle": 0.54,
+   "volts": 47.66,
+   "yaw_mixer": 0.084,
+   "power_w": 295.7
+  },
+  "1700": {
+   "seconds": 110.1,
+   "in_ground_effect_s": 0.0,
+   "height_unknown_s": 110.1,
+   "gate": "ok",
+   "collective": 0.444,
+   "throttle": 0.587,
+   "volts": 47.4,
+   "yaw_mixer": -0.217,
+   "power_w": 1223.0
+  },
+  "1800": {
+   "seconds": 45.6,
+   "in_ground_effect_s": 0.0,
+   "height_unknown_s": 45.6,
+   "gate": "ok",
+   "collective": 0.411,
+   "throttle": 0.652,
+   "volts": 46.59,
+   "yaw_mixer": -0.211,
+   "power_w": 1383.0
+  },
+  "1900": {
+   "seconds": 104.9,
+   "in_ground_effect_s": 0.0,
+   "height_unknown_s": 104.9,
+   "gate": "ok",
+   "collective": 0.34,
+   "throttle": 0.699,
+   "volts": 47.13,
+   "yaw_mixer": -0.207,
+   "power_w": 1487.7
+  },
+  "2000": {
+   "seconds": 0.2,
+   "in_ground_effect_s": 0.0,
+   "height_unknown_s": 0.2,
+   "gate": "insufficient",
+   "collective": 0.248,
+   "throttle": 0.695,
+   "volts": 48.69,
+   "yaw_mixer": 0.142,
+   "power_w": 520.0
+  },
+  "2100": {
+   "seconds": 0.2,
+   "in_ground_effect_s": 0.0,
+   "height_unknown_s": 0.2,
+   "gate": "insufficient",
+   "collective": 0.271,
+   "throttle": 0.738,
+   "volts": 48.36,
+   "yaw_mixer": -0.003,
+   "power_w": 1058.6
+  },
+  "2200": {
+   "seconds": 5.6,
+   "in_ground_effect_s": 0.0,
+   "height_unknown_s": 5.6,
+   "gate": "ok",
+   "collective": 0.272,
+   "throttle": 0.811,
+   "volts": 48.09,
+   "yaw_mixer": -0.198,
+   "power_w": 1955.8
+  }
+ },
+ "rate_gains": {
+  "1700": {
+   "roll": {
+    "gain": 3.748,
+    "coherence": 0.577,
+    "median_gain": 4.234,
+    "L": 892.5,
+    "tf": 0.0407
+   },
+   "pitch": {
+    "gain": 3.871,
+    "coherence": 0.933,
+    "median_gain": 4.904,
+    "L": 764.8,
+    "tf": 0.0743
+   },
+   "yaw": {
+    "gain": 3.519,
+    "coherence": 0.882
+   }
+  },
+  "1800": {
+   "roll": {
+    "gain": 3.861,
+    "coherence": 0.924,
+    "median_gain": 4.392,
+    "L": 1016.9,
+    "tf": 0.05
+   },
+   "pitch": {
+    "gain": 4.05,
+    "coherence": 0.886,
+    "median_gain": 4.734,
+    "L": 725.8,
+    "tf": 0.0725
+   },
+   "yaw": {
+    "gain": 4.338,
+    "coherence": 0.927
+   }
+  },
+  "1900": {
+   "roll": {
+    "gain": 4.098,
+    "coherence": 0.674,
+    "median_gain": 4.396,
+    "L": 2970.3,
+    "tf": 0.5
+   },
+   "pitch": {
+    "gain": 4.403,
+    "coherence": 0.869,
+    "median_gain": 5.409,
+    "L": 839.8,
+    "tf": 0.0653
+   },
+   "yaw": {
+    "gain": 4.024,
+    "coherence": 0.927
+   }
+  }
+ },
+ "yaw": {
+  "1700": {
+   "N_ped": 41.87,
+   "N_col": 11.53,
+   "N_r": -0.425,
+   "r2": 0.84
+  },
+  "1800": {
+   "N_ped": 46.0,
+   "N_col": -0.1,
+   "N_r": -0.601,
+   "r2": 0.774
+  },
+  "1900": {
+   "N_ped": 43.6,
+   "N_col": 2.55,
+   "N_r": -0.373,
+   "r2": 0.712
+  }
+ },
+ "whirl_hz": {
+  "1700": {
+   "roll": 4.22,
+   "pitch": 3.45,
+   "yaw": 2.2
+  },
+  "1800": {
+   "roll": 2.7,
+   "pitch": 3.13,
+   "yaw": 2.28
+  },
+  "1900": {
+   "roll": 3.73,
+   "pitch": 2.97,
+   "yaw": 2.29
+  }
+ },
+ "airborne_s": {
+  "800": 0.1,
+  "900": 0.7,
+  "1000": 0.7,
+  "1100": 0.8,
+  "1200": 0.9,
+  "1300": 1.4,
+  "1400": 1.7,
+  "1500": 1.8,
+  "1600": 2.2,
+  "1700": 414.3,
+  "1800": 208.3,
+  "1900": 740.4,
+  "2000": 0.2,
+  "2100": 0.2,
+  "2200": 5.6
+ },
+ "inflow_law": {
+  "rpm_nominal": 1700,
+  "a": 0.4402,
+  "b": 0.0052,
+  "residuals": [
+   -0.0014,
+   0.0134,
+   -0.0171,
+   0.0051
+  ]
+ },
+ "uncertainty": {
+  "motor_fit/0": 1.578211,
+  "motor_fit/1": 0.251651,
+  "motor_fit/2": 0.0,
+  "motor_fit/3": 0.000227,
+  "motor_fit/4": 0.0,
+  "motor_fit_r2": 0.009938,
+  "hover/1400/collective": 0.077343,
+  "hover/1400/throttle": 0.000438,
+  "hover/1400/volts": 1.706917,
+  "hover/1400/yaw_mixer": 0.008508,
+  "hover/1400/power_w": 62.250463,
+  "hover/1500/collective": 0.019334,
+  "hover/1500/throttle": 0.005414,
+  "hover/1500/volts": 1.767014,
+  "hover/1500/yaw_mixer": 0.051897,
+  "hover/1500/power_w": 39.133523,
+  "hover/1600/collective": 0.024228,
+  "hover/1600/throttle": 0.004274,
+  "hover/1600/volts": 1.85877,
+  "hover/1600/yaw_mixer": 0.01532,
+  "hover/1600/power_w": 71.131972,
+  "hover/1700/collective": 0.005907,
+  "hover/1700/throttle": 0.007298,
+  "hover/1700/volts": 0.277173,
+  "hover/1700/yaw_mixer": 0.005198,
+  "hover/1700/power_w": 12.186083,
+  "hover/1800/collective": 0.0,
+  "hover/1800/throttle": 0.002194,
+  "hover/1800/volts": 0.18755,
+  "hover/1800/yaw_mixer": 0.007215,
+  "hover/1800/power_w": 2.655448,
+  "hover/1900/collective": 0.007985,
+  "hover/1900/throttle": 0.00175,
+  "hover/1900/volts": 0.4755,
+  "hover/1900/yaw_mixer": 0.002291,
+  "hover/1900/power_w": 5.95147,
+  "rate_gains/1700/roll/gain": 0.3204,
+  "rate_gains/1700/roll/coherence": 0.210723,
+  "rate_gains/1700/roll/median_gain": 0.928691,
+  "rate_gains/1700/roll/L": 1406.258934,
+  "rate_gains/1700/roll/tf": 0.520297,
+  "rate_gains/1700/pitch/gain": 0.094657,
+  "rate_gains/1700/pitch/coherence": 0.016785,
+  "rate_gains/1700/pitch/median_gain": 0.320498,
+  "rate_gains/1700/pitch/L": 72.744179,
+  "rate_gains/1700/pitch/tf": 0.004634,
+  "rate_gains/1700/yaw/gain": 0.09857,
+  "rate_gains/1700/yaw/coherence": 0.030453,
+  "rate_gains/1800/roll/gain": 0.129635,
+  "rate_gains/1800/roll/coherence": 0.248942,
+  "rate_gains/1800/roll/median_gain": 0.583757,
+  "rate_gains/1800/roll/L": 209.43381,
+  "rate_gains/1800/roll/tf": 0.390949,
+  "rate_gains/1800/pitch/gain": 0.173927,
+  "rate_gains/1800/pitch/coherence": 0.032564,
+  "rate_gains/1800/pitch/median_gain": 0.230596,
+  "rate_gains/1800/pitch/L": 479.599231,
+  "rate_gains/1800/pitch/tf": 0.373113,
+  "rate_gains/1800/yaw/gain": 0.320275,
+  "rate_gains/1800/yaw/coherence": 0.01727,
+  "rate_gains/1900/roll/gain": 0.235534,
+  "rate_gains/1900/roll/coherence": 0.163854,
+  "rate_gains/1900/roll/median_gain": 0.25939,
+  "rate_gains/1900/roll/L": 3206.385768,
+  "rate_gains/1900/roll/tf": 0.550157,
+  "rate_gains/1900/pitch/gain": 0.061843,
+  "rate_gains/1900/pitch/coherence": 0.049018,
+  "rate_gains/1900/pitch/median_gain": 0.187501,
+  "rate_gains/1900/pitch/L": 134.425763,
+  "rate_gains/1900/pitch/tf": 0.007053,
+  "rate_gains/1900/yaw/gain": 0.192227,
+  "rate_gains/1900/yaw/coherence": 0.02129,
+  "yaw/1700/N_ped": 1.384062,
+  "yaw/1700/N_col": 1.399121,
+  "yaw/1700/N_r": 0.191035,
+  "yaw/1700/r2": 0.022408,
+  "yaw/1800/N_ped": 2.065847,
+  "yaw/1800/N_col": 1.610757,
+  "yaw/1800/N_r": 0.057252,
+  "yaw/1800/r2": 0.036009,
+  "yaw/1900/N_ped": 2.540266,
+  "yaw/1900/N_col": 0.81461,
+  "yaw/1900/N_r": 0.060353,
+  "yaw/1900/r2": 0.040406,
+  "inflow_law/rpm_nominal": 229.128785,
+  "inflow_law/a": 0.223855,
+  "inflow_law/b": 0.166358,
+  "inflow_law/residuals/0": 0.005301,
+  "inflow_law/residuals/1": 0.003811,
+  "inflow_law/residuals/2": 0.008519
+ },
+ "unstable": [
+  "hover/1300/seconds",
+  "hover/1300/in_ground_effect_s",
+  "hover/1300/height_unknown_s",
+  "hover/1300/collective",
+  "hover/1300/throttle",
+  "hover/1300/volts",
+  "hover/1300/yaw_mixer",
+  "hover/1300/power_w",
+  "hover/2000/seconds",
+  "hover/2000/in_ground_effect_s",
+  "hover/2000/height_unknown_s",
+  "hover/2000/collective",
+  "hover/2000/throttle",
+  "hover/2000/volts",
+  "hover/2000/yaw_mixer",
+  "hover/2000/power_w",
+  "hover/2100/seconds",
+  "hover/2100/in_ground_effect_s",
+  "hover/2100/height_unknown_s",
+  "hover/2100/collective",
+  "hover/2100/throttle",
+  "hover/2100/volts",
+  "hover/2100/yaw_mixer",
+  "hover/2100/power_w",
+  "hover/2200/seconds",
+  "hover/2200/in_ground_effect_s",
+  "hover/2200/height_unknown_s",
+  "hover/2200/collective",
+  "hover/2200/throttle",
+  "hover/2200/volts",
+  "hover/2200/yaw_mixer",
+  "hover/2200/power_w",
+  "airborne_s/800",
+  "airborne_s/2100",
+  "airborne_s/2200",
+  "inflow_law/residuals/3"
+ ],
+ "folds": 8
+}

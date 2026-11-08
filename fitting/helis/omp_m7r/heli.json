@@ -4,15 +4,80 @@
   "firmware": "Rotorflight 4.6.0 (118e912)",
   "board": "RDMS NEXUS_XR",
   "gyro_chip": null,
-  "pack": {"cells": 12, "capacity_ah": 4.5, "resistance_ohm": 0.047},
-  "drive": {"gear_ratio": 8.75, "gear_ratio_from": "motor 1x order in gyroRAW", "motor_poles": null, "esc": "analog, under the governor"},
-  "tail": {"type": "servo", "gear_ratio": 5.0, "gear_ratio_from": "tail 1x order in gyroRAW"},
-  "rotor": {"radius_m": null, "chord_m": null, "blades": 2, "blade_mass_kg": null},
+  "pack": {
+    "cells": 12,
+    "capacity_ah": 4.5,
+    "resistance_ohm": 0.047
+  },
+  "drive": {
+    "gear_ratio": 8.75,
+    "gear_ratio_from": "motor 1x order in gyroRAW",
+    "motor_poles": null,
+    "esc": "analog, under the governor"
+  },
+  "tail": {
+    "type": "servo",
+    "gear_ratio": 5.0,
+    "gear_ratio_from": "tail 1x order in gyroRAW"
+  },
+  "rotor": {
+    "radius_m": null,
+    "chord_m": null,
+    "blades": 2,
+    "blade_mass_kg": null
+  },
   "mass_kg": null,
   "preset": "M7R",
   "logs": [
-    {"file": "OMP_M7R_20261016_124328.bbl", "headspeed": [1800]},
-    {"file": "OMP_M7R_20261022_143720.bbl", "headspeed": [1800, 2100]},
-    {"file": "OMP_M7R_20261022_155150.bbl", "headspeed": [1500, 1800, 2000], "used_for": "preset fit (m7r_*.py)"}
-  ]
+    {
+      "file": "OMP_M7R_20261016_124328.bbl",
+      "headspeed": [
+        1800
+      ],
+      "group": "c3771b88",
+      "start": "2026-10-16T12:43:29.232+00:00",
+      "role": "fit",
+      "source": "OMP_M7R_20261016_124328.bbl",
+      "sha256": "774d40d634f0ee637254e3265a0f175ea7a99c373fc1c6fd76a2f0f4e24b80c2",
+      "consent": "private"
+    },
+    {
+      "file": "OMP_M7R_20261022_143720.bbl",
+      "headspeed": [
+        1800,
+        2100
+      ],
+      "group": "c3771b88",
+      "start": "2026-10-22T14:37:20.222+00:00",
+      "role": "fit",
+      "source": "OMP_M7R_20261022_143720.bbl",
+      "sha256": "dce21b66ffcf830abba49c82dddbad2383b7a789ae4ce7741babe4d1f50a8d9a",
+      "consent": "private"
+    },
+    {
+      "file": "OMP_M7R_20261022_155150.bbl",
+      "headspeed": [
+        1500,
+        1800,
+        2000
+      ],
+      "used_for": "preset fit (m7r_*.py)",
+      "group": "c3771b88",
+      "start": "2026-10-22T15:51:51.814+00:00",
+      "role": "validate",
+      "source": "OMP_M7R_20261022_155150.bbl",
+      "sha256": "791e3593c29d31e7337a4bbe71d57b301074a08aa6e0f2567aeba1cf09d774e4",
+      "consent": "private"
+    }
+  ],
+  "groups": {
+    "c3771b88": {
+      "craft": "OMP M7R",
+      "firmware": "4.6",
+      "board": "RDMS NEXUS_XR",
+      "tail": "servo",
+      "collective": "-1250,1250",
+      "esc": "0/0"
+    }
+  }
 }
