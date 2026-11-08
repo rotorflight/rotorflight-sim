@@ -1,0 +1,219 @@
+{
+ "heli": "Nimbus",
+ "trained": "2026-11-08",
+ "group": "4062f5c0",
+ "setup": {
+  "craft": "Nimbus",
+  "firmware": "4.6",
+  "board": "RDMS NEXUS_XR",
+  "tail": "servo",
+  "collective": "-1125,1125",
+  "esc": "0/0"
+ },
+ "logs": {
+  "fit": [
+   "Nimbus_20260811_161206.0",
+   "Nimbus_all_20260811_112712.5",
+   "Nimbus_all_20260811_112712.6",
+   "Nimbus_all_20260811_112712.7",
+   "Nimbus_all_20260811_112712.8",
+   "Nimbus_all_20260811_112712.9",
+   "Nimbus_all_20260811_112712.10",
+   "Nimbus_all_20260811_112712.11",
+   "Nimbus_all_20260811_112712.12",
+   "Nimbus_all_20260811_112712.19",
+   "Nimbus_all_20260811_112712.20",
+   "Nimbus_all_20260811_112712.21"
+  ],
+  "validate": [
+   "Nimbus_20260811_160756.0",
+   "Nimbus_all_20260811_112712.2",
+   "Nimbus_all_20260811_112712.4",
+   "Nimbus_all_20260811_112712.22",
+   "Nimbus_all_20260811_112712.28",
+   "Nimbus_all_20260811_112712.29"
+  ]
+ },
+ "start": "prior: size prior (? class, M7R dynamics)",
+ "stages": {
+  "rotor": {
+   "proposal": {
+    "attrs": {
+     "motor_fit": [
+      56.633699,
+      3.799164,
+      0.003738,
+      0.004809,
+      2.0
+     ]
+    }
+   },
+   "notes": [
+    "R^2 0.967, A 56.63 +- 14 %, B 3.799 +- 6 %"
+   ],
+   "score_before": 15.553650031795533,
+   "score_after": 2.286309555814488,
+   "score_detail": {
+    "before": "RMS throttle error 15.6 % over 50860 samples",
+    "after": "RMS throttle error 2.3 % over 50860 samples"
+   },
+   "others_worse": [],
+   "decision": "taken: held-out 15.55 -> 2.286"
+  },
+  "thrust": {
+   "proposal": {
+    "attrs": {
+     "thrust_inflow": [
+      36.23476,
+      0.14214
+     ],
+     "Zcol": -33.13057
+    }
+   },
+   "notes": [
+    "hover collective 0.296 at 1900 rpm (9.7 s), the prior's inflow share 72 %",
+    "hover collective at 1900 rpm 0.296"
+   ],
+   "score_before": 0.014264705882352957,
+   "score_after": 0.011713694035199673,
+   "score_detail": {
+    "before": "hover collective error -0.014 at 1700 rpm (9 s)",
+    "after": "hover collective error +0.012 at 1700 rpm (9 s)"
+   },
+   "others_worse": [],
+   "decision": "taken: held-out 0.01426 -> 0.01171"
+  },
+  "rate": {
+   "proposal": {
+    "args": {
+     "rate_gain_roll": 4.055,
+     "rate_gain_pitch": 4.264
+    },
+    "attrs": {
+     "ctrl_rpm_exp": 0.069
+    }
+   },
+   "notes": [
+    "rate ~ rpm^1.07 over 1700/1900 rpm -> ctrl_rpm_exp 0.07",
+    "at 1900 rpm: roll 4.05, pitch 4.26"
+   ],
+   "score_before": 0.4073704605424955,
+   "score_after": 0.06505699009934925,
+   "score_detail": {
+    "before": "ln(model/measured) pitch 1700 +0.26, roll 1900 +0.59, pitch 1900 +0.37",
+    "after": "ln(model/measured) pitch 1700 -0.04, roll 1900 +0.07, pitch 1900 +0.08"
+   },
+   "others_worse": [],
+   "decision": "taken: held-out 0.4074 -> 0.06506"
+  },
+  "flap": {
+   "proposal": {
+    "args": {
+     "Lb1s": 8837.1,
+     "tf_roll": 0.0382,
+     "rate_gain_roll": 4.149,
+     "Ma1s": 1167.7,
+     "tf_pitch": 0.0849,
+     "rate_gain_pitch": 4.203
+    }
+   },
+   "notes": [
+    "roll from 22 sharp inputs at 1900 rpm: L 8837 +- 18 %, tf 0.038 +- 24 %, VAF 0.96",
+    "pitch from 38 sharp inputs at 1900 rpm: L 1168 +- 1 %, tf 0.085 +- 3 %, VAF 0.96"
+   ],
+   "score_before": 0.15926498697980895,
+   "score_after": 0.07985504093676397,
+   "score_detail": {
+    "before": "1 - VAF 0.159 over 83 sharp inputs",
+    "after": "1 - VAF 0.080 over 83 sharp inputs"
+   },
+   "others_worse": [
+    "rate 0.06506 -> 0.0727"
+   ],
+   "decision": "kept: makes rate 0.06506 -> 0.0727 worse"
+  },
+  "yaw": {
+   "proposal": {
+    "attrs": {
+     "Nped": 41.29,
+     "Nr": -0.826
+    },
+    "args": {
+     "yaw_trim": 0.394
+    }
+   },
+   "notes": [
+    "N_ped 41.3 at 1900 rpm (R^2 0.82) -> Nped 41.3 at 1900 rpm, Nr -0.83",
+    "hover tail trim -0.394 at 1900 rpm"
+   ],
+   "score_before": 0.44703754321366984,
+   "score_after": 0.28252724450622124,
+   "score_detail": {
+    "before": "R^2 0.553",
+    "after": "R^2 0.717"
+   },
+   "others_worse": [],
+   "decision": "taken: held-out 0.447 -> 0.2825"
+  },
+  "power": {
+   "proposal": {
+    "args": {
+     "hover_power_w": 626.4,
+     "hover_throttle": 0.746
+    }
+   },
+   "notes": [
+    "hover 626 W at 21.8 V, throttle 0.75 (1900 rpm)"
+   ],
+   "score_before": null,
+   "score_after": null,
+   "score_detail": {
+    "before": "no hover with power at 1900 rpm in the held-out logs",
+    "after": "no hover with power at 1900 rpm in the held-out logs"
+   },
+   "others_worse": [],
+   "decision": "taken, not validated (over a size prior)"
+  }
+ },
+ "replay": null,
+ "changed": true,
+ "scores": {
+  "prior": {
+   "rotor": 15.553650031795533,
+   "thrust": 0.014264705882352957,
+   "rate": 0.4073704605424955,
+   "flap": 0.5961576171371609,
+   "yaw": 0.44703754321366984,
+   "power": null
+  },
+  "current": {
+   "rotor": 15.553650031795533,
+   "thrust": 0.014264705882352957,
+   "rate": 0.4073704605424955,
+   "flap": 0.5961576171371609,
+   "yaw": 0.44703754321366984,
+   "power": null
+  },
+  "new": {
+   "rotor": 2.286309555814488,
+   "thrust": 0.011713694035199673,
+   "rate": 0.06505699009934925,
+   "flap": 0.15926498697980895,
+   "yaw": 0.28252724450622124,
+   "power": null
+  }
+ },
+ "gates": {
+  "rotor_r2": 0.6,
+  "rotor_rel": 0.25,
+  "hover_rel": 0.1,
+  "coherence": 0.6,
+  "rate_rel": 0.2,
+  "flap_vaf": 0.85,
+  "flap_events": 5,
+  "flap_rel": 0.35,
+  "yaw_r2": 0.3,
+  "yaw_rel": 0.25
+ },
+ "tolerance": 0.02
+}

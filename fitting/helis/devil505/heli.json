@@ -1,0 +1,89 @@
+{
+  "name": "ALZRC Devil 505",
+  "size_class": 500,
+  "firmware": null,
+  "board": null,
+  "gyro_chip": null,
+  "pack": {
+    "cells": null,
+    "capacity_ah": null,
+    "resistance_ohm": null
+  },
+  "drive": {
+    "gear_ratio": null,
+    "motor_poles": null,
+    "esc": null
+  },
+  "tail": {
+    "type": null
+  },
+  "rotor": {
+    "radius_m": null,
+    "chord_m": null,
+    "blades": 2,
+    "blade_mass_kg": null
+  },
+  "mass_kg": null,
+  "preset": null,
+  "logs": [
+    {
+      "file": "Devil_505_20260129_125822.0",
+      "source": "Devil_505_20260129_125822.bbl",
+      "sha256": "769b98c58fc3c53429115b088b9c019bb287aee52da2d5883be630749fd23ba1",
+      "consent": "private",
+      "group": "683c976e",
+      "start": "2026-01-29T12:58:23.168+00:00",
+      "headspeed": [
+        2200,
+        2300
+      ],
+      "intake": {
+        "rate_hz": 1009,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 214.5,
+        "hover_s": {},
+        "sharp_inputs": 69,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Devil_505_20260129_163848.0",
+      "source": "Devil_505_20260129_163848.bbl",
+      "sha256": "d8c03d4b42bc18c0fe84771c0f27b9b4862ddeb31c1ecad3032670519d54ab5d",
+      "consent": "private",
+      "group": "683c976e",
+      "start": "2026-01-29T16:38:49.318+00:00",
+      "headspeed": [
+        2200,
+        2300
+      ],
+      "intake": {
+        "rate_hz": 1009,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 278.8,
+        "hover_s": {
+          "2200": 4.2,
+          "2300": 5.2
+        },
+        "sharp_inputs": 75,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    }
+  ],
+  "groups": {
+    "683c976e": {
+      "craft": "Devil 505",
+      "firmware": "4.5",
+      "board": "RDMS NEXUS_XR",
+      "tail": "servo",
+      "collective": "-1250,1250",
+      "esc": "0/0"
+    }
+  }
+}

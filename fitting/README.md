@@ -252,6 +252,139 @@ Decodes the files, skips logs the heli file already has (by content, also across
 reports what each log can feed and what is missing, and adds the new logs to the heli
 file. How to fly and log for it: [`../CONTRIBUTING_LOGS.md`](../CONTRIBUTING_LOGS.md).
 
+## Training (`scripts/train.py`)
+
+```sh
+export FIT_DATA_DIR=<decoded logs> FIT_LOG_STORE=<folders with the .bbl files>
+python -I scripts/intake.py helis/<heli>/heli.json <new logs.bbl> ...   # decode, check, add to the manifest
+python -I scripts/train.py helis/<heli>/heli.json [--elf <rotorflight_SITL>] [--dry-run]
+python ../heli/heli_bridge.py <rotorflight_SITL> --model <heli> ...      # fly the trained heli
+```
+
+"Training" here is refitting the model's physical numbers from more logs, never at the
+cost of predicting the heli worse. One command per heli, whenever logs come in:
+
+1. **Setup** (`fingerprint.py`): each log's craft name, firmware, board, tail type,
+   collective range and ESC protocol from its header form a setup group. Logs pool only
+   within a group, so a moved flight controller or a rebuilt heli does not pull the old
+   numbers. The newest group with three flights or more is trained (`--group` picks
+   another). Gains and headspeed do not split a group. Blades, gear or dampers cannot be
+   seen in the header: set `"group"` on the log entries by hand.
+2. **Split**: every log entry has a `role`, `fit` or `validate`. New logs get one from
+   their hash (one in four validates), so the split stays put as logs are added, and can
+   be edited. Validate logs are never fitted.
+3. **Fit with uncertainty**: `fit_heli.py`'s stages and `fit_flap.py` on the fit logs, then
+   a jackknife (`jackknife.py`): the airborne time is cut into 20 s blocks dealt into 8
+   folds, each fold left out once and everything refitted. The spread of the refits is
+   the standard error of every number in `fit.json` / `flap.json` (`uncertainty`, `se`);
+   a number one fold cannot produce at all is `unstable`.
+4. **Proposals** (`model_params.py`): each stage proposes the model numbers it identifies
+   if its gates pass - rotor (`motor_fit`; R^2 >= 0.6, A and B within 25 %), thrust
+   (`thrust_inflow` from the hover collective; a gated hover, within 10 %), rate
+   (`rate_gain_*`, and the rpm law `ctrl_rpm_exp` from two headspeeds; coherence >= 0.6,
+   within 20 %), flap (L, tf and K per axis from the sharp inputs; VAF >= 0.85 over 5
+   inputs, within 35 %), yaw (`Nped`, `Nr`, `yaw_trim`, servo tails; R^2 >= 0.3), power
+   (hover watts). They go on top of the current model: `model.json` if it was trained on
+   the same setup, else the prior - the preset the heli file names, or a generic heli of
+   its size class (the M7R's or the Stratos' dynamics, the size's rotor and pack) with
+   what the heli file knows of its hardware.
+5. **Held-out check** (`holdout.py`): each proposal predicts what the held-out logs
+   measured - throttle for the logged headspeed and its change over every powered sample
+   (rotor), the hover collective (thrust), the rate per cyclic (rate), the rate through
+   the sharp inputs (flap), the yaw acceleration and tail trim (yaw), hover watts (power).
+   A proposal is taken if it scores no worse on its own stage and no more than 2 % worse
+   on every other:
+   the rate gain is also the flap model's K, and the M7R's spectral and sharp-input gains
+   disagree on pitch. A proposal the held-out logs cannot judge replaces only a size
+   prior, never a preset or an earlier fit.
+6. **Replay check** (`replay_check.py`, `--elf`): the held-out logs' longest upright
+   stretch at one headspeed is replayed through the SITL with the old and the new model
+   (the log's gains from its header, the heli's CLI dump if the store has it, the height
+   hold) and scored against the real flight - tracking error per axis, throttle and tail.
+   If the new model scores more than 10 % worse, nothing changes. The open-loop check
+   above cannot see what the closed loop makes of the numbers: the open-loop flap fit
+   once replayed worse than the M7R preset on pitch (see the flap section below).
+7. **Report**: `model.json` (base `fitted`, every number with its source in `provenance`)
+   if anything changed, and `train.json` / `TRAINING.md`: what each stage proposed, the
+   held-out scores of the prior, the current and the new model, and why each proposal was
+   taken or kept.
+
+`logstore.py` keeps the manifest: each log entry has its source file, its SHA-256 and the
+owner's consent (`private` unless they agree to publish). `FIT_LOG_STORE` names the
+folders the files are found in, by hash (`logstore.py check|backfill|decode`). The logs
+stay out of the repository.
+
+**First training** (2026-11-08), all helis from their priors (the presets for the Stratos
+200 and the M7R, size priors for the rest). Held-out scores prior -> new where the stage
+was taken (lower is better, units in `holdout.py`); "kept": proposed and refused, "-": no
+proposal (gates):
+
+| heli | fit / held-out logs | rotor | thrust | rate | flap | yaw | power |
+|---|---|---|---|---|---|---|---|
+| OMP M5 | 1 / 1 | 9.59 -> 1.15 | - | kept | kept | 4.97 -> 2.99 | - |
+| OMP M6 | 1 / 1 | 11.5 -> 0.86 | - | kept | - | - | - |
+| OMP M7R | 2 / 1 | 6.04 -> 1.74 | - | kept | 0.061 -> 0.060 | 1.21 -> 0.70 | - |
+| Stratos 200 | 5 / 1 | kept | - | 0.126 -> 0.006 | - | - | - |
+| ALZRC Devil 505 | 2 / 0 | - | - | not validated | kept | not validated | - |
+| MSH Protos 380 | 6 / 2 | - | - | 0.129 -> 0.101 | kept | 0.59 -> 0.43 | - |
+| Nimbus | 12 / 6 | 15.6 -> 2.29 | 0.014 -> 0.012 | 0.41 -> 0.065 | kept | 0.45 -> 0.28 | not validated |
+| Stratos 700 | 14 / 8 | 12.4 -> 3.30 | 0.117 -> 0.028 | 0.40 -> 0.066 | 0.46 -> 0.061 | 0.24 -> 0.22 | 0.20 -> 0.031 |
+
+- The helis with many logs (Stratos 700, Nimbus) take nearly every stage; the OMP sport
+  flights (one fit log each) mostly the rotor law and the yaw.
+- Rate and flap often refuse each other: on real logs the spectral gain and the sharp
+  inputs' K disagree, most on pitch (M7R 6.54 vs 5.60) - the closed loop shows in one of
+  them. Whichever is taken, the other stage must not get worse.
+- The rotor law's throttle error falls from 6-16 % to 1-3 % wherever it is taken. The
+  M7R's comes out with ~10x the preset's A (a much faster spool-up): its analog ESC
+  regulates on its own, so throttle is not motor volts - the held-out spool-ups agree
+  with the fit, but treat its rotor dynamics with care.
+- The Stratos 200's newest log is another setup (Foxeer F722, 4.6, 5000 rpm) and trains
+  separately once it has company; the preset's own setup (Nexus XR, 4.7) was trained.
+  The Protos folder holds two setups too: its June 1-3 logs carry the craft name "Devil
+  505" on 4.5 with collective range +-1008 (the Devil 505's is +-1250) - the flight
+  controller moved over - and the June 22 logs (4.6, +-1083) were trained.
+- The rate stage is judged by the same spectral estimator on the held-out logs; where no
+  flap fit cross-checks it (Stratos 200), only the replay check is independent.
+
+Replay check of the M7R (`replay_check.py`, its held-out 3D flight replayed from the
+spool-up, scored over the cruise profile at 1500 rpm, 253-324 s), real / preset / trained:
+
+| | roll err | pitch err | yaw err | throttle | tail | score |
+|---|---|---|---|---|---|---|
+| real | 4.62 | 4.08 | 9.59 | 51.2 % | -24.1 % | |
+| preset | 2.88 | 2.87 | 6.30 | 50.0 % | -21.2 % | 0.82 |
+| trained | 1.80 | 3.47 | 11.23 | 50.4 % | -21.2 % | 0.79 |
+
+Pitch tracking and throttle move towards the real heli; roll tracks better than real (the
+sim's calm air, as the open-loop flap values did before); the yaw overshoots by about as
+much as the preset undershot. On balance no worse, so the trained model stands - but it
+is a mixed result, and one 70 s stretch: the replay check needs longer held-out cruise.
+
+**Tests** (`fitting/tests`, CI job `training`): a heli of known numbers is flown by a
+simple autopilot in the model (`tests/synthetic.py`: governor, height hold, angle-mode
+hovers, stick noise, doublets) and logged in the blackbox fields. The stages must recover
+its numbers (rate gains within 4 %, flap L and tf within 12 %, rotor law within 8 %), the
+held-out scoring must prefer them to a perturbed heli, training from a size prior must
+reach them, and training on another heli's logs must change nothing.
+
+Found by those tests and fixed on the way:
+
+- The spectral rate gain was the median |G| over 0.3-4 Hz. On helis whose flap/body mode
+  sits in that band (2-6 Hz) the resonance lifted it 15-25 % (the synthetic heli: 6.9 /
+  6.5 for 6.0 / 5.2). It now fits the mode's magnitude K L / |L - w^2 + j w / tf| to |G|,
+  weighted by coherence (`gain_fit`; the median stays as `median_gain`): 6.00 / 5.22.
+- `fit_flap.py` simulated its windows with explicit Euler at 200 Hz, which damps a 4-6 Hz
+  mode wrongly (tf 0.035 for 0.045), and held each input half a step late. It now steps
+  the exact discretisation with the input at mid-step: L and tf within 2-6 %.
+- The rotor law in `fit_heli.py` regressed dw/dt over airborne samples. Under the governor
+  in the air the rotor speed barely moves, so only A/B (the motor's Kv) was identified -
+  the Stratos came out at A 22 against `fit_rotor.py`'s 988. It now fits the motor-volts
+  form over every powered sample, spool-ups included, like `fit_rotor.py` (Stratos A 624,
+  R^2 0.994).
+- Logs without a baro (no altitude field) had every hover flagged as in ground effect, so
+  no hover counted. Their hovers now count as of unknown height (`height_unknown_s`).
+
 ## Open-loop fits per heli (`scripts/fit_heli.py`)
 
 ```sh
@@ -261,7 +394,8 @@ FIT_DATA_DIR=<decoded logs> python -I scripts/fit_heli.py helis/omp_m6/heli.json
 The stages of `m7r_fit.py` from the heli file, pooled over its logs and split by
 headspeed: rotor law, hover collective, rate gains, servo-tail yaw, whirl peak. The three
 OMP helis (same pilot and tune), rate per cyclic in rad/s per unit mixer input (roll /
-pitch, coherence 0.6-0.9):
+pitch, coherence 0.6-0.9; the median |G| of the first version, which reads high where the
+flap/body mode sits in the band - see Training; `gain` in fit.json is now the fitted K):
 
 | | 1600 rpm | 1900 rpm | 2200 rpm |
 |---|---|---|---|

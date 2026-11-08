@@ -1,0 +1,201 @@
+{
+ "heli": "ALZRC Devil 505",
+ "group": "683c976e",
+ "logs": [
+  "Devil_505_20260129_125822.0",
+  "Devil_505_20260129_163848.0"
+ ],
+ "segments": {
+  "Devil_505_20260129_125822.0": {
+   "ground": 12.2,
+   "autorotation": 0.0,
+   "inverted": 48.3,
+   "aerobatic": 47.9,
+   "hover": 4.8,
+   "cruise": 113.6,
+   "hover_in_ground_effect": 4.8
+  },
+  "Devil_505_20260129_163848.0": {
+   "ground": 11.9,
+   "autorotation": 0.0,
+   "inverted": 90.4,
+   "aerobatic": 74.7,
+   "hover": 14.1,
+   "cruise": 99.6,
+   "hover_in_ground_effect": 4.7
+  }
+ },
+ "motor_fit": [
+  150.5570541385925,
+  9.391516031220775,
+  0.0071102023023271906,
+  0.007124211838994983,
+  2.0
+ ],
+ "motor_fit_r2": 0.955,
+ "hover": {
+  "2200": {
+   "seconds": 2.2,
+   "in_ground_effect_s": 5.4,
+   "height_unknown_s": 0.0,
+   "gate": "insufficient",
+   "collective": 0.402,
+   "throttle": 0.807,
+   "volts": 21.8,
+   "yaw_mixer": -0.495,
+   "power_w": 506.8
+  },
+  "2300": {
+   "seconds": 2.7,
+   "in_ground_effect_s": 2.1,
+   "height_unknown_s": 0.0,
+   "gate": "insufficient",
+   "collective": 0.382,
+   "throttle": 0.806,
+   "volts": 21.81,
+   "yaw_mixer": -0.453,
+   "power_w": 496.9
+  }
+ },
+ "rate_gains": {
+  "2200": {
+   "roll": {
+    "gain": 5.205,
+    "coherence": 0.593,
+    "median_gain": 5.619,
+    "L": 526.3,
+    "tf": 0.1206
+   },
+   "pitch": {
+    "gain": 5.161,
+    "coherence": 0.861,
+    "median_gain": 5.806,
+    "L": 1403.0,
+    "tf": 0.5
+   },
+   "yaw": {
+    "gain": 2.806,
+    "coherence": 0.728
+   }
+  },
+  "2300": {
+   "roll": {
+    "gain": 4.386,
+    "coherence": 0.451,
+    "median_gain": 5.397,
+    "L": 463.9,
+    "tf": 0.0648
+   },
+   "pitch": {
+    "gain": 4.999,
+    "coherence": 0.909,
+    "median_gain": 6.56,
+    "L": 718.0,
+    "tf": 0.054
+   },
+   "yaw": {
+    "gain": 2.945,
+    "coherence": 0.598
+   }
+  }
+ },
+ "yaw": {
+  "2200": {
+   "N_ped": 16.63,
+   "N_col": 1.01,
+   "N_r": 0.086,
+   "r2": 0.402
+  },
+  "2300": {
+   "N_ped": 19.94,
+   "N_col": 1.58,
+   "N_r": -0.113,
+   "r2": 0.418
+  }
+ },
+ "whirl_hz": {
+  "2200": {
+   "roll": 3.13,
+   "pitch": 2.22,
+   "yaw": 2.71
+  },
+  "2300": {
+   "roll": 6.26,
+   "pitch": 2.22,
+   "yaw": 2.44
+  }
+ },
+ "airborne_s": {
+  "1300": 0.2,
+  "1400": 0.9,
+  "1500": 1.2,
+  "1600": 1.2,
+  "1700": 3.1,
+  "1800": 1.7,
+  "1900": 1.4,
+  "2000": 1.4,
+  "2100": 1.7,
+  "2200": 230.2,
+  "2300": 250.5
+ },
+ "uncertainty": {
+  "motor_fit/0": 83.187838,
+  "motor_fit/1": 6.168389,
+  "motor_fit/2": 0.000803,
+  "motor_fit/3": 0.00375,
+  "motor_fit/4": 0.0,
+  "motor_fit_r2": 0.02548,
+  "rate_gains/2200/roll/gain": 0.525981,
+  "rate_gains/2200/roll/coherence": 0.057856,
+  "rate_gains/2200/roll/median_gain": 0.247808,
+  "rate_gains/2200/roll/L": 145.962095,
+  "rate_gains/2200/roll/tf": 0.125572,
+  "rate_gains/2200/pitch/gain": 0.868622,
+  "rate_gains/2200/pitch/coherence": 0.276259,
+  "rate_gains/2200/pitch/median_gain": 0.338836,
+  "rate_gains/2200/pitch/L": 518.24836,
+  "rate_gains/2200/pitch/tf": 0.0,
+  "rate_gains/2200/yaw/gain": 0.762255,
+  "rate_gains/2200/yaw/coherence": 0.375061,
+  "rate_gains/2300/roll/gain": 0.915055,
+  "rate_gains/2300/roll/coherence": 0.127009,
+  "rate_gains/2300/roll/median_gain": 0.632509,
+  "rate_gains/2300/roll/L": 2522.01425,
+  "rate_gains/2300/roll/tf": 0.378455,
+  "rate_gains/2300/pitch/gain": 0.636139,
+  "rate_gains/2300/pitch/coherence": 0.070311,
+  "rate_gains/2300/pitch/median_gain": 0.88483,
+  "rate_gains/2300/pitch/L": 544.700007,
+  "rate_gains/2300/pitch/tf": 0.013448,
+  "rate_gains/2300/yaw/gain": 0.974829,
+  "rate_gains/2300/yaw/coherence": 0.252485,
+  "yaw/2200/N_ped": 1.68026,
+  "yaw/2200/N_col": 1.102674,
+  "yaw/2200/N_r": 0.114776,
+  "yaw/2200/r2": 0.059609,
+  "yaw/2300/N_ped": 1.228633,
+  "yaw/2300/N_col": 1.415164,
+  "yaw/2300/N_r": 0.478541,
+  "yaw/2300/r2": 0.030077
+ },
+ "unstable": [
+  "hover/2200/seconds",
+  "hover/2200/in_ground_effect_s",
+  "hover/2200/height_unknown_s",
+  "hover/2200/collective",
+  "hover/2200/throttle",
+  "hover/2200/volts",
+  "hover/2200/yaw_mixer",
+  "hover/2200/power_w",
+  "hover/2300/seconds",
+  "hover/2300/in_ground_effect_s",
+  "hover/2300/height_unknown_s",
+  "hover/2300/collective",
+  "hover/2300/throttle",
+  "hover/2300/volts",
+  "hover/2300/yaw_mixer",
+  "hover/2300/power_w",
+  "airborne_s/1300"
+ ],
+ "folds": 8
+}

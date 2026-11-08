@@ -1,0 +1,237 @@
+{
+ "heli": "MSH Protos 380",
+ "group": "b8916a32",
+ "logs": [
+  "Protos_20260622_094806.0",
+  "Protos_20260622_094946.0",
+  "Protos_20260622_095704.0",
+  "Protos_20260622_095920.0",
+  "Protos_20260622_100428.0",
+  "Protos_20260622_101056.0"
+ ],
+ "segments": {
+  "Protos_20260622_094806.0": {
+   "ground": 12.5,
+   "autorotation": 0.0,
+   "inverted": 0.0,
+   "aerobatic": 6.4,
+   "hover": 8.7,
+   "cruise": 15.6,
+   "hover_in_ground_effect": 0.0
+  },
+  "Protos_20260622_094946.0": {
+   "ground": 12.0,
+   "autorotation": 0.0,
+   "inverted": 16.3,
+   "aerobatic": 18.3,
+   "hover": 0.0,
+   "cruise": 58.9,
+   "hover_in_ground_effect": 0.0
+  },
+  "Protos_20260622_095704.0": {
+   "ground": 13.7,
+   "autorotation": 0.0,
+   "inverted": 6.7,
+   "aerobatic": 13.9,
+   "hover": 0.0,
+   "cruise": 55.4,
+   "hover_in_ground_effect": 0.0
+  },
+  "Protos_20260622_095920.0": {
+   "ground": 11.6,
+   "autorotation": 0.0,
+   "inverted": 1.8,
+   "aerobatic": 8.9,
+   "hover": 0.0,
+   "cruise": 36.8,
+   "hover_in_ground_effect": 0.0
+  },
+  "Protos_20260622_100428.0": {
+   "ground": 10.7,
+   "autorotation": 0.0,
+   "inverted": 26.7,
+   "aerobatic": 24.4,
+   "hover": 0.0,
+   "cruise": 72.9,
+   "hover_in_ground_effect": 0.0
+  },
+  "Protos_20260622_101056.0": {
+   "ground": 10.5,
+   "autorotation": 0.0,
+   "inverted": 39.2,
+   "aerobatic": 35.6,
+   "hover": 0.0,
+   "cruise": 47.6,
+   "hover_in_ground_effect": 0.0
+  }
+ },
+ "motor_fit": [
+  601.3312998918819,
+  28.761246033158415,
+  0.04200818108544022,
+  0.021364340221249674,
+  2.0
+ ],
+ "motor_fit_r2": 0.962,
+ "hover": {
+  "2000": {
+   "seconds": 4.6,
+   "in_ground_effect_s": 0.0,
+   "height_unknown_s": 4.6,
+   "gate": "insufficient",
+   "collective": 0.562,
+   "throttle": 0.585,
+   "volts": 22.7,
+   "yaw_mixer": -0.469,
+   "power_w": 273.2
+  },
+  "2200": {
+   "seconds": 2.5,
+   "in_ground_effect_s": 0.0,
+   "height_unknown_s": 2.5,
+   "gate": "insufficient",
+   "collective": 0.391,
+   "throttle": 0.662,
+   "volts": 22.77,
+   "yaw_mixer": -0.424,
+   "power_w": 454.1
+  }
+ },
+ "rate_gains": {
+  "2000": {
+   "roll": {
+    "gain": 200.0,
+    "coherence": 0.746,
+    "median_gain": 5.478,
+    "L": 70.5,
+    "tf": 0.005
+   },
+   "pitch": {
+    "gain": 4.3,
+    "coherence": 0.877,
+    "median_gain": 5.058,
+    "L": 685.3,
+    "tf": 0.063
+   },
+   "yaw": {
+    "gain": 4.967,
+    "coherence": 0.92
+   }
+  },
+  "2200": {
+   "roll": {
+    "gain": 5.512,
+    "coherence": 0.684,
+    "median_gain": 5.47,
+    "L": 1534.0,
+    "tf": 0.0186
+   },
+   "pitch": {
+    "gain": 5.334,
+    "coherence": 0.941,
+    "median_gain": 5.996,
+    "L": 944.3,
+    "tf": 0.0389
+   },
+   "yaw": {
+    "gain": 3.752,
+    "coherence": 0.91
+   }
+  }
+ },
+ "yaw": {
+  "2000": {
+   "N_ped": 49.25,
+   "N_col": 7.12,
+   "N_r": -0.111,
+   "r2": 0.697
+  },
+  "2200": {
+   "N_ped": 31.44,
+   "N_col": 5.23,
+   "N_r": 0.286,
+   "r2": 0.557
+  }
+ },
+ "whirl_hz": {
+  "2000": {
+   "roll": 3.87,
+   "pitch": 2.29,
+   "yaw": 2.68
+  },
+  "2200": {
+   "roll": 2.85,
+   "pitch": 2.97,
+   "yaw": 2.83
+  }
+ },
+ "airborne_s": {
+  "1500": 0.1,
+  "1600": 0.2,
+  "1700": 0.4,
+  "1800": 0.8,
+  "1900": 1.3,
+  "2000": 30.4,
+  "2100": 1.5,
+  "2200": 305.8,
+  "2300": 1.3,
+  "2400": 1.3
+ },
+ "uncertainty": {
+  "motor_fit/0": 881.065253,
+  "motor_fit/1": 42.517422,
+  "motor_fit/2": 0.060416,
+  "motor_fit/3": 0.030599,
+  "motor_fit/4": 0.0,
+  "motor_fit_r2": 0.015166,
+  "hover/2200/collective": 0.02275,
+  "hover/2200/throttle": 0.004131,
+  "hover/2200/volts": 0.026458,
+  "hover/2200/yaw_mixer": 0.028814,
+  "hover/2200/power_w": 2.306513,
+  "rate_gains/2000/roll/gain": 248.244149,
+  "rate_gains/2000/roll/coherence": 0.11993,
+  "rate_gains/2000/roll/median_gain": 0.668802,
+  "rate_gains/2000/roll/L": 11714.479817,
+  "rate_gains/2000/roll/tf": 0.433125,
+  "rate_gains/2000/pitch/gain": 0.483156,
+  "rate_gains/2000/pitch/coherence": 0.39379,
+  "rate_gains/2000/pitch/median_gain": 1.108443,
+  "rate_gains/2000/pitch/L": 324.424055,
+  "rate_gains/2000/pitch/tf": 0.381122,
+  "rate_gains/2000/yaw/gain": 2.2079,
+  "rate_gains/2000/yaw/coherence": 0.521308,
+  "rate_gains/2200/roll/gain": 0.417495,
+  "rate_gains/2200/roll/coherence": 0.21823,
+  "rate_gains/2200/roll/median_gain": 0.181069,
+  "rate_gains/2200/roll/L": 8557.295447,
+  "rate_gains/2200/roll/tf": 0.021093,
+  "rate_gains/2200/pitch/gain": 0.185832,
+  "rate_gains/2200/pitch/coherence": 0.027509,
+  "rate_gains/2200/pitch/median_gain": 0.1505,
+  "rate_gains/2200/pitch/L": 284.799422,
+  "rate_gains/2200/pitch/tf": 0.004245,
+  "rate_gains/2200/yaw/gain": 0.192165,
+  "rate_gains/2200/yaw/coherence": 0.014727,
+  "yaw/2000/N_ped": 24.031327,
+  "yaw/2000/N_col": 2.822408,
+  "yaw/2000/N_r": 3.474502,
+  "yaw/2000/r2": 0.25745,
+  "yaw/2200/N_ped": 3.488254,
+  "yaw/2200/N_col": 1.143843,
+  "yaw/2200/N_r": 0.25017,
+  "yaw/2200/r2": 0.05326
+ },
+ "unstable": [
+  "hover/2000/seconds",
+  "hover/2000/in_ground_effect_s",
+  "hover/2000/height_unknown_s",
+  "hover/2000/collective",
+  "hover/2000/throttle",
+  "hover/2000/volts",
+  "hover/2000/yaw_mixer",
+  "hover/2000/power_w",
+  "airborne_s/1500"
+ ],
+ "folds": 8
+}

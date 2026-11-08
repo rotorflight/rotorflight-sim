@@ -18,7 +18,10 @@ Labels (exclusive, in this order of precedence):
 Without airspeed, hover and slow forward flight at constant height differ only in the
 attitude, so short hovers can be missed and slow drifts counted. The baro altitude is
 taken relative to the ground before the first take-off; hover below `ige_m` (default
-1.5 m) is flagged as in ground effect - it needs clearly less collective there.
+1.5 m) is flagged as in ground effect - it needs clearly less collective there. A log
+without a baro (no altitude field, or one that never moves) finds hover by attitude and
+sticks alone, and cannot tell its height: nothing is flagged as in ground effect, and
+slow level flight can count as hover.
 """
 import json
 import os
@@ -70,8 +73,9 @@ def segment(log, ige_m=1.5):
     gov = governor_states(log)
     roll, pitch = log.c('attitude[0]') / 10, log.c('attitude[1]') / 10
     rs, ps = sm(roll), sm(pitch)
-    vario = sm(log.c('vario') / 100) if 'vario' in log.N else np.zeros(len(air))
-    alt = log.c('altitude') / 100 if 'altitude' in log.N else np.zeros(len(air))
+    baro = has_baro(log)
+    vario = sm(log.c('vario') / 100) if baro and 'vario' in log.N else np.zeros(len(air))
+    alt = log.c('altitude') / 100 if baro else np.zeros(len(air))
     first = np.flatnonzero(air)
     pre = (log.t > log.t[first[0]] - 3) & (log.t < log.t[first[0]] - 1) if len(first) else ~air
     alt = alt - (np.median(alt[pre]) if pre.any() else 0.0)
@@ -96,7 +100,13 @@ def segment(log, ige_m=1.5):
                 keep[seg] = True
     lab['hover'] = keep
     lab['cruise'] = rest & ~keep
-    return lab, alt, keep & (alt < ige_m)
+    # without a baro the height is unknown: no hover is flagged as in ground effect
+    return lab, alt, keep & (alt < ige_m) if baro else np.zeros_like(keep)
+
+
+def has_baro(log):
+    """The log has a baro altitude that moves (not a flight controller without one)."""
+    return 'altitude' in log.N and np.ptp(log.c('altitude')) > 100
 
 
 def main():

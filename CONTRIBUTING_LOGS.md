@@ -54,8 +54,17 @@ FIT_DATA_DIR=<a folder for decoded logs> python -I fitting/scripts/intake.py fit
 ```
 
 decodes the files, skips logs it already has, and reports per log what each fit can use
-and what is missing (`--dry-run` leaves the heli file alone). Then `fit_heli.py`,
-`vibration.py` and `segment.py` run on the heli file (`fitting/README.md`).
+and what is missing (`--dry-run` leaves the heli file alone). Each log goes into the heli
+file with its source file's SHA-256 and its setup (craft, firmware, board, tail, collective
+range): logs of another setup train separately. Then
+
+```sh
+FIT_DATA_DIR=<decoded logs> python -I fitting/scripts/train.py fitting/helis/<heli>/heli.json
+```
+
+fits the heli's model from its logs, checks every proposed number against logs it held out
+of the fit, and keeps only what predicts them no worse (`fitting/README.md`, Training).
+`vibration.py` runs on the heli file too.
 
 ## Sending logs
 

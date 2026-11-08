@@ -4,8 +4,8 @@ Where the sim goes next, ordered by what it gives firmware testing. Tick a box w
 is merged.
 
 Today there are three presets: `Heli` (Blade 360, ArduPilot's derivatives), `Stratos200` and
-`M7R`. Each is a separate class of numbers fitted from one heli's logs (`heli/heli_model.py`,
-`fitting/README.md`).
+`M7R` (parameter files in `heli/presets/`, fitted from one heli's logs each), and the helis
+`fitting/scripts/train.py` trained from their logs (`fitting/helis/<heli>/model.json`).
 
 ## 1. One physical model, size presets
 
@@ -123,6 +123,47 @@ heli and gives back a preset with its validation:
       the real flight; fails on the inflow-torque regression of #3
 - [ ] Test flights the current fits are missing: collective doublets (collective
       sensitivity, heave damping), hover at two headspeeds, an airborne autorotation
+
+### Training loop: new logs refine a preset
+
+The goal is that a new log makes a preset better without anyone running scripts by hand,
+and never makes it worse. Here "training" means refitting the model's physical parameters.
+It is not a neural net: closed-loop data is too thin for that, and a net would not
+extrapolate to autorotation or 3D.
+
+- [x] **Fits write the preset**: `train.py` writes `helis/<heli>/model.json` (the
+      `--model` format, base `fitted`: the generic `Fitted` class) and the sim flies it by
+      name (`--model <heli>`). The `Stratos200` and `M7R` constants moved out of
+      `heli/heli_model.py` into `heli/presets/*.json` (bit-identical trajectories)
+- [ ] The heli-specific scripts (`m7r_*.py`, `sweep_replay.py`, the Stratos flight lists in
+      `common.py`) are not folded into the generic stages yet; the closed-loop flap sweep
+      by replay (`m7r_sweep.py`) would be the replay check's next stage
+- [x] **`train.py`, one command per heli**: setup group -> fit/validate split -> pooled
+      fit with uncertainty -> per-stage proposals -> held-out scores -> model.json and a
+      report (`train.json`, `TRAINING.md`) with what each stage proposed, the scores before
+      and after, and why it was taken or kept
+- [x] **Held-out logs**: `role` per log in the heli file, one in four from its hash (stable
+      as logs come in, editable by hand). A proposal is taken only if it scores no worse on
+      the held-out logs - on its own stage and every other (the rate gain is the flap
+      model's K). `--elf` adds a closed-loop check: the held-out sticks replayed through
+      the SITL with the old and the new model (`replay_check.py`)
+- [x] **Per-parameter confidence**: jackknife over 20 s blocks (`jackknife.py`) for every
+      fitted number; each stage's gates (R^2, coherence, VAF, events, relative error)
+      decide whether it proposes anything. What the logs do not identify stays at the prior
+      (the heli file's preset, else a size prior), and an unvalidated proposal never
+      replaces a preset or an earlier fit
+- [ ] Weight the stages by excitation beyond the gates (a calm hover moves the hover
+      collective, not the flap time constant): today each stage only uses its own segments
+- [x] **Setup fingerprint per log** (`fingerprint.py`): craft, firmware, board, tail type,
+      collective range, ESC protocol from the header. Logs pool only within one group; a
+      changed heli starts a new one. Gains and headspeed do not split (the replays take the
+      gains from each log). Blades, gear and dampers need a hand-set `group`
+- [x] **Log store** (`logstore.py`): each log entry carries its source file, SHA-256 and
+      consent; `FIT_LOG_STORE` finds the files by hash. CI trains on synthetic flights of a
+      known heli instead of private logs (`fitting/tests`)
+- [ ] Stretch: once the physical model's error on the held-out logs stops shrinking, a small
+      learned model of what is left over (a residual on the body rates or moments) on top of
+      the physics. It stays off by default and is judged by the same held-out replays
 
 ## 4. Forward flight
 

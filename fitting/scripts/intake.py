@@ -1,6 +1,7 @@
 """
 Log intake for a heli: decode its blackbox files, check what each log can feed, and add
-the logs to the heli file.
+the logs to the heli file with their manifest entries (source file, SHA-256, consent,
+setup group - see logstore.py and fingerprint.py).
 
     python -I scripts/intake.py helis/<heli>/heli.json <log.bbl> [...] [--dry-run]
 
@@ -35,8 +36,11 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import DATA, SKILL, Log  # noqa: E402
-from segment import segment  # noqa: E402
+from common import DATA, SKILL, Log, has_log  # noqa: E402
+from fingerprint import group_id, setup  # noqa: E402
+from logstore import decoded_name, save, sha256  # noqa: E402
+from fit_heli import targets  # noqa: E402
+from segment import has_baro, segment  # noqa: E402
 
 HOVER_GATE_S = 5.0
 
@@ -49,14 +53,14 @@ def decode(bbl):
     js = os.path.join(SKILL, 'bbl.js')
     info = json.loads(subprocess.run([node, js, 'info', bbl], check=True, capture_output=True,
                                      text=True).stdout)
-    out = os.path.join(DATA, stem)
-    subprocess.run([node, js, 'decode', bbl, '-o', out], check=True, capture_output=True)
     names = []
     for lg in info['logs']:
         if 'error' in lg:
             print('  %s log %s: %s' % (stem, lg['log'], lg['error']))
             continue
         names.append('%s.%d' % (stem, lg['log']))
+    if not all(has_log(n) for n in names):
+        subprocess.run([node, js, 'decode', bbl, '-o', os.path.join(DATA, stem)], check=True, capture_output=True)
     return names
 
 
@@ -90,22 +94,24 @@ def check(log):
     has = lambda n: n in log.N
     nonzero = lambda n: has(n) and np.any(np.abs(log.c(n)) > 0)
     r = {'rate_hz': round(fs)}
-    r['gyroRAW'] = nonzero('gyroRAW[0]')
-    r['headspeed'] = nonzero('headspeed')
-    r['power'] = nonzero('Vbat') and nonzero('Ibat')
-    r['baro'] = has('altitude') and np.ptp(log.c('altitude')) > 100
+    r['gyroRAW'] = bool(nonzero('gyroRAW[0]'))
+    r['headspeed'] = bool(nonzero('headspeed'))
+    r['power'] = bool(nonzero('Vbat') and nonzero('Ibat'))
+    r['baro'] = bool(has_baro(log))
     r['airborne'] = any(typ in (52, 'AIRBORNE_STATE') for _, typ, _ in log.events)
     r['gains'] = 'rollPID' in log.hdr
     r['gps'] = any(n.lower().startswith('gps') for n in log.N)
     lab, alt, ige = segment(log)
-    tg = np.round(log.c('govTarget') / 100) * 100 if has('govTarget') else np.zeros(len(log.t))
+    tg = np.round(targets(log) / 100) * 100
     oge = lab['hover'] & ~ige
     r['hover_s'] = {'%d' % lv: round(float((oge & (tg == lv)).sum() / fs), 1)
                     for lv in sorted(set(tg[oge])) if lv > 0}
     r['air_s'] = round(float((~lab['ground']).sum() / fs), 1)
     r['autorotation_s'] = round(float((lab['autorotation'] & (alt > 5)).sum() / fs), 1)
     r['sharp_inputs'] = sharp_inputs(log)
-    r['headspeeds'] = sorted(int(x) for x in set(tg[~lab['ground']]) if x > 0)
+    hs = tg[~lab['ground']]
+    # the headspeeds flown for a while, not the governor's spool-up ramp
+    r['headspeeds'] = sorted(int(x) for x in set(hs) if x > 0 and (hs == x).sum() / fs > 5)
     return r
 
 
@@ -123,7 +129,7 @@ def advice(r):
     if not r['power']:
         out.append('no Vbat/Ibat: no rotor law in the volts form')
     if not r['baro']:
-        out.append('no baro altitude: no hover segmentation')
+        out.append('no baro altitude: hover is found by attitude and sticks alone, its height (ground effect) is unknown')
     if not r['airborne']:
         out.append('no AIRBORNE_STATE events: every fit needs the airborne time')
     if not r['gains']:
@@ -147,7 +153,7 @@ def main():
     dry = '--dry-run' in sys.argv
     heli_path, files = args[0], args[1:]
     heli = json.load(open(heli_path))
-    known = {os.path.splitext(e['file'])[0] for e in heli['logs']}
+    known = {decoded_name(e) for e in heli['logs']}
     seen = {}
     for name in known:
         try:
@@ -155,8 +161,10 @@ def main():
         except SystemExit:
             pass
     added = []
+    groups = heli.setdefault('groups', {})
     for bbl in files:
         print('== %s' % bbl)
+        digest = sha256(bbl)
         for name in decode(bbl):
             if name in known:
                 print('  %s: already in %s' % (name, heli_path))
@@ -177,13 +185,18 @@ def main():
             if r['air_s'] < 5:
                 print('    (no flight: not added)')
                 continue
-            added.append({'file': name, 'headspeed': r['headspeeds'], 'intake': {
-                k: r[k] for k in ('rate_hz', 'gyroRAW', 'power', 'baro', 'hover_s', 'sharp_inputs', 'autorotation_s')}})
+            st, info = setup(log)
+            gid = group_id(st)
+            if gid not in groups:
+                groups[gid] = st
+                print('    new setup %s: %s' % (gid, ', '.join('%s %s' % kv for kv in st.items())))
+            added.append({'file': name, 'source': os.path.basename(bbl), 'sha256': digest, 'consent': 'private',
+                          'group': gid, 'start': info.get('log_start', ''), 'headspeed': r['headspeeds'],
+                          'intake': {k: r[k] for k in ('rate_hz', 'gyroRAW', 'power', 'baro', 'air_s', 'hover_s',
+                                                       'sharp_inputs', 'autorotation_s')}})
     if added and not dry:
         heli['logs'] += added
-        with open(heli_path, 'w') as f:
-            json.dump(heli, f, indent=2)
-            f.write('\n')
+        save(heli, heli_path)
         print('%d log(s) added to %s' % (len(added), heli_path))
 
 

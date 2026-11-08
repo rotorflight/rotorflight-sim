@@ -1,0 +1,104 @@
+{
+ "base": "fitted",
+ "description": "OMP M7R: trained 2026-11-08 from 2 logs (setup c3771b88), checked on 1 held-out",
+ "attrs": {
+  "motor_fit": [
+   30.123753,
+   3.702643,
+   0.004581,
+   0.005144,
+   2.0
+  ],
+  "motor_poles": 10,
+  "v_hover": 3.3,
+  "rotor_radius": 0.79,
+  "hub_height": 0.4,
+  "ctrl_rpm_exp": 0.0,
+  "Zcol": -35.921794871794866,
+  "thrust_inflow": [
+   39.21568627450981,
+   0.13133333333333333
+  ],
+  "Nped": 27.0,
+  "Nr": -0.597,
+  "tail_motor": false
+ },
+ "args": {
+  "rate_gain_roll": 6.691,
+  "rate_gain_pitch": 5.596,
+  "Lb1s": 1229.7,
+  "Ma1s": 375.7,
+  "tf": 0.05,
+  "stiff_rpm_exp": 2.0,
+  "tf_rpm_exp": 1.0,
+  "turb": 0.0,
+  "turb_hz": 2.5,
+  "yaw_trim": 0.2,
+  "nominal_rpm": 1800.0,
+  "gear_ratio": 8.75,
+  "hover_throttle": 0.6,
+  "pack_cells": 12,
+  "pack_ah": 4.5,
+  "pack_r": 0.047,
+  "hover_power_w": 1150.0,
+  "cyclic_scale": 1.0,
+  "yaw_scale": 1.0,
+  "tf_roll": 0.0345,
+  "tf_pitch": 0.0811
+ },
+ "provenance": {
+  "trained": "2026-11-08",
+  "group": "c3771b88",
+  "logs": {
+   "fit": [
+    "OMP_M7R_20261016_124328",
+    "OMP_M7R_20261022_143720"
+   ],
+   "validate": [
+    "OMP_M7R_20261022_155150"
+   ]
+  },
+  "params": {
+   "rate_gain_roll": "fit 2026-11-08 (flap stage)",
+   "rate_gain_pitch": "fit 2026-11-08 (flap stage)",
+   "Lb1s": "fit 2026-11-08 (flap stage)",
+   "Ma1s": "fit 2026-11-08 (flap stage)",
+   "tf": "preset m7r",
+   "stiff_rpm_exp": "preset m7r",
+   "tf_rpm_exp": "preset m7r",
+   "turb": "preset m7r",
+   "turb_hz": "preset m7r",
+   "yaw_trim": "preset m7r",
+   "nominal_rpm": "preset m7r",
+   "gear_ratio": "heli file",
+   "hover_throttle": "preset m7r",
+   "pack_cells": "heli file",
+   "pack_ah": "heli file",
+   "pack_r": "heli file",
+   "hover_power_w": "preset m7r",
+   "cyclic_scale": "preset m7r",
+   "yaw_scale": "preset m7r",
+   "tf_roll": "fit 2026-11-08 (flap stage)",
+   "tf_pitch": "fit 2026-11-08 (flap stage)",
+   "motor_fit": "fit 2026-11-08 (rotor stage)",
+   "motor_poles": "preset m7r",
+   "v_hover": "preset m7r",
+   "rotor_radius": "preset m7r",
+   "hub_height": "preset m7r",
+   "ctrl_rpm_exp": "preset m7r",
+   "Zcol": "preset m7r",
+   "thrust_inflow": "preset m7r",
+   "Nped": "fit 2026-11-08 (yaw stage)",
+   "Nr": "fit 2026-11-08 (yaw stage)",
+   "tail_motor": "heli file"
+  },
+  "held_out_scores": {
+   "rotor": 1.7424185287531584,
+   "thrust": 0.0034399999999999986,
+   "rate": 0.06829823323251588,
+   "flap": 0.05955002857924738,
+   "yaw": 0.7038983655716834,
+   "power": null
+  }
+ }
+}

@@ -1,0 +1,161 @@
+{
+ "heli": "MSH Protos 380",
+ "trained": "2026-11-08",
+ "group": "b8916a32",
+ "setup": {
+  "craft": "Protos",
+  "firmware": "4.6",
+  "board": "RDMS NEXUS_XR",
+  "tail": "servo",
+  "collective": "-1083,1083",
+  "esc": "0/0"
+ },
+ "logs": {
+  "fit": [
+   "Protos_20260622_094806.0",
+   "Protos_20260622_094946.0",
+   "Protos_20260622_095704.0",
+   "Protos_20260622_095920.0",
+   "Protos_20260622_100428.0",
+   "Protos_20260622_101056.0"
+  ],
+  "validate": [
+   "Protos_20260622_094304.0",
+   "Protos_20260622_095452.0"
+  ]
+ },
+ "start": "prior: size prior (380 class, M7R dynamics)",
+ "stages": {
+  "rotor": {
+   "proposal": null,
+   "notes": [
+    "A or B uncertain: 147 / 148 %"
+   ],
+   "decision": "no proposal"
+  },
+  "thrust": {
+   "proposal": null,
+   "notes": [
+    "no gated hover with a stable collective (2000 rpm 4.6 s insufficient, 2200 rpm 2.5 s insufficient)"
+   ],
+   "decision": "no proposal"
+  },
+  "rate": {
+   "proposal": {
+    "args": {
+     "rate_gain_roll": 5.512,
+     "rate_gain_pitch": 5.334
+    },
+    "attrs": {
+     "ctrl_rpm_exp": 1.261
+    }
+   },
+   "notes": [
+    "rate ~ rpm^2.26 over 2000/2200 rpm -> ctrl_rpm_exp 1.26",
+    "at 2200 rpm: roll 5.51, pitch 5.33"
+   ],
+   "score_before": 0.129428367139033,
+   "score_after": 0.10086717907081193,
+   "score_detail": {
+    "before": "ln(model/measured) roll 2000 +0.20, pitch 2000 -0.02, roll 2200 +0.25, pitch 2200 +0.04",
+    "after": "ln(model/measured) roll 2000 -0.13, pitch 2000 -0.21, roll 2200 +0.04, pitch 2200 -0.02"
+   },
+   "others_worse": [],
+   "decision": "taken: held-out 0.1294 -> 0.1009"
+  },
+  "flap": {
+   "proposal": {
+    "args": {
+     "Lb1s": 2347.8,
+     "tf_roll": 0.0248,
+     "rate_gain_roll": 5.243,
+     "Ma1s": 739.3,
+     "tf_pitch": 0.0444,
+     "rate_gain_pitch": 5.08
+    }
+   },
+   "notes": [
+    "roll 2200 rpm: L or tf uncertain (75 / 27 %)",
+    "roll from 11 sharp inputs at 2400 rpm: L 2794 +- 14 %, tf 0.023 +- 13 %, VAF 0.94",
+    "pitch from 40 sharp inputs at 2200 rpm: L 739 +- 5 %, tf 0.044 +- 5 %, VAF 0.95"
+   ],
+   "score_before": 0.2091729318647316,
+   "score_after": 0.12831682789972132,
+   "score_detail": {
+    "before": "1 - VAF 0.209 over 8 sharp inputs",
+    "after": "1 - VAF 0.128 over 8 sharp inputs"
+   },
+   "others_worse": [
+    "rate 0.1009 -> 0.128"
+   ],
+   "decision": "kept: makes rate 0.1009 -> 0.128 worse"
+  },
+  "yaw": {
+   "proposal": {
+    "attrs": {
+     "Nped": 31.44,
+     "Nr": -0.1
+    }
+   },
+   "notes": [
+    "N_ped 31.4 at 2200 rpm (R^2 0.56) -> Nped 31.4 at 2200 rpm, Nr -0.10"
+   ],
+   "score_before": 0.5900776203814073,
+   "score_after": 0.42586512215786165,
+   "score_detail": {
+    "before": "R^2 0.410",
+    "after": "R^2 0.574"
+   },
+   "others_worse": [],
+   "decision": "taken: held-out 0.5901 -> 0.4259"
+  },
+  "power": {
+   "proposal": null,
+   "notes": [
+    "no gated hover at 2200 rpm with Vbat and Ibat"
+   ],
+   "decision": "no proposal"
+  }
+ },
+ "replay": null,
+ "changed": true,
+ "scores": {
+  "prior": {
+   "rotor": 11.477293821030104,
+   "thrust": 0.24273500000000003,
+   "rate": 0.129428367139033,
+   "flap": 0.34881285092226516,
+   "yaw": 0.5900776203814073,
+   "power": null
+  },
+  "current": {
+   "rotor": 11.477293821030104,
+   "thrust": 0.24273500000000003,
+   "rate": 0.129428367139033,
+   "flap": 0.34881285092226516,
+   "yaw": 0.5900776203814073,
+   "power": null
+  },
+  "new": {
+   "rotor": 11.477293821030104,
+   "thrust": 0.24273500000000003,
+   "rate": 0.10086717907081193,
+   "flap": 0.2091729318647316,
+   "yaw": 0.42586512215786165,
+   "power": null
+  }
+ },
+ "gates": {
+  "rotor_r2": 0.6,
+  "rotor_rel": 0.25,
+  "hover_rel": 0.1,
+  "coherence": 0.6,
+  "rate_rel": 0.2,
+  "flap_vaf": 0.85,
+  "flap_events": 5,
+  "flap_rel": 0.35,
+  "yaw_r2": 0.3,
+  "yaw_rel": 0.25
+ },
+ "tolerance": 0.02
+}

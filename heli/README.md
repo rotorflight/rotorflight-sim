@@ -7,7 +7,8 @@ library is used.
 
 | File | |
 |---|---|
-| `heli_model.py` | the model. `Heli`: a Blade 360 (derivatives from ArduPilot's `SIM_Helicopter`, after Walker & Tischler, VFS 2021). `Stratos200`: a 200-size direct-drive heli with a motorized tail, fitted from its blackbox logs. `M7R`: a 700-class heli with a servo tail (OMP M7R, 12S), fitted from one sport flight. See the class docstrings |
+| `heli_model.py` | the model. `Heli`: a Blade 360 (derivatives from ArduPilot's `SIM_Helicopter`, after Walker & Tischler, VFS 2021). `Fitted`: a heli from fitted numbers alone (rate gain, flap stiffness and time constant per axis, rotor and thrust laws, tail), the base of the presets and of trained helis |
+| `presets/` | the fitted presets as parameter files on `Fitted`: `stratos200` (200 size, direct drive, motorized tail, from its blackbox logs) and `m7r` (OMP M7R, 700 class, servo tail, 12S, from one sport flight); their `notes` say how each number was found |
 | `heli_bridge.py` | starts the SITL, configures it over the CLI, runs the lockstep loop, flies a scripted flight or replays recorded sticks |
 | `swash.py` | inverse swash mixing: servo pulses back to roll/pitch/collective, from the servo and mixer configuration read over MSP, so the model feels servo travel, speed limits and the cyclic ring |
 | `esc.py` | HobbyWing V4 telemetry from the model on UART3 (`--esc hw4`) |
@@ -28,8 +29,9 @@ python3 heli/heli_bridge.py <rotorflight_SITL.elf> --model stratos200 \
 python3 heli/heli_bridge.py <rotorflight_SITL.elf> --replay-case heli/replays/m7r_cruise --check
 ```
 
-`--model` takes a preset (`blade360`, `stratos200`, `m7r`) or a JSON parameter file that
-starts from one:
+`--model` takes a preset (`blade360`, `stratos200`, `m7r`), a trained heli by name (its
+`../fitting/helis/<heli>/model.json`, written by `../fitting/scripts/train.py` - see
+`../fitting/README.md`, Training) or a JSON parameter file that starts from one:
 
 ```json
 {"base": "m7r",
@@ -38,7 +40,9 @@ starts from one:
 ```
 
 `args` are constructor arguments, `attrs` class constants (the derivatives, `v_hover`,
-`rotor_radius`, ...); a misspelt name is refused. `--set NAME=VALUE` goes on top.
+`rotor_radius`, ...); a misspelt name is refused. `--set NAME=VALUE` goes on top. A
+trained heli's file has base `fitted` and all of its numbers, each with its source in
+`provenance` (fit, preset, size prior, heli file).
 
 The scripted flight: arm at 6 s, spool up, lift off at 18 s, a roll stick at 21 s and a
 pitch stick at 23 s in angle mode, a collective punch at 24 s, descend from 26 s, disarm

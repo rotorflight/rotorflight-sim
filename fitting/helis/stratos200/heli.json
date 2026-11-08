@@ -3,19 +3,158 @@
   "size_class": 200,
   "firmware": "Rotorflight 4.7.0",
   "gyro_chip": null,
-  "pack": {"cells": 4, "capacity_ah": 0.85, "resistance_ohm": 0.05},
-  "drive": {"gear_ratio": 1.0, "motor_poles": 24, "direct_drive": true},
-  "tail": {"type": "motor"},
-  "rotor": {"radius_m": null, "chord_m": null, "blades": 2, "blade_mass_kg": null},
+  "pack": {
+    "cells": 4,
+    "capacity_ah": 0.85,
+    "resistance_ohm": 0.05
+  },
+  "drive": {
+    "gear_ratio": 1.0,
+    "motor_poles": 24,
+    "direct_drive": true
+  },
+  "tail": {
+    "type": "motor"
+  },
+  "rotor": {
+    "radius_m": null,
+    "chord_m": null,
+    "blades": 2,
+    "blade_mass_kg": null
+  },
   "mass_kg": null,
   "preset": "Stratos200",
   "cli_dump": "RTFL_cli_Stratos_200_20261007_Bo.txt",
   "logs": [
-    {"file": "20261008_160146_11", "headspeed": [3300]},
-    {"file": "20261008_160146_12", "headspeed": [3300]},
-    {"file": "20261008_172721_00", "headspeed": [3600]},
-    {"file": "20261008_174938_00", "headspeed": [3600]},
-    {"file": "20261008_180641_00", "headspeed": [3600]},
-    {"file": "20261008_182311_01", "headspeed": [3600]}
-  ]
+    {
+      "file": "20261008_160146_11",
+      "headspeed": [
+        3300
+      ],
+      "group": "cfbc5200",
+      "start": "2026-10-08T11:31:20.013+00:00",
+      "source": "20261008_160146_11.bbl",
+      "sha256": "3296d4ea8ace02c61faaa74a3abf3b34ae7fa657465250c2f1ea891215d693fe",
+      "consent": "private",
+      "role": "fit"
+    },
+    {
+      "file": "20261008_160146_12",
+      "headspeed": [
+        3300
+      ],
+      "group": "cfbc5200",
+      "start": "2026-10-08T15:06:33.550+00:00",
+      "source": "20261008_160146_12.bbl",
+      "sha256": "739caec3108415dbddc8f5cde73c88d38c262b856b3f9dd607469433cc24f9d4",
+      "consent": "private",
+      "role": "fit"
+    },
+    {
+      "file": "20261008_172721_00",
+      "headspeed": [
+        3600
+      ],
+      "group": "cfbc5200",
+      "start": "2026-10-08T16:31:54.022+00:00",
+      "source": "20261008_172721_00.bbl",
+      "sha256": "540608fefcdc6e3a02f67911eecb2f8d3552e40eac5deb30ef8abf648c19f210",
+      "consent": "private",
+      "role": "validate"
+    },
+    {
+      "file": "20261008_174938_00",
+      "headspeed": [
+        3600
+      ],
+      "group": "cfbc5200",
+      "start": "2026-10-08T16:54:32.507+00:00",
+      "source": "20261008_174938_00.bbl",
+      "sha256": "18a8e7583fb6faf21067c3729e06ec3b8bee3c0d213653722247271a385f34bf",
+      "consent": "private",
+      "role": "fit"
+    },
+    {
+      "file": "20261008_180641_00",
+      "headspeed": [
+        3600
+      ],
+      "group": "cfbc5200",
+      "start": "2026-10-08T17:11:37.042+00:00",
+      "source": "20261008_180641_00.bbl",
+      "sha256": "ab785d3a22db202c6f6c0e6ff07237e2eb3e17c9586bb6cc63c674151865204f",
+      "consent": "private",
+      "role": "fit"
+    },
+    {
+      "file": "20261008_182311_01",
+      "headspeed": [
+        3600
+      ],
+      "group": "cfbc5200",
+      "start": "2026-10-08T17:27:47.626+00:00",
+      "source": "20261008_182311_01.bbl",
+      "sha256": "89c54a28ee5445a6506f1736b78efd1b9b17c929d01c35c31921852847b2225c",
+      "consent": "private",
+      "role": "fit"
+    },
+    {
+      "file": "Stratos200_20261107_162158.0",
+      "source": "Stratos200_20261107_162158.bbl",
+      "sha256": "9ca37396f560c2a707de910342f9090f59c8f277f93ef15ae47e0f1328a4c0c8",
+      "consent": "private",
+      "group": "3943bcdf",
+      "start": "2026-11-07T16:21:58.513+00:00",
+      "headspeed": [
+        2100,
+        2500,
+        5000
+      ],
+      "intake": {
+        "rate_hz": 494,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 256.9,
+        "hover_s": {
+          "2100": 0.5,
+          "2200": 0.1,
+          "2300": 0.1,
+          "2400": 0.1,
+          "2500": 25.5,
+          "4100": 0.0,
+          "4200": 0.1,
+          "4300": 0.1,
+          "4400": 0.1,
+          "4500": 0.1,
+          "4600": 0.1,
+          "4700": 0.1,
+          "4800": 0.1,
+          "4900": 0.1,
+          "5000": 1.0
+        },
+        "sharp_inputs": 142,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    }
+  ],
+  "groups": {
+    "3943bcdf": {
+      "craft": "Stratos200",
+      "firmware": "4.6",
+      "board": "FOXE FOXEERF722V4",
+      "tail": "motor",
+      "collective": "-1167,1167",
+      "esc": "6/1"
+    },
+    "cfbc5200": {
+      "craft": "Stratos 200",
+      "firmware": "4.7",
+      "board": "RDMS NEXUS_XR",
+      "tail": "motor",
+      "collective": "-1083,1083",
+      "esc": "6/1"
+    }
+  }
 }

@@ -1,0 +1,169 @@
+{
+ "heli": "OMP M5",
+ "trained": "2026-11-08",
+ "group": "1cfbd66a",
+ "setup": {
+  "craft": "OMP M5",
+  "firmware": "4.6",
+  "board": "RDMS NEXUS_XR",
+  "tail": "servo",
+  "collective": "-1250,1250",
+  "esc": "0/0"
+ },
+ "logs": {
+  "fit": [
+   "OMP_M5_20260829_130626"
+  ],
+  "validate": [
+   "OMP_M5_20260822_104240"
+  ]
+ },
+ "start": "prior: size prior (? class, M7R dynamics)",
+ "stages": {
+  "rotor": {
+   "proposal": {
+    "attrs": {
+     "motor_fit": [
+      42.476932,
+      5.02046,
+      0.004923,
+      0.00272,
+      1.5
+     ]
+    }
+   },
+   "notes": [
+    "R^2 0.980, A 42.48 +- 17 %, B 5.02 +- 16 %"
+   ],
+   "score_before": 9.585388491241567,
+   "score_after": 1.1532174531024078,
+   "score_detail": {
+    "before": "RMS throttle error 9.6 % over 26321 samples",
+    "after": "RMS throttle error 1.2 % over 26321 samples"
+   },
+   "others_worse": [],
+   "decision": "taken: held-out 9.585 -> 1.153"
+  },
+  "thrust": {
+   "proposal": null,
+   "notes": [
+    "no gated hover with a stable collective ()"
+   ],
+   "decision": "no proposal"
+  },
+  "rate": {
+   "proposal": {
+    "args": {
+     "rate_gain_roll": 7.721,
+     "rate_gain_pitch": 6.516
+    }
+   },
+   "notes": [
+    "at 2200 rpm: roll 7.72, pitch 6.52"
+   ],
+   "score_before": 0.16940694563238284,
+   "score_after": 0.16602032625504456,
+   "score_detail": {
+    "before": "ln(model/measured) roll 1600 +0.20, pitch 1900 -0.14",
+    "after": "ln(model/measured) roll 1600 +0.33, pitch 1900 -0.00"
+   },
+   "others_worse": [
+    "flap 0.07779 -> 0.08056"
+   ],
+   "decision": "kept: makes flap 0.07779 -> 0.08056 worse"
+  },
+  "flap": {
+   "proposal": {
+    "args": {
+     "Lb1s": 1754.1,
+     "tf_roll": 0.018,
+     "rate_gain_roll": 8.154,
+     "Ma1s": 316.2,
+     "tf_pitch": 0.0628,
+     "rate_gain_pitch": 6.193
+    }
+   },
+   "notes": [
+    "roll from 5 sharp inputs at 2200 rpm: L 1754 +- 29 %, tf 0.018 +- 22 %, VAF 0.98",
+    "pitch from 13 sharp inputs at 2200 rpm: L 316 +- 16 %, tf 0.063 +- 23 %, VAF 0.95"
+   ],
+   "score_before": 0.07779123953977077,
+   "score_after": 0.09208648857322137,
+   "score_detail": {
+    "before": "1 - VAF 0.078 over 21 sharp inputs",
+    "after": "1 - VAF 0.092 over 21 sharp inputs"
+   },
+   "others_worse": [
+    "rate 0.1694 -> 0.2187"
+   ],
+   "decision": "kept: makes rate 0.1694 -> 0.2187 worse"
+  },
+  "yaw": {
+   "proposal": {
+    "attrs": {
+     "Nped": 42.37,
+     "Nr": -0.1
+    }
+   },
+   "notes": [
+    "N_ped 22.4 at 1600 rpm (R^2 0.51) -> Nped 42.4 at 2200 rpm, Nr -0.10"
+   ],
+   "score_before": 4.9714880001422035,
+   "score_after": 2.987977779258874,
+   "score_detail": {
+    "before": "R^2 -3.971",
+    "after": "R^2 -1.988"
+   },
+   "others_worse": [],
+   "decision": "taken: held-out 4.971 -> 2.988"
+  },
+  "power": {
+   "proposal": null,
+   "notes": [
+    "no gated hover at 2200 rpm with Vbat and Ibat"
+   ],
+   "decision": "no proposal"
+  }
+ },
+ "replay": null,
+ "changed": true,
+ "scores": {
+  "prior": {
+   "rotor": 9.585388491241567,
+   "thrust": null,
+   "rate": 0.16940694563238284,
+   "flap": 0.07779123953977077,
+   "yaw": 4.9714880001422035,
+   "power": null
+  },
+  "current": {
+   "rotor": 9.585388491241567,
+   "thrust": null,
+   "rate": 0.16940694563238284,
+   "flap": 0.07779123953977077,
+   "yaw": 4.9714880001422035,
+   "power": null
+  },
+  "new": {
+   "rotor": 1.1532174531024078,
+   "thrust": null,
+   "rate": 0.16940694563238284,
+   "flap": 0.07779123953977077,
+   "yaw": 2.987977779258874,
+   "power": null
+  }
+ },
+ "gates": {
+  "rotor_r2": 0.6,
+  "rotor_rel": 0.25,
+  "hover_rel": 0.1,
+  "coherence": 0.6,
+  "rate_rel": 0.2,
+  "flap_vaf": 0.85,
+  "flap_events": 5,
+  "flap_rel": 0.35,
+  "yaw_r2": 0.3,
+  "yaw_rel": 0.25
+ },
+ "tolerance": 0.02
+}

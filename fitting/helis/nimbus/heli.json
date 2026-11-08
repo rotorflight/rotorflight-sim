@@ -1,0 +1,590 @@
+{
+  "name": "Nimbus",
+  "size_class": null,
+  "firmware": null,
+  "board": null,
+  "gyro_chip": null,
+  "pack": {
+    "cells": null,
+    "capacity_ah": null,
+    "resistance_ohm": null
+  },
+  "drive": {
+    "gear_ratio": null,
+    "motor_poles": null,
+    "esc": null
+  },
+  "tail": {
+    "type": null
+  },
+  "rotor": {
+    "radius_m": null,
+    "chord_m": null,
+    "blades": 2,
+    "blade_mass_kg": null
+  },
+  "mass_kg": null,
+  "preset": null,
+  "logs": [
+    {
+      "file": "Nimbus_20260811_160756.0",
+      "source": "Nimbus_20260811_160756.bbl",
+      "sha256": "e2829b7b4fe5e739c487ca346f1ed012e78a3698ced31a1d2d40ec7f65ae9f29",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-11T16:07:57.086+00:00",
+      "headspeed": [
+        1700,
+        2000
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 206.3,
+        "hover_s": {},
+        "sharp_inputs": 52,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    },
+    {
+      "file": "Nimbus_20260811_161206.0",
+      "source": "Nimbus_20260811_161206.bbl",
+      "sha256": "298bd770ac34c7018afb6be5dbe85a7600cee53f479247b4e42aa950324688f7",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-11T16:12:06.612+00:00",
+      "headspeed": [
+        2000
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 41.0,
+        "hover_s": {},
+        "sharp_inputs": 12,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.2",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-10T11:04:26.271+00:00",
+      "headspeed": [
+        1700,
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 64.3,
+        "hover_s": {
+          "1700": 11.7
+        },
+        "sharp_inputs": 0,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.4",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-10T11:07:45.282+00:00",
+      "headspeed": [
+        1700,
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 69.0,
+        "hover_s": {
+          "1700": 2.4,
+          "1800": 0.4,
+          "1900": 1.1
+        },
+        "sharp_inputs": 8,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.5",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-10T11:25:07.905+00:00",
+      "headspeed": [
+        1700
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 34.4,
+        "hover_s": {
+          "1700": 1.7
+        },
+        "sharp_inputs": 6,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.6",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-10T11:26:28.702+00:00",
+      "headspeed": [
+        1700,
+        1900,
+        2200
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 79.5,
+        "hover_s": {
+          "1700": 1.7,
+          "1900": 4.6
+        },
+        "sharp_inputs": 8,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.7",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-10T11:28:37.622+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 53.1,
+        "hover_s": {},
+        "sharp_inputs": 12,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.8",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-10T11:30:36.752+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 96.0,
+        "hover_s": {
+          "1900": 5.9
+        },
+        "sharp_inputs": 18,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.9",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-10T11:33:09.757+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 27.4,
+        "hover_s": {},
+        "sharp_inputs": 3,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.10",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-10T11:34:04.842+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 73.7,
+        "hover_s": {
+          "1900": 3.5
+        },
+        "sharp_inputs": 16,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.11",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-10T11:37:19.636+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 67.0,
+        "hover_s": {},
+        "sharp_inputs": 11,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.12",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-11T09:49:25.305+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 22.5,
+        "hover_s": {},
+        "sharp_inputs": 1,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.13",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-11T09:50:42.224+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 15.8,
+        "hover_s": {},
+        "sharp_inputs": 5,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.15",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-11T09:51:46.078+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 15.3,
+        "hover_s": {},
+        "sharp_inputs": 0,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.16",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-11T09:52:24.911+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 13.7,
+        "hover_s": {},
+        "sharp_inputs": 2,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.17",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-11T09:53:00.324+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 18.8,
+        "hover_s": {},
+        "sharp_inputs": 0,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.18",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-11T09:54:01.384+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 14.2,
+        "hover_s": {},
+        "sharp_inputs": 2,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.19",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-11T09:54:37.193+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 24.7,
+        "hover_s": {},
+        "sharp_inputs": 2,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.20",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-11T09:55:37.941+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 23.7,
+        "hover_s": {},
+        "sharp_inputs": 2,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.21",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-11T09:56:20.708+00:00",
+      "headspeed": [
+        1700,
+        1900,
+        2200
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 57.7,
+        "hover_s": {},
+        "sharp_inputs": 5,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.22",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "2026-08-11T09:58:18.949+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 23.1,
+        "hover_s": {},
+        "sharp_inputs": 5,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.27",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "0000-01-01T00:00:00.000+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 11.0,
+        "hover_s": {},
+        "sharp_inputs": 0,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.28",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "0000-01-01T00:00:00.000+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 32.0,
+        "hover_s": {},
+        "sharp_inputs": 8,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    },
+    {
+      "file": "Nimbus_all_20260811_112712.29",
+      "source": "Nimbus_all_20260811_112712.bbl",
+      "sha256": "0ac2bd4c24e3c4d2ac574d5a428004636adfcb48b0a1070ecb8431ff5d83ba30",
+      "consent": "private",
+      "group": "4062f5c0",
+      "start": "0000-01-01T00:00:00.000+00:00",
+      "headspeed": [
+        1900
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 85.1,
+        "hover_s": {},
+        "sharp_inputs": 35,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    }
+  ],
+  "groups": {
+    "4062f5c0": {
+      "craft": "Nimbus",
+      "firmware": "4.6",
+      "board": "RDMS NEXUS_XR",
+      "tail": "servo",
+      "collective": "-1125,1125",
+      "esc": "0/0"
+    }
+  }
+}

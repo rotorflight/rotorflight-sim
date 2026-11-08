@@ -1,0 +1,403 @@
+{
+  "name": "MSH Protos 380",
+  "size_class": 380,
+  "firmware": null,
+  "board": null,
+  "gyro_chip": null,
+  "pack": {
+    "cells": null,
+    "capacity_ah": null,
+    "resistance_ohm": null
+  },
+  "drive": {
+    "gear_ratio": null,
+    "motor_poles": null,
+    "esc": null
+  },
+  "tail": {
+    "type": null
+  },
+  "rotor": {
+    "radius_m": null,
+    "chord_m": null,
+    "blades": 2,
+    "blade_mass_kg": null
+  },
+  "mass_kg": null,
+  "preset": null,
+  "logs": [
+    {
+      "file": "Protos_20260601_091136.0",
+      "source": "Protos_20260601_091136.bbl",
+      "sha256": "97af91e4de5d2d539bf1a7494f802d2ebd98aea9a80c630f661c0a306597bfc3",
+      "consent": "private",
+      "group": "98cb6dff",
+      "start": "2026-06-01T09:11:36.295+00:00",
+      "headspeed": [
+        2000,
+        2100,
+        2400,
+        2500,
+        2600
+      ],
+      "intake": {
+        "rate_hz": 1009,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 170.3,
+        "hover_s": {
+          "2100": 0.2,
+          "2300": 0.2,
+          "2400": 0.1
+        },
+        "sharp_inputs": 56,
+        "autorotation_s": 0.0
+      }
+    },
+    {
+      "file": "Protos_20260601_122234.0",
+      "source": "Protos_20260601_122234.bbl",
+      "sha256": "1c3406e12737f337629220752458ae93db23c7924f9fda5631fc4dfced5e9679",
+      "consent": "private",
+      "group": "98cb6dff",
+      "start": "2026-06-01T12:22:35.353+00:00",
+      "headspeed": [
+        2000,
+        2500,
+        2600
+      ],
+      "intake": {
+        "rate_hz": 1009,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 157.4,
+        "hover_s": {},
+        "sharp_inputs": 59,
+        "autorotation_s": 0.0
+      }
+    },
+    {
+      "file": "Protos_20260601_122608.0",
+      "source": "Protos_20260601_122608.bbl",
+      "sha256": "af048dda3ab71907d71b85bd71bd97cfbd3b28fac35823e7c0f7721680a17781",
+      "consent": "private",
+      "group": "98cb6dff",
+      "start": "2026-06-01T12:26:08.464+00:00",
+      "headspeed": [
+        2000,
+        2100
+      ],
+      "intake": {
+        "rate_hz": 1009,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 39.6,
+        "hover_s": {},
+        "sharp_inputs": 5,
+        "autorotation_s": 0.0
+      }
+    },
+    {
+      "file": "Protos_20260602_115346.0",
+      "source": "Protos_20260602_115346.bbl",
+      "sha256": "ae458615c4e641b0356a0c95a1df245c70610ffc7dc382ab5503b46babd7b9ba",
+      "consent": "private",
+      "group": "98cb6dff",
+      "start": "2026-06-02T11:53:46.753+00:00",
+      "headspeed": [
+        2000,
+        2100,
+        2200,
+        2300,
+        2500,
+        2600
+      ],
+      "intake": {
+        "rate_hz": 1009,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 219.6,
+        "hover_s": {
+          "1900": 0.2,
+          "2000": 8.0,
+          "2100": 1.8,
+          "2200": 2.2
+        },
+        "sharp_inputs": 85,
+        "autorotation_s": 0.0
+      }
+    },
+    {
+      "file": "Protos_20260602_143946.0",
+      "source": "Protos_20260602_143946.bbl",
+      "sha256": "0c6b849457e48f873e20f1dc40c83ac62f1df6ac2d5bf7a1738ed363e51ea185",
+      "consent": "private",
+      "group": "98cb6dff",
+      "start": "2026-06-02T14:39:46.848+00:00",
+      "headspeed": [
+        2000,
+        2100,
+        2200,
+        2300,
+        2500
+      ],
+      "intake": {
+        "rate_hz": 1009,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 268.0,
+        "hover_s": {
+          "2000": 5.9,
+          "2100": 4.1,
+          "2300": 2.5
+        },
+        "sharp_inputs": 97,
+        "autorotation_s": 0.0
+      }
+    },
+    {
+      "file": "Protos_20260603_131124.0",
+      "source": "Protos_20260603_131124.bbl",
+      "sha256": "aab456fbb933699cb8afd9531de7b99113752e8bd644d07ac30c050251414523",
+      "consent": "private",
+      "group": "98cb6dff",
+      "start": "2026-06-03T13:11:25.489+00:00",
+      "headspeed": [
+        2000,
+        2100,
+        2200,
+        2300,
+        2500,
+        2600
+      ],
+      "intake": {
+        "rate_hz": 1009,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 281.9,
+        "hover_s": {
+          "2000": 5.5,
+          "2100": 3.5
+        },
+        "sharp_inputs": 72,
+        "autorotation_s": 0.0
+      }
+    },
+    {
+      "file": "Protos_20260622_094304.0",
+      "source": "Protos_20260622_094304.bbl",
+      "sha256": "7105c1c96e10936dc78640d6dcbe1e55702eac0a06f3e17d934e4d0b314250a4",
+      "consent": "private",
+      "group": "b8916a32",
+      "start": "2026-06-22T09:43:04.664+00:00",
+      "headspeed": [
+        2000,
+        2200
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 99.8,
+        "hover_s": {
+          "2000": 2.5
+        },
+        "sharp_inputs": 9,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    },
+    {
+      "file": "Protos_20260622_094806.0",
+      "source": "Protos_20260622_094806.bbl",
+      "sha256": "50466458939da5f32ee171edf297e256b91dd2c382373afa7fd9944640a13196",
+      "consent": "private",
+      "group": "b8916a32",
+      "start": "2026-06-22T09:48:07.423+00:00",
+      "headspeed": [
+        2000,
+        2200
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 30.7,
+        "hover_s": {
+          "2000": 4.6,
+          "2200": 2.5,
+          "2400": 1.7
+        },
+        "sharp_inputs": 0,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Protos_20260622_094946.0",
+      "source": "Protos_20260622_094946.bbl",
+      "sha256": "ece05b7ef0dc3ebd39e358887a0cf445c03a31d5be58819370028078fff6f444",
+      "consent": "private",
+      "group": "b8916a32",
+      "start": "2026-06-22T09:49:47.346+00:00",
+      "headspeed": [
+        2000,
+        2200,
+        2400
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 93.5,
+        "hover_s": {},
+        "sharp_inputs": 12,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Protos_20260622_095452.0",
+      "source": "Protos_20260622_095452.bbl",
+      "sha256": "6e58da0c52cf2a9141ef2b195980c5ad9c1a55e5575f2cc16d298904f137d097",
+      "consent": "private",
+      "group": "b8916a32",
+      "start": "2026-06-22T09:54:52.984+00:00",
+      "headspeed": [
+        2000,
+        2200,
+        2400
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 74.9,
+        "hover_s": {},
+        "sharp_inputs": 0,
+        "autorotation_s": 0.0
+      },
+      "role": "validate"
+    },
+    {
+      "file": "Protos_20260622_095704.0",
+      "source": "Protos_20260622_095704.bbl",
+      "sha256": "2e928294f04574bd2a088112c44f2fc268ea7aa282b65b452ad3d363b28af0a5",
+      "consent": "private",
+      "group": "b8916a32",
+      "start": "2026-06-22T09:57:05.279+00:00",
+      "headspeed": [
+        2200
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 76.0,
+        "hover_s": {},
+        "sharp_inputs": 28,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Protos_20260622_095920.0",
+      "source": "Protos_20260622_095920.bbl",
+      "sha256": "724cabc92886f2c46b657e70a466ec4b5ec8527871d981c6cf439648737bdfef",
+      "consent": "private",
+      "group": "b8916a32",
+      "start": "2026-06-22T09:59:21.230+00:00",
+      "headspeed": [
+        2000,
+        2200,
+        2400
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 47.5,
+        "hover_s": {},
+        "sharp_inputs": 4,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Protos_20260622_100428.0",
+      "source": "Protos_20260622_100428.bbl",
+      "sha256": "9169d99be42ead1c5299e30b5f3612b4f3623a950f879ae3dbcee7dfb4fac497",
+      "consent": "private",
+      "group": "b8916a32",
+      "start": "2026-06-22T10:04:29.898+00:00",
+      "headspeed": [
+        2200,
+        2400
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 124.0,
+        "hover_s": {},
+        "sharp_inputs": 14,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    },
+    {
+      "file": "Protos_20260622_101056.0",
+      "source": "Protos_20260622_101056.bbl",
+      "sha256": "751ddd33b87f2237b1125f7bd40f4dc2f0809165cc7160e0051dd7bf2b9a5801",
+      "consent": "private",
+      "group": "b8916a32",
+      "start": "2026-06-22T10:10:56.974+00:00",
+      "headspeed": [
+        2200,
+        2400
+      ],
+      "intake": {
+        "rate_hz": 1000,
+        "gyroRAW": true,
+        "power": true,
+        "baro": false,
+        "air_s": 122.5,
+        "hover_s": {},
+        "sharp_inputs": 47,
+        "autorotation_s": 0.0
+      },
+      "role": "fit"
+    }
+  ],
+  "groups": {
+    "98cb6dff": {
+      "craft": "Devil 505",
+      "firmware": "4.5",
+      "board": "RDMS NEXUS_XR",
+      "tail": "servo",
+      "collective": "-1008,1008",
+      "esc": "0/0"
+    },
+    "b8916a32": {
+      "craft": "Protos",
+      "firmware": "4.6",
+      "board": "RDMS NEXUS_XR",
+      "tail": "servo",
+      "collective": "-1083,1083",
+      "esc": "0/0"
+    }
+  }
+}

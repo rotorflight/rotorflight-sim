@@ -26,6 +26,7 @@ import os
 import sys
 
 import numpy as np
+from scipy.linalg import expm
 from scipy.optimize import least_squares
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -52,20 +53,29 @@ def events(log, ax, air):
 
 
 def simulate(params, u, p0, pd0, dt):
+    """The rate through a window, exact for the continuous model with the input held over
+    each step (zero-order hold): explicit Euler at 200 Hz damps a 4-6 Hz mode wrongly
+    and biased tf short."""
     K, L, tf, d = params
     t = np.arange(len(u)) * dt
-    ud = np.interp(t - d, t, u)                 # fractional delay, held at the start
+    # fractional delay, held at the start; each step holds the input at its middle (a
+    # zero-order hold on the start value would lag half a step, 2.5 ms at 200 Hz)
+    ud = np.interp(t + 0.5 * dt - d, t, u)
+    M = np.zeros((3, 3))
+    M[0, 1], M[1, 0], M[1, 1], M[1, 2] = L, -1.0, -1.0 / tf, K
+    E = expm(M * dt)
+    a00, a01, a10, a11, b0, b1 = E[0, 0], E[0, 1], E[1, 0], E[1, 1], E[0, 2], E[1, 2]
     p, b = p0, pd0 / L
     out = np.empty(len(u))
     for i in range(len(u)):
         out[i] = p
-        bd = -p - b / tf + K * ud[i]
-        p += L * b * dt
-        b += bd * dt
+        p, b = a00 * p + a01 * b + b0 * ud[i], a10 * p + a11 * b + b1 * ud[i]
     return out
 
 
-def fit(windows, dt):
+def fit(windows, dt, x0=None):
+    """K, L, tf, delay by output error over the windows; x0 (a previous fit's dict) starts
+    a single local fit from there instead of the multi-start search (the jackknife)."""
     def res(x):
         K, lnL, lntf, d = x
         r = []
@@ -74,12 +84,15 @@ def fit(windows, dt):
             r.append(simulate((K, np.exp(lnL), np.exp(lntf), d), u, y[0], pd0, dt) - y)
         return np.concatenate(r)
     best = None
-    for L0 in (200.0, 700.0, 2000.0):
-        for tf0, K0 in ((0.03, 6.0), (0.08, 6.0), (0.03, -6.0), (0.08, -6.0)):
-            r = least_squares(res, [K0, np.log(L0), np.log(tf0), 0.02],
-                              bounds=([-30, np.log(20), np.log(0.005), 0.0], [30, np.log(2e4), np.log(0.5), 0.06]))
-            if best is None or r.cost < best.cost:
-                best = r
+    starts = [(K0, np.log(L0), np.log(tf0), 0.02) for L0 in (200.0, 700.0, 2000.0)
+              for tf0, K0 in ((0.03, 6.0), (0.08, 6.0), (0.03, -6.0), (0.08, -6.0))]
+    if x0 is not None:
+        starts = [(x0['K'], np.log(x0['L']), np.log(x0['tf']), min(max(x0['delay_s'], 0.0), 0.06))]
+    for st in starts:
+        r = least_squares(res, list(st),
+                          bounds=([-30, np.log(20), np.log(0.005), 0.0], [30, np.log(2e4), np.log(0.5), 0.06]))
+        if best is None or r.cost < best.cost:
+            best = r
     K, lnL, lntf, d = best.x
     y = np.concatenate([w[1] for w in windows])
     vaf = 1 - np.var(best.fun) / np.var(y)
@@ -88,32 +101,43 @@ def fit(windows, dt):
             'mode_hz': round(float(np.sqrt(max(0.0, np.exp(lnL) - 1 / (4 * np.exp(lntf) ** 2))) / (2 * np.pi)), 2)}
 
 
-def main():
-    heli = json.load(open(sys.argv[1]))
-    plot = sys.argv[sys.argv.index('--plot') + 1] if '--plot' in sys.argv else None
-    per = {}          # (axis, headspeed) -> windows
-    dt = None
-    for entry in heli['logs']:
-        name = os.path.splitext(entry['file'])[0]
-        try:
-            log = Log(name)
-        except SystemExit as e:
-            print('skip %s: %s' % (name, e))
-            continue
+def collect(logs):
+    """The sharp-input windows of the logs, per (axis, headspeed level): lists of (u, y)
+    at RATE Hz, and the window's (log index, start sample) in where[(axis, level)]."""
+    from fit_heli import targets
+    per, where = {}, {}
+    dt = 1.0 / RATE
+    # 200 Hz is plenty for dynamics below 10 Hz, and keeps the fit fast; every window is
+    # resampled to it, so logs of different rates pool
+    grid = np.arange(-PRE, POST, dt)
+    for li, log in enumerate(logs):
         fs = 1.0 / log.dt
-        dt = max(1, int(round(fs / RATE))) / fs
         lab, _, _ = segment(log)
         air = ~lab['ground'] & ~lab['autorotation']
-        tg = np.round(log.c('govTarget') / 100) * 100
+        tg = np.round(targets(log) / 100) * 100
         for ax in (0, 1):
             u = log.c('mixer[%d]' % ax) / 1000
             y = log.c('gyroADC[%d]' % ax) * D2R
             for i in events(log, ax, air):
                 sl = slice(i - int(PRE * fs), i + int(POST * fs))
                 lv = int(np.median(tg[sl]))
-                # 200 Hz is plenty for dynamics below 10 Hz, and keeps the fit fast
-                step = max(1, int(round(fs / RATE)))
-                per.setdefault((ax, lv), []).append((u[sl][::step], y[sl][::step]))
+                tt = log.t[i] + grid
+                per.setdefault((ax, lv), []).append((np.interp(tt, log.t, u), np.interp(tt, log.t, y)))
+                where.setdefault((ax, lv), []).append((li, i))
+    return per, where, dt
+
+
+def main():
+    heli = json.load(open(sys.argv[1]))
+    plot = sys.argv[sys.argv.index('--plot') + 1] if '--plot' in sys.argv else None
+    logs = []
+    for entry in heli['logs']:
+        name = entry['file'][:-4] if entry['file'].endswith('.bbl') else entry['file']
+        try:
+            logs.append(Log(name))
+        except SystemExit as e:
+            print('skip %s: %s' % (name, e))
+    per, _, dt = collect(logs)
     out = {'heli': heli['name'], 'fits': []}
     print('axis   rpm  events      K      L     tf  delay   mode    VAF')
     for (ax, lv), wins in sorted(per.items()):

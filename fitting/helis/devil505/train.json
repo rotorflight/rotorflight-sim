@@ -1,0 +1,147 @@
+{
+ "heli": "ALZRC Devil 505",
+ "trained": "2026-11-08",
+ "group": "683c976e",
+ "setup": {
+  "craft": "Devil 505",
+  "firmware": "4.5",
+  "board": "RDMS NEXUS_XR",
+  "tail": "servo",
+  "collective": "-1250,1250",
+  "esc": "0/0"
+ },
+ "logs": {
+  "fit": [
+   "Devil_505_20260129_125822.0",
+   "Devil_505_20260129_163848.0"
+  ],
+  "validate": []
+ },
+ "start": "prior: size prior (500 class, M7R dynamics)",
+ "stages": {
+  "rotor": {
+   "proposal": null,
+   "notes": [
+    "A or B uncertain: 55 / 66 %"
+   ],
+   "decision": "no proposal"
+  },
+  "thrust": {
+   "proposal": null,
+   "notes": [
+    "no gated hover with a stable collective (2200 rpm 2.2 s insufficient, 2300 rpm 2.7 s insufficient)"
+   ],
+   "decision": "no proposal"
+  },
+  "rate": {
+   "proposal": {
+    "args": {
+     "rate_gain_pitch": 4.999
+    }
+   },
+   "notes": [
+    "at 2300 rpm: pitch 5.00"
+   ],
+   "score_before": null,
+   "score_after": null,
+   "score_detail": {
+    "before": "no held-out logs",
+    "after": "no held-out logs"
+   },
+   "others_worse": [],
+   "decision": "taken, not validated (over a size prior)"
+  },
+  "flap": {
+   "proposal": {
+    "args": {
+     "Lb1s": 5004.6,
+     "tf_roll": 0.0285,
+     "rate_gain_roll": 4.78,
+     "Ma1s": 1035.0,
+     "tf_pitch": 0.0306,
+     "rate_gain_pitch": 5.381
+    }
+   },
+   "notes": [
+    "roll from 44 sharp inputs at 2200 rpm: L 4579 +- 10 %, tf 0.030 +- 3 %, VAF 0.90",
+    "pitch 2300 rpm: L or tf uncertain (35 / 40 %)",
+    "pitch from 45 sharp inputs at 2200 rpm: L 947 +- 15 %, tf 0.032 +- 17 %, VAF 0.86"
+   ],
+   "score_before": null,
+   "score_after": null,
+   "score_detail": {
+    "before": "no held-out logs",
+    "after": "no held-out logs"
+   },
+   "others_worse": [],
+   "decision": "kept, not validated: no held-out logs"
+  },
+  "yaw": {
+   "proposal": {
+    "attrs": {
+     "Nped": 19.94,
+     "Nr": -0.113
+    }
+   },
+   "notes": [
+    "N_ped 19.9 at 2300 rpm (R^2 0.42) -> Nped 19.9 at 2300 rpm, Nr -0.11"
+   ],
+   "score_before": null,
+   "score_after": null,
+   "score_detail": {
+    "before": "no held-out logs",
+    "after": "no held-out logs"
+   },
+   "others_worse": [],
+   "decision": "taken, not validated (over a size prior)"
+  },
+  "power": {
+   "proposal": null,
+   "notes": [
+    "no gated hover at 2300 rpm with Vbat and Ibat"
+   ],
+   "decision": "no proposal"
+  }
+ },
+ "replay": null,
+ "changed": true,
+ "scores": {
+  "prior": {
+   "rotor": null,
+   "thrust": null,
+   "rate": null,
+   "flap": null,
+   "yaw": null,
+   "power": null
+  },
+  "current": {
+   "rotor": null,
+   "thrust": null,
+   "rate": null,
+   "flap": null,
+   "yaw": null,
+   "power": null
+  },
+  "new": {
+   "rotor": null,
+   "thrust": null,
+   "rate": null,
+   "flap": null,
+   "yaw": null,
+   "power": null
+  }
+ },
+ "gates": {
+  "rotor_r2": 0.6,
+  "rotor_rel": 0.25,
+  "hover_rel": 0.1,
+  "coherence": 0.6,
+  "rate_rel": 0.2,
+  "flap_vaf": 0.85,
+  "flap_events": 5,
+  "flap_rel": 0.35,
+  "yaw_r2": 0.3,
+  "yaw_rel": 0.25
+ },
+ "tolerance": 0.02
+}

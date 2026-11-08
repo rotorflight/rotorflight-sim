@@ -1,0 +1,121 @@
+{
+ "base": "fitted",
+ "description": "Stratos 700: trained 2026-11-08 from 14 logs (setup 7180bcda), checked on 8 held-out",
+ "attrs": {
+  "motor_poles": 10,
+  "v_hover": 3.3,
+  "rotor_radius": 0.79,
+  "hub_height": 0.395,
+  "ctrl_rpm_exp": 0.162,
+  "Zcol": -27.46526,
+  "thrust_inflow": [
+   8.51296,
+   0.0031
+  ],
+  "Nped": 43.6,
+  "Nr": -0.373,
+  "motor_fit": [
+   11.983512,
+   1.936584,
+   0.0,
+   0.001153,
+   2.0
+  ]
+ },
+ "args": {
+  "rate_gain_roll": 3.997,
+  "rate_gain_pitch": 4.119,
+  "Lb1s": 3068.5,
+  "Ma1s": 941.8,
+  "tf": 0.05,
+  "stiff_rpm_exp": 2.0,
+  "tf_rpm_exp": 1.0,
+  "turb": 0.0,
+  "turb_hz": 2.5,
+  "yaw_trim": 0.207,
+  "nominal_rpm": 1900.0,
+  "gear_ratio": 8.75,
+  "hover_throttle": 0.699,
+  "pack_cells": 12,
+  "pack_ah": 4.5,
+  "pack_r": 0.047,
+  "hover_power_w": 1487.7,
+  "cyclic_scale": 1.0,
+  "yaw_scale": 1.0,
+  "tf_roll": 0.0374,
+  "tf_pitch": 0.067
+ },
+ "provenance": {
+  "trained": "2026-11-08",
+  "group": "7180bcda",
+  "logs": {
+   "fit": [
+    "Stratos700_20261008_133322.0",
+    "Stratos700_20261008_133504.0",
+    "Stratos700_20261008_134002.0",
+    "Stratos700_20261008_134448.0",
+    "Stratos700_all_20261008_001340.5",
+    "Stratos700_all_20261008_001340.6",
+    "Stratos700_all_20261008_001340.9",
+    "Stratos700_all_20261008_001340.12",
+    "Stratos700_all_20261016_182858.0",
+    "Stratos700_all_20261016_182858.1",
+    "Stratos700_all_20261016_182858.4",
+    "Stratos700_all_20261016_182858.5",
+    "Stratos700_all_20261016_182858.6",
+    "Stratos700_all_20261016_182858.8"
+   ],
+   "validate": [
+    "Stratos700_20261008_133648.0",
+    "Stratos700_20261008_134116.0",
+    "Stratos700_all_20261008_001340.7",
+    "Stratos700_all_20261008_001340.8",
+    "Stratos700_all_20261008_001340.10",
+    "Stratos700_all_20261008_001340.11",
+    "Stratos700_all_20261016_182858.2",
+    "Stratos700_all_20261016_182858.9"
+   ]
+  },
+  "params": {
+   "rate_gain_roll": "fit 2026-11-08 (flap stage)",
+   "rate_gain_pitch": "fit 2026-11-08 (flap stage)",
+   "Lb1s": "fit 2026-11-08 (flap stage)",
+   "Ma1s": "fit 2026-11-08 (flap stage)",
+   "tf": "size prior (700 class, M7R dynamics)",
+   "stiff_rpm_exp": "size prior (700 class, M7R dynamics)",
+   "tf_rpm_exp": "size prior (700 class, M7R dynamics)",
+   "turb": "size prior (700 class, M7R dynamics)",
+   "turb_hz": "size prior (700 class, M7R dynamics)",
+   "yaw_trim": "fit 2026-11-08 (yaw stage)",
+   "nominal_rpm": "most flown headspeed",
+   "gear_ratio": "size prior (700 class, M7R dynamics)",
+   "hover_throttle": "fit 2026-11-08 (power stage)",
+   "pack_cells": "estimated from Vbat",
+   "pack_ah": "size prior (700 class, M7R dynamics)",
+   "pack_r": "size prior (700 class, M7R dynamics)",
+   "hover_power_w": "fit 2026-11-08 (power stage)",
+   "cyclic_scale": "size prior (700 class, M7R dynamics)",
+   "yaw_scale": "size prior (700 class, M7R dynamics)",
+   "tf_roll": "fit 2026-11-08 (flap stage)",
+   "tf_pitch": "fit 2026-11-08 (flap stage)",
+   "motor_poles": "size prior (700 class, M7R dynamics)",
+   "v_hover": "size prior (700 class, M7R dynamics)",
+   "rotor_radius": "size prior (700 class, M7R dynamics)",
+   "hub_height": "size prior (700 class, M7R dynamics)",
+   "ctrl_rpm_exp": "fit 2026-11-08 (rate stage)",
+   "Zcol": "fit 2026-11-08 (thrust stage)",
+   "thrust_inflow": "fit 2026-11-08 (thrust stage)",
+   "Nped": "fit 2026-11-08 (yaw stage)",
+   "Nr": "fit 2026-11-08 (yaw stage)",
+   "motor_fit": "fit 2026-11-08 (rotor stage)"
+  },
+  "held_out_scores": {
+   "rotor": 3.3017703585076275,
+   "thrust": 0.028059595271838295,
+   "rate": 0.0655971329497327,
+   "flap": 0.06084440165561199,
+   "yaw": 0.2227925180825708,
+   "power": 0.0314059900166389
+  }
+ }
+}

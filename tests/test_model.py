@@ -15,7 +15,7 @@ from heli_model import G, MODELS, Heli, M7R, Stratos200, euler, induced_velocity
 from sensors import Sensors, available  # noqa: E402
 from wind import Wind  # noqa: E402
 from servos import Servo, Servos, TYPES  # noqa: E402
-from heli_model import LIPO_OCV, load_model  # noqa: E402
+from heli_model import LIPO_OCV, Fitted, load_model, resolve, trained_models  # noqa: E402
 
 DT = 250e-6
 
@@ -621,6 +621,68 @@ class ModelFiles(unittest.TestCase):
         for bad in ([1, 2], {'base': 'm9'}, {'base': 'm7r', 'args': [1]}, {'base': 'm7r', 'attrs': 3}):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 load_model(self.write(bad))
+
+    def test_presets_are_fitted_parameter_files(self):
+        # the fitted presets' numbers live in heli/presets/*.json, on the generic Fitted class
+        for cls in (Stratos200, M7R):
+            with self.subTest(model=cls.__name__):
+                self.assertTrue(issubclass(cls, Fitted))
+                self.assertEqual(cls.params['base'], 'fitted')
+                self.assertIn('fitted', cls.__doc__)
+
+    def test_fitted_base_reproduces_a_preset(self):
+        # a trained model.json uses base "fitted" with all of its numbers: the M7R preset's
+        # file contents on that base must give the M7R
+        p = dict(M7R.params)
+        h, ref = load_model(self.write(p)), M7R()
+        self.assertNotIsInstance(h, M7R)
+        for k in ('Lb1s', 'Ma1s', 'Lflt', 'Mflg', 'tf_inv_roll', 'torque_yaw', 'nominal_w', 'gear', 'cells',
+                  'motor_fit', 'thrust_inflow', 'Nped', 'ctrl_rpm_exp', 'coll_hover'):
+            self.assertEqual(getattr(h, k), getattr(ref, k), k)
+
+    def test_motorized_tail_rpm(self):
+        h = Stratos200()
+        h.tail_throttle = 0.215
+        self.assertAlmostEqual(h.tail_rpm, 14340.0)
+        self.assertEqual(M7R().tail_rpm, 0.0)       # servo tail
+
+    def test_unknown_name(self):
+        with self.assertRaises(ValueError):
+            load_model('no_such_heli')
+        self.assertIsNone(resolve('no_such_heli'))
+        self.assertEqual(resolve('m7r'), 'm7r')
+
+
+class TrainedModels(unittest.TestCase):
+    """Every trained heli (fitting/helis/<heli>/model.json, fitting/scripts/train.py) loads
+    by name and is flyable: a hover throttle the motor can give, a damped flap/body mode in
+    the range real helis have, and it holds its height in hover with the rpm held."""
+
+    def test_trained_models(self):
+        names = trained_models()
+        for name in names:
+            with self.subTest(heli=name):
+                h = load_model(name)
+                self.assertIsInstance(h, Fitted)
+                # throttle that holds the nominal rotor speed at the hover collective
+                w, c = h.nominal_w, h.coll_hover
+                if h.motor_fit:
+                    A, B = h.motor_fit[:2]
+                    u = (B * w + w * w * h.drag_shape(c)) / (A * h.pack_voltage(0.0) * 0.95)
+                else:
+                    u = (h.B * w + h.k_d * w * w * h.drag_shape(c)) / h.A
+                self.assertTrue(0.15 < u < 1.0, 'hover throttle %.2f' % u)
+                f = mode_freq(load_model(name), dt=DT)
+                self.assertIsNotNone(f)
+                self.assertTrue(1.0 < f < 12.0, 'flap/body mode %.1f Hz' % f)
+                # hover at the collective the thrust law needs (the Stratos preset's Zcol
+                # says 0.636, its thrust law 0.6395: 1.3 m/s apart at its inflow share)
+                h = airborne(load_model(name))
+                if h.thrust_inflow:
+                    K, ki = h.thrust_inflow
+                    c = 3.0 / K + 1.5 * ki
+                hold_rpm(h, int(2.0 / DT), DT, (0.5, 0.0, 0.0, 0.0, c / h.coll_scale))
+                self.assertLess(abs(h.vel[2]), 0.3, 'climb or sink after 2 s of hover')
 
 
 if __name__ == '__main__':

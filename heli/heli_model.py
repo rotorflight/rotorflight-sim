@@ -20,7 +20,9 @@ position) plus rotor/motor rpm and the pack.
 Only the Python standard library is used.
 """
 
+import json
 import math
+import os
 import random
 
 G = 9.80665
@@ -560,170 +562,147 @@ class Heli:
         self.specific_force = (fx, fy, fz)
 
 
-class Stratos200(Heli):
+class Fitted(Heli):
     """
-    A 200-size direct-drive heli with a motorized tail (a Stratos 200 in a scale
-    fuselage), fitted from its blackbox logs (Rotorflight 4.7, 3600 rpm, 4S):
-      rotor law      dw/dt = A u V - B w - w^2 (k0 + k1 c^2), from motor volts against
-                     headspeed and collective (R^2 0.994)
-      rate gains     roll 5.07, pitch 4.74 rad/s per mixer input (0.5-3 Hz, setpoint as
-                     instrument for the closed-loop flight data)
-      yaw            tail motor up = nose right, 66 rad/s^2 per unit, 35 ms motor lag,
-                     weak damping; main rotor torque nose left (CW rotor)
-      hover          collective 0.636, throttle 0.47 at 15.2 V, tail 0.215
-      thrust         blade element with induced inflow, from the hover collective at
-                     3600 rpm (0.64) and 3300 rpm (0.715): a/wr^2 + b/wr, a 0.18, b 0.46
-    Closed-loop identification, replaying the flight's sticks through the SITL with the
-    heli's own configuration and gains:
-      flap/body stiffness Lb1s 1400 (roll mode 5.95 Hz), Ma1s 2000, tf 0.05 s - with
-      turbulence 4.3 rad/s^2 at 5 Hz (turb=4.3, turb_hz=5) the replay matches the real
-      heli's ~5.9 Hz roll/pitch whirl: 4-8 Hz roll 5.85 vs 5.93, pitch 3.70 vs 3.77 deg/s.
-      A sharp pitch input is tracked within 10 deg/s RMS, about 10 % slower to peak.
-      Stiffness ~ rpm^2 and tf ~ 1/rpm: at 3300 rpm the replay whirls at 5.1 Hz (real
-      4.94; 5.9 without the scaling), with too little amplitude (7 vs 10 deg/s roll).
-    Not identifiable from those flights: cross coupling and speed derivatives (off).
-    Fly it with the heli's CLI dump (--dump heli/replays/stratos_3300/dump.txt): on the
-    bridge's default gains the motorized tail does not hold the yaw.
+    A heli from fitted numbers alone: every constant comes from a parameter file (the
+    presets in heli/presets/, or fitting/helis/<heli>/model.json written by
+    fitting/scripts/train.py). What the fits identify per axis:
+
+      rate_gain_roll / _pitch   steady rate per unit mixer input, rad/s (fit_heli.py
+                                spectral gain or fit_flap.py K), at nominal_rpm
+      Lb1s, Ma1s, tf            flap/body stiffness (1/s^2) and flap time constant (s);
+                                tf_roll / tf_pitch per axis (fit_flap.py), else tf
+      yaw_trim                  tail command that holds the main rotor's torque in hover
+                                (|Nped| units): torque_yaw = -|Nped| yaw_trim (CW rotor)
+      tail_rpm_hover            motorized tail: its rpm at yaw_trim (the SITL's eRPM)
+    Class constants (motor_fit, thrust_inflow, Nped, Nr, v_hover, ...) come in as "attrs".
+    The speed derivatives and the flapping cross coupling are off: blackbox logs without
+    air data cannot identify them.
     """
-    motor_fit = (987.74, 16.843, 7.003e-4, 1.101e-2, 2.0)
-    motor_poles = 24
-    # typical 200 size (not measured): ~0.5 kg in the fuselage on a 0.21 m rotor
-    v_hover, rotor_radius, hub_height = 3.8, 0.21, 0.15
-    tail_motor = True
-    Zcol = -G / 0.636
-    # hover collective 0.70-0.73 at 3300 rpm, 0.636-0.646 at 3600: a/wr^2 + b/wr with
-    # a 0.180, b 0.460 - induced inflow carries most of the hover pitch
-    thrust_inflow = (3.0 / 0.1798, 0.4597 / 1.5)
     Ncol, Nw = 0.0, 0.0
-    # bridge yaw input = tail motor, yaw_cmd = sign_yaw (-1) * motor: Nped < 0 gives nose right
-    Nped, Nr = -66.0, -0.5
     Lfa1s = Mfb1s = 0.0
     Lflg = Mflt = 0.0
-    # speed-coupled moments (flapback, dihedral, weathervane) cannot be identified without
-    # velocity in the logs; the Blade 360 values made the drifting open-loop replay yaw and
-    # roll on their own, so they are off. Plain translational drag stays.
     Lu = Lv = Mu = Mv = Nv = 0.0
-
-    def __init__(self, Lb1s=1400.0, Ma1s=2000.0, tf=0.05, servo_tau=0.0, turb=0.0, turb_hz=5.0,
-                 stiff_rpm_exp=2.0, tf_rpm_exp=1.0, **kw):
-        self.stiff_rpm_exp, self.tf_rpm_exp = stiff_rpm_exp, tf_rpm_exp
-        self.turb_hz = turb_hz
-        self.turb = turb
-        self.servo_tau = servo_tau
-        self.Lb1s, self.Ma1s = Lb1s, Ma1s
-        self.tf_inv_roll = self.tf_inv_pitch = 1.0 / tf
-        # steady rate per input = Lflt / tf (flapping model at hover)
-        self.Lflt, self.Mflg = 5.07 * tf, 4.74 * tf
-        self.torque_yaw = -66.0 * 0.215          # CW main rotor: reaction turns the nose left
-        args = dict(nominal_rpm=3600.0, gear_ratio=1.0, hover_throttle=0.47, pack_cells=4,
-                    pack_ah=0.85, pack_r=0.05, hover_power_w=50.0, cyclic_scale=1.0, yaw_scale=1.0)
-        args.update(kw)
-        super().__init__(**args)
-
-    @property
-    def tail_rpm(self):
-        return 14340.0 * math.sqrt(max(self.tail_throttle, 0.0) / 0.215)
-
     tail_throttle = 0.0
 
-
-class M7R(Heli):
-    """
-    A 700-class heli with a servo tail (OMP M7R, 12S, analog ESC under the governor),
-    fitted from one 333 s sport flight (Rotorflight 4.6, 1500/1800/2000 rpm profiles):
-      rotor law      dw/dt = A u V - B w - w^2 (k0 + k1 c^2) (R^2 0.73 in the volts form;
-                     the analog ESC adds a throttle response of its own)
-      rate gains     roll 6.8, pitch 5.7 rad/s per mixer input (0.3-4 Hz, coherence
-                     0.9+, setpoint as instrument)
-                     at 1500/1800/2000 rpm roll 5.1/6.7/7.9 (~rpm^1.5), pitch 5.8/5.9/6.3
-                     (~rpm^0.5): ~rpm on average, as flapping theory has it with stiffness
-                     ~rpm^2 and tf ~1/rpm (ctrl_rpm_exp 0)
-      yaw            servo tail 38 rad/s^2 per unit at 1500 rpm (55 at 1800, x rpm^2; R^2
-                     0.68 in the cruise flying, the 3D parts fit poorly), damping -2 /s,
-                     hover tail trim -0.26..-0.28 at all headspeeds, against the main
-                     rotor torque
-      hover          collective 0.346 at 1500 rpm (cruise profile, 39 s upright with calm
-                     sticks); the inflow law with the Stratos' inflow share (72 %) gives
-                     0.273 at 1800 - the 1800 rpm 3D profile's calm moments read 0.280.
-                     Without velocity in the log, forward flight cannot be told from hover
-      pack           12S, 50.4 V full, 47 mOhm, ~4.5 Ah (4.9 V over 2.66 Ah)
-    Closed-loop identification, replaying the cruise profile (1500 rpm, real 242-318 s)
-    through the SITL with the header's gains and rates, collective rate 122 and a slow
-    height hold (--hold-alt; the open-loop collective drifts without translational lift):
-      flap/body      Lb1s = Ma1s 700, tf 0.05 s: roll / pitch tracking error 4.8 / 3.6
-                     deg/s (real 4.7 / 4.1), 1.5-3 Hz 3.0 / 2.3 (2.2 / 1.9). Softer (300)
-                     rings at 2.3 Hz, stiffer (1500+) tracks better than the real heli in
-                     the sim's calm air; tf 0.1 leaves a slow roll error
-      yaw            tracking error 11.0 vs 9.3 deg/s; the torque term matches the yaw
-                     mixer's median in that flying (-0.21)
-      throttle       47.7 % at 49.2 V vs 51.1 % at 45.5 V: the same motor volts
-    Gear ratio 8.75 (140/16): the motor's 1x line in the gyro of later flights sits at
-    8.75 rotor orders (fitting/helis/omp_m7r). Not in the log: motor poles (10 here: they
-    only set the eRPM the SITL sees, the bridge configures the same), speed derivatives (off).
-    """
-    motor_fit = (3.05, 0.3667, 4.907e-4, 5.248e-4, 2.0)
-    motor_poles = 10
-    # typical 700 class (not measured): ~5.2 kg on a 0.79 m rotor
-    v_hover, rotor_radius, hub_height = 3.3, 0.79, 0.40
-    ctrl_rpm_exp = 0.0
-    Zcol = -G / 0.273
-    thrust_inflow = (3.0 / 0.0765, 0.197 / 1.5)
-    Ncol, Nw = 0.0, 0.0
-    Nped, Nr = 55.0, -2.0
-    Lfa1s = Mfb1s = 0.0
-    Lflg = Mflt = 0.0
-    Lu = Lv = Mu = Mv = Nv = 0.0
-
-    def __init__(self, Lb1s=700.0, Ma1s=700.0, tf=0.05, servo_tau=0.0, turb=0.0, turb_hz=2.5,
-                 stiff_rpm_exp=2.0, tf_rpm_exp=1.0, tf_roll=None, tf_pitch=None, **kw):
+    def __init__(self, rate_gain_roll=5.0, rate_gain_pitch=5.0, Lb1s=700.0, Ma1s=700.0, tf=0.05,
+                 tf_roll=None, tf_pitch=None, stiff_rpm_exp=2.0, tf_rpm_exp=1.0, turb=0.0, turb_hz=5.0,
+                 servo_tau=0.0, yaw_trim=0.2, tail_rpm_hover=None, **kw):
         self.stiff_rpm_exp, self.tf_rpm_exp = stiff_rpm_exp, tf_rpm_exp
         self.turb, self.turb_hz, self.servo_tau = turb, turb_hz, servo_tau
         self.Lb1s, self.Ma1s = Lb1s, Ma1s
-        # per-axis flap time constants (fit_flap.py identifies them separately); the steady
-        # rate per input stays the fitted K = Lflt / tf on each axis
         tr, tp = tf_roll or tf, tf_pitch or tf
         self.tf_inv_roll, self.tf_inv_pitch = 1.0 / tr, 1.0 / tp
-        self.Lflt, self.Mflg = 6.8 * tr, 5.7 * tp
-        # main rotor torque against the tail trim: the yaw mixer sits at -0.21 (median of
-        # the replayed cruise flying, collective precomp included)
-        self.torque_yaw = -55.0 * 0.20
-        args = dict(nominal_rpm=1800.0, gear_ratio=8.75, hover_throttle=0.6, pack_cells=12,
-                    pack_ah=4.5, pack_r=0.047, hover_power_w=1150.0, cyclic_scale=1.0, yaw_scale=1.0)
-        args.update(kw)
-        super().__init__(**args)
+        # steady rate per input = Lflt / tf (flapping model at hover)
+        self.Lflt, self.Mflg = rate_gain_roll * tr, rate_gain_pitch * tp
+        self.yaw_trim = yaw_trim
+        self.torque_yaw = -abs(self.Nped) * yaw_trim
+        self.tail_rpm_hover = tail_rpm_hover
+        super().__init__(**kw)
 
+    @property
+    def tail_rpm(self):
+        if not self.tail_rpm_hover:
+            return 0.0
+        return self.tail_rpm_hover * math.sqrt(max(self.tail_throttle, 0.0) / max(self.yaw_trim, 1e-3))
+
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+PRESET_DIR = os.path.join(HERE, 'presets')
+# trained helis: fitting/helis/<name>/model.json (fitting/scripts/train.py)
+TRAINED_DIR = os.path.join(HERE, '..', 'fitting', 'helis')
+FILE_KEYS = {'base', 'args', 'attrs', 'description', 'notes', 'provenance'}
+
+
+def read_params(path):
+    with open(path) as f:
+        p = json.load(f)
+    if not isinstance(p, dict):
+        raise ValueError('%s: a JSON object expected' % path)
+    unknown = set(p) - FILE_KEYS
+    if unknown:
+        raise ValueError('%s: unknown keys %s' % (path, ', '.join(sorted(unknown))))
+    if not isinstance(p.get('attrs', {}), dict) or not isinstance(p.get('args', {}), dict):
+        raise ValueError('%s: "args" and "attrs" must be objects' % path)
+    return p
+
+
+def subclass(base, name, p, path):
+    """base with a parameter file's class constants ("attrs") and constructor defaults
+    ("args"; keyword arguments go on top)."""
+    attrs = dict(p.get('attrs', {}))
+    for k in attrs:
+        if not hasattr(base, k):
+            raise ValueError('%s: %s has no constant %s' % (path, base.__name__, k))
+    args = dict(p.get('args', {}))
+    if not attrs and not args:
+        return base
+
+    def __init__(self, **kw):
+        base.__init__(self, **{**args, **kw})
+    attrs['__init__'] = __init__
+    attrs['__doc__'] = '\n'.join([p.get('description', '')] + list(p.get('notes', [])))
+    attrs['params'] = p
+    return type(name, (base,), attrs)
+
+
+def preset(name, cls_name):
+    path = os.path.join(PRESET_DIR, name + '.json')
+    return subclass(Fitted, cls_name, read_params(path), path)
+
+
+# The fitted presets: their numbers and how they were found live in heli/presets/*.json
+Stratos200 = preset('stratos200', 'Stratos200')
+M7R = preset('m7r', 'M7R')
 
 MODELS = {'blade360': Heli, 'stratos200': Stratos200, 'm7r': M7R}
+BASES = dict(MODELS, fitted=Fitted)
+
+
+def trained_models():
+    """Names of the trained helis (fitting/helis/<name>/model.json)."""
+    if not os.path.isdir(TRAINED_DIR):
+        return []
+    return sorted(d for d in os.listdir(TRAINED_DIR)
+                  if os.path.isfile(os.path.join(TRAINED_DIR, d, 'model.json')))
+
+
+def resolve(spec):
+    """A model spec as a preset name, a parameter file, or None if it is neither: preset
+    names first, then trained helis by name, then a path."""
+    if spec in MODELS:
+        return spec
+    path = os.path.join(TRAINED_DIR, spec, 'model.json')
+    if os.sep not in spec and '/' not in spec and os.path.isfile(path):
+        return path
+    return spec if os.path.isfile(spec) else None
 
 
 def load_model(spec, **kw):
-    """A heli from a preset name (MODELS) or a JSON parameter file:
+    """A heli from a preset name (MODELS), a trained heli's name (fitting/helis/<name>/
+    model.json) or a JSON parameter file:
 
-        {"base": "m7r",                      preset it starts from (default blade360)
+        {"base": "m7r",                      preset it starts from (default blade360;
+                                             "fitted": the generic Fitted class)
          "args": {"Lb1s": 900, "pack_cells": 6},   constructor arguments
-         "attrs": {"v_hover": 3.0}}          class constants (Heli's upper-case derivatives,
+         "attrs": {"v_hover": 3.0},          class constants (Heli's upper-case derivatives,
                                              v_hover, rotor_radius, ...) set before __init__
+         "description": "...", "notes": [...], "provenance": {...}}   documentation only
 
     Keyword arguments (the bridge's --set and frame signs) go on top of "args"."""
-    if spec in MODELS:
-        return MODELS[spec](**kw)
-    import json
-    with open(spec) as f:
-        p = json.load(f)
-    if not isinstance(p, dict):
-        raise ValueError('%s: a JSON object expected' % spec)
-    unknown = set(p) - {'base', 'args', 'attrs', 'description'}
-    if unknown:
-        raise ValueError('%s: unknown keys %s' % (spec, ', '.join(sorted(unknown))))
+    path = resolve(spec)
+    if path is None:
+        raise ValueError('no preset, trained heli or file %s (presets: %s; trained: %s)'
+                         % (spec, ', '.join(sorted(MODELS)), ', '.join(trained_models()) or '-'))
+    if path in MODELS:
+        return MODELS[path](**kw)
+    return from_params(read_params(path), path, **kw)
+
+
+def from_params(p, path='<params>', **kw):
+    """A heli from a parameter dict (the contents of a parameter file)."""
     name = p.get('base', 'blade360')
-    if name not in MODELS:
-        raise ValueError('%s: unknown base %s (presets: %s)' % (spec, name, ', '.join(sorted(MODELS))))
-    base = MODELS[name]
-    attrs = p.get('attrs', {})
-    if not isinstance(attrs, dict) or not isinstance(p.get('args', {}), dict):
-        raise ValueError('%s: "args" and "attrs" must be objects' % spec)
-    for k in attrs:
-        if not hasattr(base, k):
-            raise ValueError('%s: %s has no constant %s' % (spec, base.__name__, k))
-    cls = type(base.__name__ + 'File', (base,), dict(attrs)) if attrs else base
-    return cls(**{**p.get('args', {}), **kw})
+    if name not in BASES:
+        raise ValueError('%s: unknown base %s (bases: %s)' % (path, name, ', '.join(sorted(BASES))))
+    base = BASES[name]
+    return subclass(base, base.__name__ + 'File', p, path)(**kw)
