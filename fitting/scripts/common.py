@@ -8,7 +8,8 @@ The skill's scripts folder is looked up in BLACKBOX_DECODE_DIR, else in a
 rotorflight-agent-skills checkout next to this repository.
 
 Flights are named by file stem and looked up in FIT_DATA_DIR (default data/split, relative
-to the fitting folder the scripts run from): <name>.npz, <name>.0.npy or <name>.npy.
+to the fitting folder the scripts run from; several folders separated by os.pathsep):
+<name>.npz, <name>.0.npy or <name>.npy. New decodes go to the first folder.
 """
 import os
 import sys
@@ -18,7 +19,8 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKILL = os.environ.get('BLACKBOX_DECODE_DIR') or os.path.join(
     HERE, '..', '..', '..', 'rotorflight-agent-skills', 'skills', 'blackbox-decode', 'scripts')
-DATA = os.environ.get('FIT_DATA_DIR', os.path.join('data', 'split'))
+DATA_DIRS = [d for d in os.environ.get('FIT_DATA_DIR', os.path.join('data', 'split')).split(os.pathsep) if d]
+DATA = DATA_DIRS[0]
 
 # The Stratos 200 / Bo105 flights the preset was fitted from (2026-10-08): airborne, in acro.
 # Replace for another heli's logs.
@@ -37,11 +39,21 @@ def bblog():
 
 
 def find(name):
-    for cand in (name, os.path.join(DATA, name + '.npz'), os.path.join(DATA, name + '.0.npy'),
-                 os.path.join(DATA, name + '.npy')):
+    cands = [name]
+    for d in DATA_DIRS:
+        cands += [os.path.join(d, name + '.npz'), os.path.join(d, name + '.0.npy'), os.path.join(d, name + '.npy')]
+    for cand in cands:
         if cand.endswith(('.npz', '.npy')) and os.path.exists(cand):
             return cand
-    raise SystemExit('no decoded log for %s in %s' % (name, DATA))
+    raise SystemExit('no decoded log for %s in %s' % (name, os.pathsep.join(DATA_DIRS)))
+
+
+def has_log(name):
+    try:
+        find(name)
+        return True
+    except SystemExit:
+        return False
 
 
 class Log:
