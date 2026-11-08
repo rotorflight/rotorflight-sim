@@ -21,6 +21,7 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, '..', 'scripts'))
 import fit_flap  # noqa: E402
 import fit_heli  # noqa: E402
+import fit_pack  # noqa: E402
 import holdout  # noqa: E402
 import jackknife  # noqa: E402
 import model_params as mp  # noqa: E402
@@ -42,9 +43,11 @@ def perturbed():
     a['tf_roll'] *= 1.5
     a['yaw_trim'] *= 1.5
     a['hover_power_w'] *= 1.5
+    a['pack_r'] *= 2.0
     g['motor_fit'] = [g['motor_fit'][0] * 1.25] + g['motor_fit'][1:]
     g['thrust_inflow'] = [g['thrust_inflow'][0] * 0.75, g['thrust_inflow'][1]]
     g['Nped'] *= 1.4
+    g['Ncol'] = 10.0
     return p
 
 
@@ -89,7 +92,12 @@ class Training(unittest.TestCase):
         for rpm in (1800, 2100):
             with self.subTest(rpm=rpm):
                 y = self.fit['yaw']['%d' % rpm]
-                self.assertAlmostEqual(y['N_ped'] / (TRUTH['attrs']['Nped'] * (rpm / 1800) ** 2), 1.0, delta=0.05)
+                wr2 = (rpm / 1800) ** 2
+                self.assertAlmostEqual(y['N_ped'] / (TRUTH['attrs']['Nped'] * wr2), 1.0, delta=0.05)
+                # collective to yaw in the firmware frame (the model's -r): Ncol and the main
+                # rotor's torque reaction through its drag together
+                total = TRUTH['attrs']['Ncol'] * wr2 + mp.torque_slope(TRUTH, rpm, y['collective'])
+                self.assertAlmostEqual(-y['N_col'] / total, 1.0, delta=0.1)
 
     def test_flap(self):
         per, _, dt = fit_flap.collect(self.fit_logs)
@@ -101,6 +109,37 @@ class Training(unittest.TestCase):
                 self.assertAlmostEqual(f['K'] / K, 1.0, delta=0.04)
                 self.assertAlmostEqual(f['L'] / L, 1.0, delta=0.12)
                 self.assertAlmostEqual(f['tf'] / tf, 1.0, delta=0.12)
+
+    def test_input_segments(self):
+        from segment import inputs
+        from synthetic import SynthLog, band_noise
+        import random
+        fs, T = 200.0, 40.0
+        t = np.arange(0, T, 1 / fs)
+        # a 20 s chirp 0.3 -> 5 Hz on roll from 10 s; stick noise on pitch throughout
+        tc = np.clip(t - 10, 0, 20)
+        f = 0.3 + (5 - 0.3) * tc / 20
+        chirp = np.where((t >= 10) & (t < 30), 60 * np.sin(2 * np.pi * np.cumsum(f) / fs), 0.0)
+        noise = band_noise(random.Random(3), len(t), 1 / fs, 2.0, 60)
+        hs = np.minimum(t / 5, 1.0) * 2000
+        cols = {'time': t * 1e6, 'setpoint[0]': chirp, 'setpoint[1]': noise, 'headspeed': hs,
+                'motor[0]': np.full(len(t), 600.0)}
+        inp = inputs(SynthLog('chirp', cols, {}, []))
+        swept = t[inp['sweep']]
+        self.assertGreater(len(swept) / fs, 12)                      # most of the chirp
+        self.assertTrue(np.all((swept > 8) & (swept < 32)), 'noise counted as a sweep')
+        sp = t[inp['spoolup']]
+        self.assertTrue(len(sp) and sp.max() < 5.0 and sp.min() < 1.0)
+
+    def test_pack(self):
+        # the flights draw a few percent of the pack: the resistance is identified, the
+        # capacity is not (ah_share), and the gate says so
+        pk = fit_pack.fit_logs(self.fit_logs, 12, say=lambda *a: None)
+        self.assertAlmostEqual(pk['resistance_ohm'] / TRUTH['args']['pack_r'], 1.0, delta=0.2)
+        self.assertLess(pk['rms_v'], 0.1)
+        ch, _ = mp.proposals(TRUTH, self.fit, None, {}, [], pack=pk)['pack']
+        self.assertIn('pack_r', ch['args'])
+        self.assertNotIn('pack_ah', ch['args'])
 
     # ---- uncertainty, held-out scoring, split ---------------------------------------
     def test_jackknife(self):
@@ -170,6 +209,12 @@ class Training(unittest.TestCase):
                     self.assertAlmostEqual(L / tL, 1.0, delta=0.15)
                     self.assertAlmostEqual(tf / ttf, 1.0, delta=0.15)
             self.assertAlmostEqual(mp.hover_collective(model, rpm), mp.hover_collective(TRUTH, rpm), delta=0.012)
+
+        # collective to yaw: the model's Ncol on top of its own torque reaction (whose
+        # rotor law differs from the truth's) gives the truth's total slope
+        def total(p, rpm=1800, c=0.31):
+            return (rpm / p['args']['nominal_rpm']) ** 2 * p['attrs'].get('Ncol', 0.0) + mp.torque_slope(p, rpm, c)
+        self.assertAlmostEqual(total(model), total(TRUTH), delta=0.15 * abs(total(TRUTH)))
         for st, v in rep['scores']['new'].items():
             if v is not None and rep['scores']['prior'][st] is not None:
                 self.assertLessEqual(v, rep['scores']['prior'][st] * 1.02 + 1e-9, st)

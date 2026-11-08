@@ -71,7 +71,10 @@ independent of the heli) from vibration (per heli, scaled with rpm):
 - [x] Checks: with vibration on, the RPM filter must remove the tracked harmonics (filtered
       gyro error below 3 deg/s RMS over MSP in the calm descent), and the hover check still
       passes; with the RPM filter off it must fail (CI, both)
-- [ ] Compare sim and real filtered-gyro spectra in `compare_replay.py`
+- [x] Compare sim and real filtered-gyro spectra in `compare_replay.py`: the log-spectral
+      distance per axis (RMS dB, 1-30 Hz), also in the replay check's report. The M7R replay
+      sits 9-16 dB off: the real heli's filtered gyro carries far more (vibration left after
+      the filters, turbulence) than the sim's calm air
 
 ## 3. Refining parameter sets from more flight logs
 
@@ -91,7 +94,9 @@ heli and gives back a preset with its validation:
       cruise per sample (hover from baro vario, attitude around the roll trim and calm
       sticks; in ground effect flagged); `fit_heli.py` takes its hover stage from it with a
       5 s gate per headspeed
-- [ ] Spool-up and stick-input (doublet, sweep) segments
+- [x] Spool-up and stick-input (doublet, sweep) segments: `segment.inputs()` overlays,
+      seconds per log in `fit.json`; the rotor law fits every powered sample, spool-ups
+      included (what identifies A). No log has a frequency sweep yet (manoeuvre card 6)
 - [ ] **Fits as stages**, each with a coherence / R^2 gate: rotor law, rate gains per
       headspeed, yaw, hover collective per headspeed (thrust law), vibration (2), then the
       closed-loop flap/body sweep by replay (`sweep_replay.py`, `m7r_sweep.py` generalised).
@@ -234,9 +239,15 @@ The current disturbance is a random moment on the body, with `turb_hz` tuned per
 ## 8. Couplings
 
 - [ ] Roll/pitch cross coupling of the flapping (`Lfa1s`, `Mfb1s`, `Lflg`, `Mflt`, off in
-      the fitted presets): fit from sharp-input flights
-- [ ] Collective to yaw torque on servo tails (`Ncol`, off), to test the firmware's
-      collective precompensation
+      the fitted presets): fit from sharp-input flights. Probed on the Stratos 700, Nimbus,
+      M7R and Protos: the off-axis response to a sharp input is small and mostly unexplained
+      (1 - VAF 0.2-10 with or without coupling), the fitted cross gains (-0.12..+0.12 of the
+      own-axis input) disagree in sign between helis - not identifiable from these flights.
+      Needs one-axis inputs held long enough for the off-axis rate to build up
+- [x] Collective to yaw torque on servo tails (`Ncol`), to test the firmware's collective
+      precompensation: the yaw stage proposes it from the yaw regression's collective term,
+      less the model's own main-rotor torque reaction through its drag (which responds to
+      collective too); the held-out yaw prediction includes both
 - [ ] Main rotor gyroscopic and tail rotor gyroscopic terms
 - [ ] Tail rotor speed, thrust and inflow (servo tails), tail authority loss at low rpm
 
@@ -249,7 +260,10 @@ The current disturbance is a random moment on the body, with `turb_hz` tuned per
 - [ ] Servo load (stall torque against the feathering moment), types from measured servos
 - [x] Pack: LiPo discharge curve (open-circuit voltage per cell against state of charge)
       and internal resistance rising towards empty, instead of the straight line
-- [ ] Pack temperature (resistance and capacity), and a curve fitted from logged Vbat/Ibat
+- [x] A pack fitted from logged Vbat/Ibat (`fit_pack.py`, the `pack` stage of `train.py`):
+      capacity and internal resistance against the LiPo curve, one starting charge per log,
+      leave-one-log-out errors; the capacity only where a log drew a quarter of the pack
+- [ ] Pack temperature (resistance and capacity)
 
 ## 10. Engineering
 

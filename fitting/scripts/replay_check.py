@@ -147,7 +147,11 @@ def score(real, sim, t0, t1):
                  for ax in ('roll', 'pitch', 'yaw')])
     s += abs(S['throttle'] - R['throttle']) / 10 + abs(S['tail'] - R['tail']) / 10
     keys = ('roll_err_rms', 'pitch_err_rms', 'yaw_err_rms', 'throttle', 'tail')
-    return float(s), {k: (round(float(R[k]), 2), round(float(S[k]), 2)) for k in keys}
+    out = {k: (round(float(R[k]), 2), round(float(S[k]), 2)) for k in keys}
+    # the whole filtered-gyro spectrum, sim against real (dB, reported, not scored)
+    for ax in ('roll', 'pitch', 'yaw'):
+        out[ax + '_spectrum_db'] = round(compare_replay.spectral_distance(R, S, ax), 1)
+    return float(s), out
 
 
 def compare(elf, heli, old, new, entries, say=print, max_logs=2):

@@ -15,15 +15,18 @@ One command per heli, run whenever logs are added (intake.py). Steps:
     can be changed by hand. Validate logs are never fitted.
  3. Fit: fit_heli.py's stages and fit_flap.py's sharp-input fit on the fit logs, with a
     jackknife over 20 s blocks (jackknife.py) for the standard error of every number.
-    -> fit.json, flap.json (with "uncertainty")
+    -> fit.json, flap.json (with "uncertainty"); fit_pack.py's pack -> pack.json
  4. Propose: each stage whose gates pass proposes its model numbers (model_params.py),
     on top of the current model (model.json, else the prior: the heli file's preset or a
     generic heli of its size).
  5. Validate: each proposal is scored on the held-out logs (holdout.py) against the
-    current numbers, stage by stage in the order rotor, thrust, rate, flap, yaw, power. A
+    current numbers, stage by stage in the order rotor, thrust, rate, flap, yaw, power,
+    pack. A
     proposal is taken if it scores no worse on its own stage, and no more than 2 % worse
     on every other one (a stage's numbers feed other predictions: the rate gain is the
-    flap model's K). One that the held-out logs cannot judge is taken only over a size prior (a
+    flap model's K). Stages that depend on the one judged (yaw on the rotor law's torque
+    reaction, the rotor law on the thrust law's hover point) are proposed again on top of
+    it first, so a change is judged with what they will refit. One that the held-out logs cannot judge is taken only over a size prior (a
     guess), never over a preset or an earlier fit.
  6. Optional (--elf): the held-out logs' sticks are replayed through the SITL with the
     current and the new model (replay_check.py); the new model must track the real
@@ -48,6 +51,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import fit_flap  # noqa: E402
 import fit_heli  # noqa: E402
+import fit_pack  # noqa: E402
 import holdout  # noqa: E402
 import jackknife  # noqa: E402
 import model_params as mp  # noqa: E402
@@ -55,6 +59,8 @@ from common import Log  # noqa: E402
 from fingerprint import KEY, differences, group_id, setup  # noqa: E402
 from logstore import decoded_name, save  # noqa: E402
 
+# stages whose proposals depend on another's numbers: re-proposed before judging it
+DEPENDS = {'rotor': ('yaw', 'power'), 'thrust': ('rotor', 'yaw', 'power')}
 TOL = 0.02          # relative: how much worse another stage may score (noise); its own may not
 VALIDATE_EVERY = 4  # one log in four is held out
 MIN_AIR_S = 20.0    # a log shorter than this in the air does not count as a flight
@@ -210,6 +216,9 @@ def train(heli_path, group=None, folds=8, dry=False, elf=None, say=print):
         else:
             note = 'prior (model.json is of another setup, %s)' % (m.get('provenance') or {}).get('group')
     say('starting from the %s, nominal %d rpm' % (note, current['args']['nominal_rpm']))
+    pack = fit_pack.fit_logs(logs, current['args'].get('pack_cells'), say)
+    if not dry and pack:
+        json.dump(dict({'heli': heli['name'], 'group': group}, **pack), open(os.path.join(folder, 'pack.json'), 'w'), indent=1)
 
     # ---- held-out logs ----------------------------------------------------------------
     vlogs = fit_heli.load_logs(val_names)
@@ -217,12 +226,13 @@ def train(heli_path, group=None, folds=8, dry=False, elf=None, say=print):
     score = (lambda p: holdout.score(p, meas)) if meas else (lambda p: {s: (None, 'no held-out logs') for s in mp.STAGES})
 
     # ---- proposals, stage by stage ------------------------------------------------------
-    props = mp.proposals(current, full, flap, se, unstable, flap_se)
+    # proposals are made against the model as it stands when their stage comes up: the yaw
+    # stage takes the torque path of the rotor law the rotor stage may just have changed
     cand, cand_prov = copy.deepcopy(current), dict(cur_prov)
     today = datetime.date.today().isoformat()
     stages = {}
     for st in mp.STAGES:
-        ch, notes = props[st]
+        ch, notes = mp.proposals(cand, full, flap, se, unstable, flap_se, pack)[st]
         rec = {'proposal': ch, 'notes': notes}
         if ch is None:
             rec['decision'] = 'no proposal'
@@ -233,10 +243,21 @@ def train(heli_path, group=None, folds=8, dry=False, elf=None, say=print):
             rec['score_before'], rec['score_after'] = before[0], after[0]
             rec['score_detail'] = {'before': before[1], 'after': after[1]}
             # never worse anywhere: the numbers of one stage feed others' predictions (the
-            # rate gain is the flap model's K)
-            worse = ['%s %s -> %s' % (o, fmt(sb[o][0]), fmt(sa[o][0])) for o in mp.STAGES
-                     if o != st and sb[o][0] is not None and sa[o][0] is not None
-                     and sa[o][0] > sb[o][0] * (1 + TOL) + 1e-9]
+            # rate gain is the flap model's K). A stage that depends on this one is first
+            # proposed again on top of it (a new rotor law moves the torque reaction the
+            # yaw stage's Ncol is taken against): judged with what it will refit
+            look, refit = trial, []
+            for d in DEPENDS.get(st, ()):
+                chd = mp.proposals(look, full, flap, se, unstable, flap_se, pack)[d][0]
+                if chd:
+                    look = mp.apply(look, chd)
+                    refit.append(d)
+            sl = score(look) if refit else sa
+            worse = ['%s %s -> %s' % (o, fmt(sb[o][0]), fmt(sl[o][0])) for o in mp.STAGES
+                     if o != st and sb[o][0] is not None and sl[o][0] is not None
+                     and sl[o][0] > sb[o][0] * (1 + TOL) + 1e-9]
+            if refit:
+                rec['judged_with_refit'] = refit
             rec['others_worse'] = worse
             guess = all(str(cand_prov.get(k, 'size prior')).startswith('size prior') for k in keys_of(ch))
             if worse:

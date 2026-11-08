@@ -19,6 +19,8 @@ m7r_fit.py, generalised, pooled over the logs and split by headspeed.
                   flap/body magnitude K L / |L - w^2 + j w / tf| fitted to |G| (gain_fit; the
                   plain median |G| as median_gain)
   yaw             servo tail: r_dot = N_ped y + N_col c + N_r r, 0.5-8 Hz band, per headspeed
+                  (firmware frame; N_col holds the main rotor torque's response to
+                  collective too, model_params.py takes it apart), with the median collective
   whirl           gyro spectral peak 2-15 Hz per axis and headspeed
 
 Writes helis/<heli>/fit.json, the input for the physical model's calibration
@@ -35,7 +37,7 @@ from scipy.signal import butter, csd, sosfiltfilt, welch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import Log  # noqa: E402
-from segment import LABELS, airborne, has_baro, segment  # noqa: E402
+from segment import INPUTS, LABELS, airborne, has_baro, inputs, segment  # noqa: E402
 
 HOVER_GATE_S = 5.0
 
@@ -86,12 +88,14 @@ def prepare(logs):
     for lg in logs:
         fs = 1.0 / lg.dt
         lab, alt, ige = segment(lg)
+        inp = inputs(lg)
         lp = butter(2, 4, fs=fs, output='sos')
         w = sosfiltfilt(lp, lg.c('headspeed')) * 2 * np.pi / 60
         prep.append({
             'log': lg, 'fs': fs, 'tg': targets(lg),
             'seconds': dict({k: round(float(lab[k].sum() / fs), 1) for k in LABELS},
-                            hover_in_ground_effect=round(float(ige.sum() / fs), 1)),
+                            hover_in_ground_effect=round(float(ige.sum() / fs), 1),
+                            **{k: round(float(inp[k].sum() / fs), 1) for k in INPUTS}),
             'hover': lab['hover'] & ~ige & level_flight(lg), 'ige': ige, 'baro': has_baro(lg),
             'air': airborne(lg) & (lg.c('headspeed') > 500),
             'powered': powered(lg, w),
@@ -189,7 +193,7 @@ def fit(prep, keep=None, verbose=True):
         calm_n, ige_n, baro_n, coll_, thr_, volt_, ym_, pw_ = 0, 0, 0, [], [], [], [], []
         Syr = {0: 0, 1: 0, 2: 0}; Sur = dict(Syr); Srr = dict(Syr); Syy = dict(Syr)
         spec = {0: [], 1: [], 2: []}
-        yaw_X, yaw_y = [], []
+        yaw_X, yaw_y, yaw_c = [], [], []
         dur = 0.0
         for p, a_, (hov, ige) in zip(prep, AIR, SEG):
             lg = p['log']
@@ -232,6 +236,7 @@ def fit(prep, keep=None, verbose=True):
             cc = sosfiltfilt(bp, lg.c('mixer[3]') / 1000)
             sel = np.flatnonzero(k)[::5]
             yaw_X.append(np.c_[yy[sel], cc[sel], r_[sel]]); yaw_y.append(rd[sel])
+            yaw_c.append(lg.c('mixer[3]')[sel] / 1000)
         key = '%d' % tg
         if calm_n:
             hover[key] = {'seconds': round(calm_n / fs, 1),
@@ -272,7 +277,8 @@ def fit(prep, keep=None, verbose=True):
             coef, *_ = np.linalg.lstsq(X, y, rcond=None)
             yaw[key] = {'N_ped': round(float(coef[0]), 2), 'N_col': round(float(coef[1]), 2),
                         'N_r': round(float(coef[2]), 3),
-                        'r2': round(float(1 - np.var(y - X @ coef) / np.var(y)), 3)}
+                        'r2': round(float(1 - np.var(y - X @ coef) / np.var(y)), 3),
+                        'collective': round(float(np.median(np.concatenate(yaw_c))), 4)}
         h = hover.get(key, {})
         say('%5s rpm, %4.0f s airborne: hover %s s (%s) coll %s thr %s at %s V, yaw mixer %s | rate gain r/p/y %s | '
             'whirl %s Hz | yaw N_ped %s R^2 %s'

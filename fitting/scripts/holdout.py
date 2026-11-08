@@ -11,9 +11,12 @@ numbers predict something the held-out logs measured; lower is better everywhere
            coherence >= 0.6, roll and pitch, per headspeed)
   flap     1 - VAF of the flap/body model on the held-out sharp inputs (fit_flap.py's
            output error with the model's K, L and tf at each window's headspeed)
-  yaw      1 - R^2 of r' = Nped (w/w_n)^2 y + Nr r on the held-out yaw (servo tails),
+  yaw      1 - R^2 of r' = Nped (w/w_n)^2 y + Nr r - Ncol (w/w_n)^2 c - torque reaction
+           (firmware frame; the model's main rotor torque through its drag, band-passed
+           alike) on the held-out yaw (servo tails),
            0.5-8 Hz, plus |tail trim error| in hover at the nominal headspeed
   power    |hover power error| / measured at the nominal headspeed
+  pack     RMS Vbat error, V (fit_pack.py's pack model; each log's starting charge fitted)
 
 The held-out logs' own numbers come from the same stages (fit_heli.fit, fit_flap.collect)
 run on them alone: measured(), once per training.
@@ -27,8 +30,9 @@ from scipy.signal import butter, sosfiltfilt
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import fit_flap  # noqa: E402
+import fit_pack  # noqa: E402
 import fit_heli  # noqa: E402
-from model_params import flap_at, hover_collective, rate_gain  # noqa: E402
+from model_params import flap_at, hover_collective, rate_gain, torque_terms  # noqa: E402
 
 D2R = np.pi / 180
 
@@ -50,11 +54,16 @@ def measured(prep):
         r_ = sosfiltfilt(bp, lg.c('gyroADC[2]') * D2R)
         rd = np.gradient(r_, lg.t)
         yy = sosfiltfilt(bp, lg.c('mixer[2]') / 1000)
+        cc = sosfiltfilt(bp, lg.c('mixer[3]') / 1000)
         sel5 = np.flatnonzero(p['air'] & (p['tg'] > 0))[::5]
         if len(sel5):
-            yaw.append(np.c_[yy[sel5], r_[sel5], rd[sel5], lg.c('headspeed')[sel5]])
+            # per log: the model's torque reaction is computed from the raw collective and
+            # rotor speed and band-passed alike in score()
+            yaw.append({'y': yy[sel5], 'r': r_[sel5], 'rd': rd[sel5], 'hs': lg.c('headspeed')[sel5],
+                        'c': cc[sel5], 'c_raw': lg.c('mixer[3]') / 1000, 'w_raw': p['w'], 'sel': sel5, 'bp': bp})
     m['rotor_series'] = np.concatenate(series) if series else None
-    m['yaw_series'] = np.concatenate(yaw) if yaw else None
+    m['pack_series'] = [x for x in (fit_pack.series(p['log']) for p in prep) if x is not None]
+    m['yaw_logs'] = yaw
     return m
 
 
@@ -126,14 +135,20 @@ def score(p, m):
         out['flap'] = (None, '%d sharp inputs in the held-out logs (needs 3)' % n)
 
     # yaw (servo tail)
-    s = m['yaw_series']
     if h.tail_motor:
         out['yaw'] = (None, 'motorized tail')
-    elif s is not None and len(s) > 500:
-        yy, r_, rd, hs = s.T
-        wr2 = (hs / N) ** 2
-        pred = h.Nped * wr2 * yy + h.Nr * r_
-        e = float(1 - np.var(rd - pred) / np.var(rd))
+    elif sum(len(d['sel']) for d in m['yaw_logs']) > 500:
+        scale, drag = torque_terms(p)
+        res, var = [], []
+        for d in m['yaw_logs']:
+            wr2 = (d['hs'] / N) ** 2
+            # firmware frame: yaw and its rate are the model's -r, collective as is; the
+            # main rotor's torque reaction (torque_yaw) responds to collective and rpm too
+            torque = sosfiltfilt(d['bp'], scale * d['w_raw'] ** 2 * drag(d['c_raw']))[d['sel']]
+            pred = h.Nped * wr2 * d['y'] + h.Nr * d['r'] - h.Ncol * wr2 * d['c'] - torque
+            res.append(d['rd'] - pred)
+            var.append(d['rd'])
+        e = float(1 - np.var(np.concatenate(res)) / np.var(np.concatenate(var)))
         detail = 'R^2 %.3f' % e
         sc = 1 - e
         hv = m['hover_all'].get('%d' % N)
@@ -152,4 +167,13 @@ def score(p, m):
         out['power'] = (float(e), 'hover power %.0f W vs %.0f W' % (h.hover_power, hv['power_w']))
     else:
         out['power'] = (None, 'no hover with power at %d rpm in the held-out logs' % N)
+
+    # pack: Vbat for the drawn charge and current, each log's starting charge fitted
+    if m['pack_series']:
+        cells, C, R = p['args']['pack_cells'], p['args']['pack_ah'], p['args']['pack_r']
+        rms = [fit_pack.fit_soc0(cells, C, R, x)[1] for x in m['pack_series']]
+        e = float(np.mean(rms))
+        out['pack'] = (e, 'RMS Vbat error %.2f V over %d logs' % (e, len(rms)))
+    else:
+        out['pack'] = (None, 'no Vbat/Ibat in the held-out logs')
     return out

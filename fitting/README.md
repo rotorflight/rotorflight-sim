@@ -283,19 +283,27 @@ cost of predicting the heli worse. One command per heli, whenever logs come in:
    (`thrust_inflow` from the hover collective; a gated hover, within 10 %), rate
    (`rate_gain_*`, and the rpm law `ctrl_rpm_exp` from two headspeeds; coherence >= 0.6,
    within 20 %), flap (L, tf and K per axis from the sharp inputs; VAF >= 0.85 over 5
-   inputs, within 35 %), yaw (`Nped`, `Nr`, `yaw_trim`, servo tails; R^2 >= 0.3), power
-   (hover watts). They go on top of the current model: `model.json` if it was trained on
+   inputs, within 35 %), yaw (`Nped`, `Nr`, `Ncol`, `yaw_trim`, servo tails; R^2 >= 0.3;
+   `Ncol` is the collective term of the yaw regression less the model's own main-rotor
+   torque reaction, which responds to collective through the drag), power (hover watts),
+   pack (`pack_r`, `pack_ah` from `fit_pack.py`: Vbat/Ibat against the LiPo curve, one
+   starting charge per log; resistance within 30 %, capacity within 25 % and only where a
+   log drew a quarter of the pack). Proposals are made against the model as it stands
+   when their stage comes up. They go on top of the current model: `model.json` if it was trained on
    the same setup, else the prior - the preset the heli file names, or a generic heli of
    its size class (the M7R's or the Stratos' dynamics, the size's rotor and pack) with
    what the heli file knows of its hardware.
 5. **Held-out check** (`holdout.py`): each proposal predicts what the held-out logs
    measured - throttle for the logged headspeed and its change over every powered sample
    (rotor), the hover collective (thrust), the rate per cyclic (rate), the rate through
-   the sharp inputs (flap), the yaw acceleration and tail trim (yaw), hover watts (power).
+   the sharp inputs (flap), the yaw acceleration with the torque reaction and the tail
+   trim (yaw), hover watts (power), Vbat for the drawn charge (pack).
    A proposal is taken if it scores no worse on its own stage and no more than 2 % worse
    on every other:
    the rate gain is also the flap model's K, and the M7R's spectral and sharp-input gains
-   disagree on pitch. A proposal the held-out logs cannot judge replaces only a size
+   disagree on pitch. Stages that depend on the one judged are proposed again on top of it
+   first (yaw on the rotor law's torque reaction, the rotor law on the thrust law's hover
+   point), so a new rotor law is not refused for what the yaw stage will refit after it. A proposal the held-out logs cannot judge replaces only a size
    prior, never a preset or an earlier fit.
 6. **Replay check** (`replay_check.py`, `--elf`): the held-out logs' longest upright
    stretch at one headspeed is replayed through the SITL with the old and the new model
@@ -314,31 +322,39 @@ owner's consent (`private` unless they agree to publish). `FIT_LOG_STORE` names 
 folders the files are found in, by hash (`logstore.py check|backfill|decode`). The logs
 stay out of the repository.
 
-**First training** (2026-11-08), all helis from their priors (the presets for the Stratos
+**First training** (2026-11-09), all helis from their priors (the presets for the Stratos
 200 and the M7R, size priors for the rest). Held-out scores prior -> new where the stage
 was taken (lower is better, units in `holdout.py`); "kept": proposed and refused, "-": no
 proposal (gates):
 
-| heli | fit / held-out logs | rotor | thrust | rate | flap | yaw | power |
-|---|---|---|---|---|---|---|---|
-| OMP M5 | 1 / 1 | 9.59 -> 1.15 | - | kept | kept | 4.97 -> 2.99 | - |
-| OMP M6 | 1 / 1 | 11.5 -> 0.86 | - | kept | - | - | - |
-| OMP M7R | 2 / 1 | 6.04 -> 1.74 | - | kept | 0.061 -> 0.060 | 1.21 -> 0.70 | - |
-| Stratos 200 | 5 / 1 | kept | - | 0.126 -> 0.006 | - | - | - |
-| ALZRC Devil 505 | 2 / 0 | - | - | not validated | kept | not validated | - |
-| MSH Protos 380 | 6 / 2 | - | - | 0.129 -> 0.101 | kept | 0.59 -> 0.43 | - |
-| Nimbus | 12 / 6 | 15.6 -> 2.29 | 0.014 -> 0.012 | 0.41 -> 0.065 | kept | 0.45 -> 0.28 | not validated |
-| Stratos 700 | 14 / 8 | 12.4 -> 3.30 | 0.117 -> 0.028 | 0.40 -> 0.066 | 0.46 -> 0.061 | 0.24 -> 0.22 | 0.20 -> 0.031 |
+| heli | fit / held-out logs | rotor | thrust | rate | flap | yaw | power | pack |
+|---|---|---|---|---|---|---|---|---|
+| OMP M5 | 1 / 1 | 9.59 -> 1.15 | - | kept | kept | 2.34 -> 2.20 | - | - |
+| OMP M6 | 1 / 1 | kept | - | kept | - | - | - | - |
+| OMP M7R | 2 / 1 | 6.04 -> 1.74 | - | kept | 0.061 -> 0.060 | 1.00 -> 0.70 | - | - |
+| Stratos 200 | 5 / 1 | kept | - | 0.126 -> 0.006 | - | - | - | kept |
+| ALZRC Devil 505 | 2 / 0 | - | - | not validated | kept | not validated | - | - |
+| MSH Protos 380 | 6 / 2 | - | - | 0.129 -> 0.101 | kept | 0.588 -> 0.584 | - | - |
+| Nimbus | 12 / 6 | 15.6 -> 2.29 | 0.014 -> 0.012 | 0.41 -> 0.065 | kept | 0.43 -> 0.28 | not validated | 0.198 -> 0.177 |
+| Stratos 700 | 14 / 8 | kept | kept | 0.40 -> 0.066 | 0.46 -> 0.061 | kept | 0.20 -> 0.031 | 0.30 -> 0.15 |
 
-- The helis with many logs (Stratos 700, Nimbus) take nearly every stage; the OMP sport
-  flights (one fit log each) mostly the rotor law and the yaw.
+- The helis with many logs (Stratos 700, Nimbus) take most stages; the OMP sport flights
+  (one fit log each) mostly the rotor law and the yaw.
 - Rate and flap often refuse each other: on real logs the spectral gain and the sharp
   inputs' K disagree, most on pitch (M7R 6.54 vs 5.60) - the closed loop shows in one of
   them. Whichever is taken, the other stage must not get worse.
-- The rotor law's throttle error falls from 6-16 % to 1-3 % wherever it is taken. The
-  M7R's comes out with ~10x the preset's A (a much faster spool-up): its analog ESC
-  regulates on its own, so throttle is not motor volts - the held-out spool-ups agree
-  with the fit, but treat its rotor dynamics with care.
+- The rotor law's throttle error falls from 6-16 % to 1-2 % where it is taken. On the
+  Stratos 700 and the M6 it is refused for the yaw: its drag against collective drives
+  the model's torque reaction, which then predicts the held-out yaw worse, and the yaw
+  stage's own refit does not recover it (the Stratos 700's yaw fit scores worse than its
+  prior). The firmware's collective-to-tail precompensation in the logged yaw mixer is a
+  likely suspect - the model has none.
+- The M7R's rotor law comes out with ~10x the preset's A (a much faster spool-up): its
+  analog ESC regulates on its own, so throttle is not motor volts - the held-out
+  spool-ups agree with the fit, but treat its rotor dynamics with care.
+- Packs: Nimbus 6S 3.1 Ah, 26 mOhm; Stratos 700 12S 26.9 mOhm (its capacity, 6.4 +- 1.3 Ah,
+  misses the 25 % gate). The Stratos 200's (0.55 Ah, 105 mOhm) predicts its held-out
+  flight worse than the preset's and is kept out.
 - The Stratos 200's newest log is another setup (Foxeer F722, 4.6, 5000 rpm) and trains
   separately once it has company; the preset's own setup (Nexus XR, 4.7) was trained.
   The Protos folder holds two setups too: its June 1-3 logs carry the craft name "Devil
