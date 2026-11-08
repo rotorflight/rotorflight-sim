@@ -1,0 +1,71 @@
+{
+ "base": "fitted",
+ "description": "Stratos 200 in a Bo105 fuselage: 200 size, direct drive, motorized tail, 4S - fitted from its blackbox logs",
+ "notes": [
+  "A 200-size direct-drive heli with a motorized tail (a Stratos 200 in a scale",
+  "fuselage), fitted from its blackbox logs (Rotorflight 4.7, 3600 rpm, 4S):",
+  "  rotor law      dw/dt = A u V - B w - w^2 (k0 + k1 c^2), from motor volts against",
+  "                 headspeed and collective (R^2 0.994)",
+  "  rate gains     roll 5.07, pitch 4.74 rad/s per mixer input (0.5-3 Hz, setpoint as",
+  "                 instrument for the closed-loop flight data)",
+  "  yaw            tail motor up = nose right, 66 rad/s^2 per unit, 35 ms motor lag,",
+  "                 weak damping; main rotor torque nose left (CW rotor)",
+  "  hover          collective 0.636, throttle 0.47 at 15.2 V, tail 0.215",
+  "  thrust         blade element with induced inflow, from the hover collective at",
+  "                 3600 rpm (0.64) and 3300 rpm (0.715): a/wr^2 + b/wr, a 0.18, b 0.46",
+  "Closed-loop identification, replaying the flight's sticks through the SITL with the",
+  "heli's own configuration and gains:",
+  "  flap/body stiffness Lb1s 1400 (roll mode 5.95 Hz), Ma1s 2000, tf 0.05 s - with",
+  "  turbulence 4.3 rad/s^2 at 5 Hz (turb=4.3, turb_hz=5) the replay matches the real",
+  "  heli's ~5.9 Hz roll/pitch whirl: 4-8 Hz roll 5.85 vs 5.93, pitch 3.70 vs 3.77 deg/s.",
+  "  A sharp pitch input is tracked within 10 deg/s RMS, about 10 % slower to peak.",
+  "  Stiffness ~ rpm^2 and tf ~ 1/rpm: at 3300 rpm the replay whirls at 5.1 Hz (real",
+  "  4.94; 5.9 without the scaling), with too little amplitude (7 vs 10 deg/s roll).",
+  "Not identifiable from those flights: cross coupling and speed derivatives (off).",
+  "Fly it with the heli's CLI dump (--dump): the scripted flight's default configuration",
+  "does not set up the motorized tail."
+ ],
+ "attrs": {
+  "motor_fit": [
+   987.74,
+   16.843,
+   0.0007003,
+   0.01101,
+   2.0
+  ],
+  "motor_poles": 24,
+  "v_hover": 3.8,
+  "rotor_radius": 0.21,
+  "hub_height": 0.15,
+  "tail_motor": true,
+  "Zcol": -15.419261006289307,
+  "thrust_inflow": [
+   16.685205784204673,
+   0.30646666666666667
+  ],
+  "Nped": -66.0,
+  "Nr": -0.5
+ },
+ "args": {
+  "rate_gain_roll": 5.07,
+  "rate_gain_pitch": 4.74,
+  "Lb1s": 1400.0,
+  "Ma1s": 2000.0,
+  "tf": 0.05,
+  "stiff_rpm_exp": 2.0,
+  "tf_rpm_exp": 1.0,
+  "turb": 0.0,
+  "turb_hz": 5.0,
+  "yaw_trim": 0.215,
+  "tail_rpm_hover": 14340.0,
+  "nominal_rpm": 3600.0,
+  "gear_ratio": 1.0,
+  "hover_throttle": 0.47,
+  "pack_cells": 4,
+  "pack_ah": 0.85,
+  "pack_r": 0.05,
+  "hover_power_w": 50.0,
+  "cyclic_scale": 1.0,
+  "yaw_scale": 1.0
+ }
+}

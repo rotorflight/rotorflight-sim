@@ -28,7 +28,7 @@ import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from heli_model import MODELS, euler, body_to_earth, load_model  # noqa: E402
+from heli_model import MODELS, euler, body_to_earth, load_model, resolve, trained_models  # noqa: E402
 from configs import load_dump         # noqa: E402
 import csv                            # noqa: E402
 from swash import Swash               # noqa: E402
@@ -451,9 +451,10 @@ def main():
                          'source and does not take serial ESC telemetry')
     ap.add_argument('--governor', type=int, default=0, metavar='RPM',
                     help='fly with the ELECTRIC governor holding this headspeed')
-    ap.add_argument('--model', default='blade360', metavar='PRESET|FILE',
-                    help='a preset (%s) or a JSON parameter file (base preset, constructor args, '
-                         'class constants; see heli_model.load_model)' % ', '.join(sorted(MODELS)))
+    ap.add_argument('--model', default='blade360', metavar='PRESET|HELI|FILE',
+                    help='a preset (%s), a trained heli (fitting/helis/<heli>/model.json: %s) or a JSON '
+                         'parameter file (base preset, constructor args, class constants; see '
+                         'heli_model.load_model)' % (', '.join(sorted(MODELS)), ', '.join(trained_models()) or '-'))
     ap.add_argument('--set', action='append', default=[], metavar='NAME=VALUE',
                     help='model constructor argument, e.g. Lb1s=1200 (repeatable)')
     ap.add_argument('--dump', metavar='CLI_DUMP',
@@ -510,8 +511,9 @@ def main():
     for item in a.set:
         k, v = item.split('=', 1)
         kw[k] = float(v)
-    if a.model not in MODELS and not os.path.isfile(a.model):
-        ap.error('--model: no preset or file %s (presets: %s)' % (a.model, ', '.join(sorted(MODELS))))
+    if resolve(a.model) is None:
+        ap.error('--model: no preset, trained heli or file %s (presets: %s; trained: %s)'
+                 % (a.model, ', '.join(sorted(MODELS)), ', '.join(trained_models()) or '-'))
     try:
         heli = load_model(a.model, sign_roll=1.0, sign_pitch=-1.0, sign_yaw=-1.0, **kw)
     except (ValueError, TypeError) as e:          # a bad parameter file or --set name
