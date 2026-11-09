@@ -283,8 +283,8 @@ The current disturbance is a random moment on the body, with `turb_hz` tuned per
       decode (`heli/servos.py`, `--servos ideal|digital|fast|analog`; CI flies digital)
 - [ ] Servo load (stall torque against the feathering moment), types from measured servos.
       A loaded tail servo slows and saturates on fast reversals, where a wag starts (11)
-- [ ] A tail servo type of its own: `--servos` sets every servo alike, while tail servos
-      are often slower and carry more load (11)
+- [x] A tail servo type of its own (`--tail-servo`): `--servos` set every servo alike,
+      while tail servos are often slower and carry more load (11)
 - [x] Pack: LiPo discharge curve (open-circuit voltage per cell against state of charge)
       and internal resistance rising towards empty, instead of the straight line
 - [x] A pack fitted from logged Vbat/Ibat (`fit_pack.py`, the `pack` stage of `train.py`):
@@ -326,10 +326,10 @@ not what that gain does to the tail.
 - [ ] Calibrate on that log: the wag's frequency and growth with the logged gains give the
       lag the real heli has at 12 Hz. The low-headspeed profile's gains must hold at their
       own headspeed and wag at the high one
-- [ ] Profile switching in the bridge: an AUX channel driving the PID and rate profile
-      adjustments (`adjfunc` is dropped from dumps now), and the firmware's debug values
-      (`MSP_DEBUG`, debug mode `PROFILE_BLEND`) in the flight log. The rotorflight-firmware#591
-      runs did both from a wrapper around `heli_bridge.py`
+- [x] Profile switching in the bridge: `--profile-switch T_ON[,T_OFF]` drives the PID and
+      rate profile adjustments on AUX4 (`adjfunc` is still dropped from dumps), and
+      `--debug-mode` / `--debug-log` write the firmware's debug values (`MSP_DEBUG`, e.g.
+      `PROFILE_BLEND`) every 20 ms
 - [ ] A profile-switch check: governed flight (forward flight once 4 has it), downshift and
       upshift on the switch. With `gov_profile_blend = OFF` the tail must wag after the
       downshift, with `ON` the yaw rate stays within fixed bounds

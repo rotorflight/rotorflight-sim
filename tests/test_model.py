@@ -524,6 +524,20 @@ class Actuators(unittest.TestCase):
         out = Servos('digital').step(DT, (1500.0,) + (0.0,) * 7)
         self.assertEqual(out[1], 0.0)
 
+    def test_tail_servo_type(self):
+        """--tail-servo: output 3 gets its own type, the cyclic servos keep theirs."""
+        def after(servos, ms):
+            servos.step(DT, (1500.0,) * 8)
+            for _ in range(int(ms / 1000 / DT)):
+                out = servos.step(DT, (1800.0,) * 8)
+            return out
+        out = after(Servos('ideal', tail='analog'), 20)
+        self.assertEqual(out[0], 1800.0)                 # cyclic: ideal
+        self.assertLess(out[3], 1700.0)                  # tail: analog, still on its way
+        out = after(Servos('fast', tail='analog'), 20)
+        self.assertGreater(out[0], out[3])               # the fast cyclic servo is ahead
+        self.assertEqual(after(Servos('digital'), 20), after(Servos('digital', tail='digital'), 20))
+
     def test_pack_curve(self):
         self.assertEqual(LIPO_OCV[-1], 4.20)
         for a, b in zip(LIPO_OCV, LIPO_OCV[1:]):

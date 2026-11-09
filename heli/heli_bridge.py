@@ -43,6 +43,7 @@ MSP_ACC_CALIBRATION = 205
 MSP_MOTOR_TELEMETRY = 139
 MSP_STATUS = 101
 MSP_RAW_IMU = 102
+MSP_DEBUG = 254       # the firmware's eight debug[] values (int32), of its debug_mode
 ARMING_FLAG_NAMES = [
     "NOGYRO", "FAILSAFE", "RXLOSS", "BADRX", "BOXFAILSAFE", "GOVERNOR", "RPM_SIGNAL",
     "THROTTLE", "ANGLE", "BOOTGRACE", "NOPREARM", "LOAD", "CALIB", "CLI", "CMS", "BST",
@@ -488,6 +489,15 @@ def main():
     ap.add_argument('--servos', choices=sorted(SERVO_TYPES), default='ideal',
                     help='servo dynamics between the pulses and the swash (speed, deadband, lag; '
                          'heli/servos.py); ideal = none')
+    ap.add_argument('--tail-servo', choices=sorted(SERVO_TYPES), default=None,
+                    help='a servo type of its own for the tail servo (default: as --servos)')
+    ap.add_argument('--profile-switch', metavar='T_ON[,T_OFF]',
+                    help='switch the PID and rate profile from 1 to 2 at T_ON s (and back at T_OFF) '
+                         'on AUX4, through adjustment functions; set up profile 2 with --cli')
+    ap.add_argument('--debug-mode', metavar='NAME',
+                    help='set the firmware\'s debug_mode (e.g. PROFILE_BLEND, GOVERNOR)')
+    ap.add_argument('--debug-log', metavar='CSV',
+                    help='log the firmware\'s debug values (MSP_DEBUG) every 20 ms to this file')
     ap.add_argument('--bbl', metavar='OUT',
                     help='save the SITL blackbox (file-backed flash) here after the flight')
     ap.add_argument('--replay-case', metavar='DIR',
@@ -522,7 +532,16 @@ def main():
                       gear_ratio=heli.gear)
     if a.gyro_chip or a.vibration:
         print('sensors:', sensors.describe())
-    servos = Servos(a.servos)
+    servos = Servos(a.servos, tail=a.tail_servo)
+    switch = None
+    if a.profile_switch:
+        try:
+            v = [float(x) for x in a.profile_switch.split(',')]
+        except ValueError:
+            v = []
+        if not 1 <= len(v) <= 2 or (len(v) == 2 and v[1] <= v[0]):
+            ap.error('--profile-switch: T_ON[,T_OFF] in s with T_OFF > T_ON, not %r' % a.profile_switch)
+        switch = (v[0], v[1] if len(v) > 1 else float('inf'))
     ws, wd = (float(x) for x in a.wind.split(','))
     wind = Wind(ws, wd, a.gust)
     slope = None
@@ -562,6 +581,13 @@ def main():
     # the bridge's radio: MSP RX, channels AETRC123, ARM on AUX1, angle mode on AUX2
     commands += ['feature -RX_SERIAL', 'feature RX_MSP', 'map AETRC123',
                  'aux 0 0 0 1700 2100 0 0', 'aux 1 1 1 1700 2100 0 0']
+    if switch:
+        # PID and rate profile on AUX4 (adjustment channel 3), continuous adjustments:
+        # 1000 us -> profile 1, 2000 us -> profile 2. Before --cli, which sets the profiles up
+        commands += ['adjfunc 0 2 255 900 2100 3 1000 2000 900 900 0 1 2',
+                     'adjfunc 1 1 255 900 2100 3 1000 2000 900 900 0 1 2']
+    if a.debug_mode:
+        commands += ['set debug_mode = %s' % a.debug_mode]
     if a.rescue:
         # 53: RESCUE's permanent id. Climb and hover collective per heli: the Blade 360 model
         # hovers at 0.44 (the defaults 450/350 are below it): 600 / 450
@@ -627,6 +653,7 @@ def main():
             vib_probe = set(range(int(26.5 / DT), int(32.0 / DT), int(0.02 / DT)))
         imu_probe |= vib_probe
         imu_fw = []
+        debug_t, debug_v = [], []      # MSP_DEBUG requests (sim time) and their replies
         decode_err, decode_at, decode_sq, decode_n = [0.0] * 4, [None] * 4, [0.0] * 4, 0
         time.sleep(1.0)
         msp.send(msp_frame(MSP_ACC_CALIBRATION))
@@ -662,7 +689,12 @@ def main():
                 else:
                     thr, coll, arm, angle, r, p, y = schedule(t, bool(a.governor), a.acro, hover_us(heli))
                 ch = [int(round(v)) for v in (r, p, thr, y, coll, arm, angle, aux3)]
-                msp.send(msp_frame(MSP_SET_RAW_RC, struct.pack('<8H', *ch)))
+                if switch:
+                    ch.append(2000 if switch[0] <= t < switch[1] else 1000)       # AUX4
+                msp.send(msp_frame(MSP_SET_RAW_RC, struct.pack('<%dH' % len(ch), *ch)))
+                if a.debug_log:
+                    msp.send(msp_frame(MSP_DEBUG))      # replies come in order, parsed after the flight
+                    debug_t.append(t)
                 if n == int(30.0 / DT):
                     msp.send(msp_frame(MSP_MOTOR_TELEMETRY))
                     at30 = (heli.motor_rpm, heli.vbat, heli.ibat)
@@ -769,6 +801,8 @@ def main():
                 if int(round(tm / DT)) not in vib_probe:
                     print('MSP_RAW_IMU at %.1f s: firmware gyro %+.1f %+.1f %+.1f deg/s, model p q r %+.1f %+.1f %+.1f'
                           % (tm, gx, gy, gz, mp, mq, mr))
+            if cmd == MSP_DEBUG and size == 32 and len(msp_rx) >= i + 5 + size:
+                debug_v.append(struct.unpack_from('<8i', msp_rx, i + 5))
             if cmd == MSP_MOTOR_TELEMETRY and len(msp_rx) >= i + 5 + size:
                 rpm, _err, volt, curr, _cons, temp, _t2 = struct.unpack_from('<IHHHHHH', msp_rx, i + 6)
                 print('MSP_MOTOR_TELEMETRY at 30 s: motor rpm %d, %.2f V, %.2f A, %.1f C (model %.0f rpm, %.2f V, %.2f A)'
@@ -789,7 +823,15 @@ def main():
 
     if a.bbl:
         save_blackbox(os.path.join(rundir, 'blackbox_flash.bin'), a.bbl)
-    hdr = 't,alt_m,climb_ms,roll_deg,pitch_deg,yaw_deg,rotor_rpm,throttle,mix_coll,mix_roll,mix_pitch,vbat,ibat,p,q,r,mix_yaw'
+    if a.debug_log:
+        # the n-th reply answers the n-th request; the last few may still be in flight
+        with open(a.debug_log, 'w') as f:
+            f.write('t,' + ','.join('debug%d' % i for i in range(8)) + '\n')
+            for t, v in zip(debug_t, debug_v):
+                f.write('%.2f,%s\n' % (t, ','.join(str(x) for x in v)))
+        print('debug values (%s): %d of %d frames -> %s'
+              % (a.debug_mode or 'debug_mode as configured', len(debug_v), len(debug_t), a.debug_log))
+    hdr ='t,alt_m,climb_ms,roll_deg,pitch_deg,yaw_deg,rotor_rpm,throttle,mix_coll,mix_roll,mix_pitch,vbat,ibat,p,q,r,mix_yaw'
     if a.log:
         with open(a.log, 'w') as f:
             f.write(hdr + '\n')
