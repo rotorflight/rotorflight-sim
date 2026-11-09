@@ -16,7 +16,10 @@
    "aerobatic": 0.0,
    "hover": 24.9,
    "cruise": 77.7,
-   "hover_in_ground_effect": 24.5
+   "hover_in_ground_effect": 24.5,
+   "spoolup": 7.5,
+   "doublet": 0.0,
+   "sweep": 0.0
   },
   "20261008_160146_12": {
    "ground": 25.4,
@@ -25,7 +28,10 @@
    "aerobatic": 0.0,
    "hover": 19.2,
    "cruise": 72.6,
-   "hover_in_ground_effect": 19.2
+   "hover_in_ground_effect": 19.2,
+   "spoolup": 3.1,
+   "doublet": 6.0,
+   "sweep": 0.0
   },
   "20261008_174938_00": {
    "ground": 90.7,
@@ -34,7 +40,10 @@
    "aerobatic": 0.0,
    "hover": 29.9,
    "cruise": 34.3,
-   "hover_in_ground_effect": 25.7
+   "hover_in_ground_effect": 25.7,
+   "spoolup": 5.2,
+   "doublet": 0.0,
+   "sweep": 0.0
   },
   "20261008_180641_00": {
    "ground": 28.9,
@@ -43,7 +52,10 @@
    "aerobatic": 0.0,
    "hover": 51.7,
    "cruise": 21.0,
-   "hover_in_ground_effect": 51.7
+   "hover_in_ground_effect": 51.7,
+   "spoolup": 5.2,
+   "doublet": 0.0,
+   "sweep": 0.0
   },
   "20261008_182311_01": {
    "ground": 20.5,
@@ -52,7 +64,10 @@
    "aerobatic": 0.0,
    "hover": 35.4,
    "cruise": 65.7,
-   "hover_in_ground_effect": 35.4
+   "hover_in_ground_effect": 35.4,
+   "spoolup": 5.3,
+   "doublet": 0.0,
+   "sweep": 0.0
   }
  },
  "motor_fit": [
@@ -131,13 +146,15 @@
    "N_ped": -32.77,
    "N_col": 11.57,
    "N_r": 1.966,
-   "r2": 0.081
+   "r2": 0.081,
+   "collective": 0.722
   },
   "3600": {
    "N_ped": -36.05,
    "N_col": 11.91,
    "N_r": 1.193,
-   "r2": 0.101
+   "r2": 0.101,
+   "collective": 0.641
   }
  },
  "whirl_hz": {
@@ -193,10 +210,12 @@
   "yaw/3300/N_col": 1.241527,
   "yaw/3300/N_r": 0.342819,
   "yaw/3300/r2": 0.006447,
+  "yaw/3300/collective": 0.0,
   "yaw/3600/N_ped": 4.928821,
   "yaw/3600/N_col": 1.753269,
   "yaw/3600/N_r": 0.230249,
-  "yaw/3600/r2": 0.021593
+  "yaw/3600/r2": 0.021593,
+  "yaw/3600/collective": 0.0035
  },
  "unstable": [
   "hover/3300/seconds",

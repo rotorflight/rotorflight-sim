@@ -15,19 +15,23 @@ One command per heli, run whenever logs are added (intake.py). Steps:
     can be changed by hand. Validate logs are never fitted.
  3. Fit: fit_heli.py's stages and fit_flap.py's sharp-input fit on the fit logs, with a
     jackknife over 20 s blocks (jackknife.py) for the standard error of every number.
-    -> fit.json, flap.json (with "uncertainty")
+    -> fit.json, flap.json (with "uncertainty"); fit_pack.py's pack -> pack.json
  4. Propose: each stage whose gates pass proposes its model numbers (model_params.py),
     on top of the current model (model.json, else the prior: the heli file's preset or a
     generic heli of its size).
  5. Validate: each proposal is scored on the held-out logs (holdout.py) against the
-    current numbers, stage by stage in the order rotor, thrust, rate, flap, yaw, power. A
+    current numbers, stage by stage in the order rotor, thrust, rate, flap, yaw, power,
+    pack. A
     proposal is taken if it scores no worse on its own stage, and no more than 2 % worse
     on every other one (a stage's numbers feed other predictions: the rate gain is the
-    flap model's K). One that the held-out logs cannot judge is taken only over a size prior (a
+    flap model's K). Stages that depend on the one judged (yaw on the rotor law's torque
+    reaction, the rotor law on the thrust law's hover point) are proposed again on top of
+    it first, so a change is judged with what they will refit. One that the held-out logs cannot judge is taken only over a size prior (a
     guess), never over a preset or an earlier fit.
  6. Optional (--elf): the held-out logs' sticks are replayed through the SITL with the
     current and the new model (replay_check.py); the new model must track the real
-    flight no worse, else nothing changes.
+    flight no worse. If it does not, the taken stages are dropped from the last one back (at
+    most three) and replayed again; if none passes, nothing changes.
  7. Write: model.json (base "fitted", every number with its provenance) if anything
     changed, and train.json / TRAINING.md: the report - what each stage proposed, the
     held-out scores before and after, what was taken and why.
@@ -48,6 +52,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import fit_flap  # noqa: E402
 import fit_heli  # noqa: E402
+import fit_pack  # noqa: E402
 import holdout  # noqa: E402
 import jackknife  # noqa: E402
 import model_params as mp  # noqa: E402
@@ -55,6 +60,9 @@ from common import Log  # noqa: E402
 from fingerprint import KEY, differences, group_id, setup  # noqa: E402
 from logstore import decoded_name, save  # noqa: E402
 
+# stages whose proposals depend on another's numbers: re-proposed before judging it
+DEPENDS = {'rotor': ('yaw', 'power'), 'thrust': ('rotor', 'yaw', 'power')}
+MAX_BACKOFF = 3     # stages the replay check may drop, last taken first
 TOL = 0.02          # relative: how much worse another stage may score (noise); its own may not
 VALIDATE_EVERY = 4  # one log in four is held out
 MIN_AIR_S = 20.0    # a log shorter than this in the air does not count as a flight
@@ -210,6 +218,9 @@ def train(heli_path, group=None, folds=8, dry=False, elf=None, say=print):
         else:
             note = 'prior (model.json is of another setup, %s)' % (m.get('provenance') or {}).get('group')
     say('starting from the %s, nominal %d rpm' % (note, current['args']['nominal_rpm']))
+    pack = fit_pack.fit_logs(logs, current['args'].get('pack_cells'), say)
+    if not dry and pack:
+        json.dump(dict({'heli': heli['name'], 'group': group}, **pack), open(os.path.join(folder, 'pack.json'), 'w'), indent=1)
 
     # ---- held-out logs ----------------------------------------------------------------
     vlogs = fit_heli.load_logs(val_names)
@@ -217,12 +228,13 @@ def train(heli_path, group=None, folds=8, dry=False, elf=None, say=print):
     score = (lambda p: holdout.score(p, meas)) if meas else (lambda p: {s: (None, 'no held-out logs') for s in mp.STAGES})
 
     # ---- proposals, stage by stage ------------------------------------------------------
-    props = mp.proposals(current, full, flap, se, unstable, flap_se)
+    # proposals are made against the model as it stands when their stage comes up: the yaw
+    # stage takes the torque path of the rotor law the rotor stage may just have changed
     cand, cand_prov = copy.deepcopy(current), dict(cur_prov)
     today = datetime.date.today().isoformat()
     stages = {}
     for st in mp.STAGES:
-        ch, notes = props[st]
+        ch, notes = mp.proposals(cand, full, flap, se, unstable, flap_se, pack)[st]
         rec = {'proposal': ch, 'notes': notes}
         if ch is None:
             rec['decision'] = 'no proposal'
@@ -233,10 +245,21 @@ def train(heli_path, group=None, folds=8, dry=False, elf=None, say=print):
             rec['score_before'], rec['score_after'] = before[0], after[0]
             rec['score_detail'] = {'before': before[1], 'after': after[1]}
             # never worse anywhere: the numbers of one stage feed others' predictions (the
-            # rate gain is the flap model's K)
-            worse = ['%s %s -> %s' % (o, fmt(sb[o][0]), fmt(sa[o][0])) for o in mp.STAGES
-                     if o != st and sb[o][0] is not None and sa[o][0] is not None
-                     and sa[o][0] > sb[o][0] * (1 + TOL) + 1e-9]
+            # rate gain is the flap model's K). A stage that depends on this one is first
+            # proposed again on top of it (a new rotor law moves the torque reaction the
+            # yaw stage's Ncol is taken against): judged with what it will refit
+            look, refit = trial, []
+            for d in DEPENDS.get(st, ()):
+                chd = mp.proposals(look, full, flap, se, unstable, flap_se, pack)[d][0]
+                if chd:
+                    look = mp.apply(look, chd)
+                    refit.append(d)
+            sl = score(look) if refit else sa
+            worse = ['%s %s -> %s' % (o, fmt(sb[o][0]), fmt(sl[o][0])) for o in mp.STAGES
+                     if o != st and sb[o][0] is not None and sl[o][0] is not None
+                     and sl[o][0] > sb[o][0] * (1 + TOL) + 1e-9]
+            if refit:
+                rec['judged_with_refit'] = refit
             rec['others_worse'] = worse
             guess = all(str(cand_prov.get(k, 'size prior')).startswith('size prior') for k in keys_of(ch))
             if worse:
@@ -262,10 +285,39 @@ def train(heli_path, group=None, folds=8, dry=False, elf=None, say=print):
     replay = None
     if elf and cand != current and vlogs:
         import replay_check
-        replay = replay_check.compare(elf, heli, current, cand, [e for e in entries if e['role'] == 'validate'], say=say)
-        if replay and replay['verdict'] == 'worse':
+        val = [e for e in entries if e['role'] == 'validate']
+        replay = replay_check.compare(elf, heli, current, cand, val, say=say)
+        # worse in closed loop: drop the taken stages from the last one back, one at a
+        # time, and replay again (the old model's replays are reused)
+        taken = [st for st in mp.STAGES if stages[st]['decision'].startswith('taken')]
+        tries = 0
+        while replay['verdict'] == 'worse' and taken and tries < MAX_BACKOFF:
+            st = taken.pop()
+            tries += 1
+            for k in keys_of(stages[st]['proposal']):
+                for sec in ('args', 'attrs'):
+                    if k in cand.get(sec, {}):
+                        if k in current.get(sec, {}):
+                            cand[sec][k] = current[sec][k]
+                        else:
+                            del cand[sec][k]
+                if k in cur_prov:
+                    cand_prov[k] = cur_prov[k]
+                else:
+                    cand_prov.pop(k, None)
+            stages[st]['decision'] = 'dropped: the replay check found the model worse with it (%s -> %s)' % (
+                fmt(replay.get('old')), fmt(replay.get('new')))
+            say('replay check worse: %s dropped, replaying again' % st)
+            if cand == current:
+                break
+            replay = replay_check.compare(elf, heli, current, cand, val, say=say, old_results=replay)
+        if replay['verdict'] == 'worse':
             say('replay check: the new model tracks the held-out flights worse - nothing changes')
             cand, cand_prov = current, cur_prov
+        replay.update(old_is='current' if current is not prior else 'prior',
+                      model_args=cand['args'], model_attrs=cand['attrs'], model_trained=today)
+        with open(os.path.join(folder, 'replay.json'), 'w') as f:
+            json.dump(replay, f, indent=1)
 
     final = {'prior': score(prior), 'current': score(current), 'new': score(cand)}
     changed = cand != current
@@ -286,6 +338,15 @@ def train(heli_path, group=None, folds=8, dry=False, elf=None, say=print):
             with open(model_path, 'w', newline='\n') as f:
                 f.write(json.dumps(out, indent=1) + '\n')
             say('-> %s' % model_path)
+        rpath = os.path.join(folder, 'replay.json')
+        if replay is None and os.path.exists(rpath):
+            # an earlier replay check (replay_report.py): kept in the report, marked when it
+            # was of other numbers than the model now has
+            old = json.load(open(rpath))
+            # the gear ratio and motor poles only set the motor rpm the firmware sees
+            dyn = lambda d: {k: v for k, v in (d or {}).items() if k not in ('gear_ratio', 'motor_poles')}
+            same = (dyn(old.get('model_args')), dyn(old.get('model_attrs'))) == (dyn(cand['args']), dyn(cand['attrs']))
+            report['replay'] = dict(old, stale=not same)
         json.dump(report, open(os.path.join(folder, 'train.json'), 'w'), indent=1, default=str)
         write_markdown(report, os.path.join(folder, 'TRAINING.md'))
     say('held-out scores (lower is better):')
@@ -316,8 +377,27 @@ def write_markdown(r, path):
           '| stage | prior | current | new |', '|---|---|---|---|']
     for s in mp.STAGES:
         L.append('| %s | %s | %s | %s |' % (s, fmt(r['scores']['prior'][s]), fmt(r['scores']['current'][s]), fmt(r['scores']['new'][s])))
-    if r.get('replay'):
-        L += ['', '## Replay check', '', '```', json.dumps(r['replay'], indent=1), '```']
+    rp = r.get('replay')
+    if rp:
+        L += ['', '## Replay check', '',
+              'Held-out flights replayed through the SITL (`replay_check.py`) with the %s and the new model, '
+              'scored against the real flight (lower is better): %s -> %s, verdict **%s**.'
+              % (rp.get('old_is', 'current'), fmt(rp.get('old')), fmt(rp.get('new')), rp['verdict'])]
+        if rp.get('stale'):
+            L.append('(Made for the model trained %s, whose numbers differ from the current ones: '
+                     'run `replay_report.py` again.)' % rp.get('model_trained'))
+        L.append('')
+        for lg in rp['logs']:
+            L += ['`%s`, %.0f-%.0f s at %d rpm:' % (lg['log'], lg['window'][0], lg['window'][1], lg['rpm']), '',
+                  '| | real | %s | new |' % rp.get('old_is', 'current'), '|---|---|---|---|']
+            om, nm = lg.get('old_metrics') or {}, lg.get('new_metrics') or {}
+            for k in om:
+                a, b = om[k], nm.get(k)
+                if isinstance(a, list):
+                    L.append('| %s | %s | %s | %s |' % (k, a[0], a[1], b[1] if b else '-'))
+                else:
+                    L.append('| %s | | %s | %s |' % (k, a, b if b is not None else '-'))
+            L += ['| score | | %s | %s |' % (fmt(lg.get('old')), fmt(lg.get('new'))), '']
     L += ['', 'Model changed: %s.' % ('yes' if r['changed'] else 'no'), '']
     with open(path, 'w', newline='\n') as f:
         f.write('\n'.join(L))

@@ -12,6 +12,9 @@ construction), then compared over the real flight's airborne window:
     with a replay flown with --vibration, how close the sim's vibration and the firmware's
     filtering of it come to the real heli's
   - hover: throttle, tail motor, headspeed spread
+  - spectra: the log-spectral distance of the filtered gyro (what the PIDs see) per axis,
+    1-30 Hz - the RMS of 10 log10(P_sim / P_real) over that band, in dB: how far the sim's
+    whole closed-loop spectrum (flap/body mode, whirl, disturbances) is from the real one
 """
 import os
 import sys
@@ -96,6 +99,16 @@ def metrics(L, t0, t1):
     return out
 
 
+def spectral_distance(R, S, ax, lo=1.0, hi=30.0):
+    """RMS dB difference of the filtered gyro PSDs of two metrics() results over lo-hi Hz
+    (the sim's spectrum interpolated onto the real one's frequencies)."""
+    fr, Pr = R[ax + '_psd']
+    fs_, Ps = S[ax + '_psd']
+    b = (fr >= lo) & (fr <= hi)
+    ps = np.interp(fr[b], fs_, Ps)
+    return float(np.sqrt(np.mean((10 * np.log10(np.maximum(ps, 1e-12) / np.maximum(Pr[b], 1e-12))) ** 2)))
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     plot = sys.argv[sys.argv.index('--plot') + 1] if '--plot' in sys.argv else None
@@ -116,6 +129,8 @@ def main():
               'roll_peak_hz', 'pitch_peak_hz', 'roll_vib_raw', 'pitch_vib_raw', 'yaw_vib_raw',
               'roll_vib_filt', 'pitch_vib_filt', 'yaw_vib_filt', 'throttle', 'tail', 'hs_std', 'volts'):
         print('%-22s %10.2f %10.2f' % (k, R[k], S[k]))
+    for ax in ('roll', 'pitch', 'yaw'):
+        print('%-22s %21.1f dB' % (ax + ' spectrum distance', spectral_distance(R, S, ax)))
     if plot:
         fig, axs = plt.subplots(2, 3, figsize=(14, 8))
         ax = axs[0]

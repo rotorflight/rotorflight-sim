@@ -1,0 +1,15 @@
+{
+ "heli": "OMP M7R",
+ "group": "c3771b88",
+ "capacity_ah": 6.017,
+ "resistance_ohm": 0.04362,
+ "cells": 12,
+ "rms_v": 0.315,
+ "r2": 0.963,
+ "soc0": [
+  1.005,
+  0.993
+ ],
+ "ah_share": 0.527,
+ "logs": 2
+}

@@ -25,7 +25,10 @@
    "aerobatic": 11.8,
    "hover": 14.3,
    "cruise": 34.0,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 8.4,
+   "doublet": 8.9,
+   "sweep": 0.0
   },
   "Stratos700_20261008_133504.0": {
    "ground": 10.9,
@@ -34,7 +37,10 @@
    "aerobatic": 13.2,
    "hover": 14.8,
    "cruise": 38.4,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 6.3,
+   "doublet": 0.0,
+   "sweep": 0.0
   },
   "Stratos700_20261008_134002.0": {
    "ground": 14.2,
@@ -43,7 +49,10 @@
    "aerobatic": 5.6,
    "hover": 14.6,
    "cruise": 14.4,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 6.6,
+   "doublet": 4.0,
+   "sweep": 0.0
   },
   "Stratos700_20261008_134448.0": {
    "ground": 14.0,
@@ -52,7 +61,10 @@
    "aerobatic": 15.8,
    "hover": 9.3,
    "cruise": 58.1,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 6.8,
+   "doublet": 8.1,
+   "sweep": 0.0
   },
   "Stratos700_all_20261008_001340.5": {
    "ground": 16.9,
@@ -61,7 +73,10 @@
    "aerobatic": 21.9,
    "hover": 33.4,
    "cruise": 33.5,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 9.3,
+   "doublet": 6.7,
+   "sweep": 0.0
   },
   "Stratos700_all_20261008_001340.6": {
    "ground": 14.7,
@@ -70,7 +85,10 @@
    "aerobatic": 9.7,
    "hover": 44.5,
    "cruise": 23.2,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 6.7,
+   "doublet": 4.5,
+   "sweep": 0.0
   },
   "Stratos700_all_20261008_001340.9": {
    "ground": 15.1,
@@ -79,7 +97,10 @@
    "aerobatic": 29.8,
    "hover": 25.3,
    "cruise": 63.7,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 6.6,
+   "doublet": 27.4,
+   "sweep": 0.0
   },
   "Stratos700_all_20261008_001340.12": {
    "ground": 10.9,
@@ -88,7 +109,10 @@
    "aerobatic": 29.9,
    "hover": 8.4,
    "cruise": 39.4,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 7.2,
+   "doublet": 36.9,
+   "sweep": 0.0
   },
   "Stratos700_all_20261016_182858.0": {
    "ground": 19.6,
@@ -97,7 +121,10 @@
    "aerobatic": 9.8,
    "hover": 7.2,
    "cruise": 10.8,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 6.9,
+   "doublet": 4.6,
+   "sweep": 0.0
   },
   "Stratos700_all_20261016_182858.1": {
    "ground": 11.1,
@@ -106,7 +133,10 @@
    "aerobatic": 11.1,
    "hover": 4.8,
    "cruise": 43.3,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 6.9,
+   "doublet": 16.3,
+   "sweep": 0.0
   },
   "Stratos700_all_20261016_182858.4": {
    "ground": 17.8,
@@ -115,7 +145,10 @@
    "aerobatic": 69.7,
    "hover": 12.6,
    "cruise": 112.1,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 7.4,
+   "doublet": 46.1,
+   "sweep": 0.0
   },
   "Stratos700_all_20261016_182858.5": {
    "ground": 15.7,
@@ -124,7 +157,10 @@
    "aerobatic": 26.3,
    "hover": 49.8,
    "cruise": 43.3,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 7.0,
+   "doublet": 12.2,
+   "sweep": 0.0
   },
   "Stratos700_all_20261016_182858.6": {
    "ground": 15.7,
@@ -133,7 +169,10 @@
    "aerobatic": 43.2,
    "hover": 31.7,
    "cruise": 91.8,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 7.2,
+   "doublet": 49.8,
+   "sweep": 20.0
   },
   "Stratos700_all_20261016_182858.8": {
    "ground": 15.6,
@@ -142,7 +181,10 @@
    "aerobatic": 19.5,
    "hover": 2.6,
    "cruise": 23.0,
-   "hover_in_ground_effect": 0.0
+   "hover_in_ground_effect": 0.0,
+   "spoolup": 7.5,
+   "doublet": 16.5,
+   "sweep": 0.0
   }
  },
  "motor_fit": [
@@ -332,19 +374,22 @@
    "N_ped": 41.87,
    "N_col": 11.53,
    "N_r": -0.425,
-   "r2": 0.84
+   "r2": 0.84,
+   "collective": 0.434
   },
   "1800": {
    "N_ped": 46.0,
    "N_col": -0.1,
    "N_r": -0.601,
-   "r2": 0.774
+   "r2": 0.774,
+   "collective": 0.398
   },
   "1900": {
    "N_ped": 43.6,
    "N_col": 2.55,
    "N_r": -0.373,
-   "r2": 0.712
+   "r2": 0.712,
+   "collective": 0.324
   }
  },
  "whirl_hz": {
@@ -469,14 +514,17 @@
   "yaw/1700/N_col": 1.399121,
   "yaw/1700/N_r": 0.191035,
   "yaw/1700/r2": 0.022408,
+  "yaw/1700/collective": 0.003727,
   "yaw/1800/N_ped": 2.065847,
   "yaw/1800/N_col": 1.610757,
   "yaw/1800/N_r": 0.057252,
   "yaw/1800/r2": 0.036009,
+  "yaw/1800/collective": 0.02553,
   "yaw/1900/N_ped": 2.540266,
   "yaw/1900/N_col": 0.81461,
   "yaw/1900/N_r": 0.060353,
   "yaw/1900/r2": 0.040406,
+  "yaw/1900/collective": 0.008917,
   "inflow_law/rpm_nominal": 229.128785,
   "inflow_law/a": 0.223855,
   "inflow_law/b": 0.166358,

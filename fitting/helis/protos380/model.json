@@ -1,6 +1,6 @@
 {
  "base": "fitted",
- "description": "MSH Protos 380: trained 2026-11-08 from 6 logs (setup b8916a32), checked on 2 held-out",
+ "description": "MSH Protos 380: trained 2026-11-09 from 6 logs (setup b8916a32), checked on 2 held-out",
  "attrs": {
   "motor_poles": 10,
   "v_hover": 3.5,
@@ -13,7 +13,8 @@
    0.13133333333333333
   ],
   "Nped": 31.44,
-  "Nr": -0.1
+  "Nr": -0.1,
+  "Ncol": 23.05
  },
  "args": {
   "rate_gain_roll": 5.512,
@@ -27,7 +28,7 @@
   "turb_hz": 2.5,
   "yaw_trim": 0.2,
   "nominal_rpm": 2200.0,
-  "gear_ratio": 8.75,
+  "gear_ratio": 8.69,
   "hover_throttle": 0.6,
   "pack_cells": 6,
   "pack_ah": 1.8,
@@ -37,7 +38,7 @@
   "yaw_scale": 1.0
  },
  "provenance": {
-  "trained": "2026-11-08",
+  "trained": "2026-11-09",
   "group": "b8916a32",
   "logs": {
    "fit": [
@@ -54,8 +55,8 @@
    ]
   },
   "params": {
-   "rate_gain_roll": "fit 2026-11-08 (rate stage)",
-   "rate_gain_pitch": "fit 2026-11-08 (rate stage)",
+   "rate_gain_roll": "fit 2026-11-09 (rate stage)",
+   "rate_gain_pitch": "fit 2026-11-09 (rate stage)",
    "Lb1s": "size prior (380 class, M7R dynamics)",
    "Ma1s": "size prior (380 class, M7R dynamics)",
    "tf": "size prior (380 class, M7R dynamics)",
@@ -65,7 +66,7 @@
    "turb_hz": "size prior (380 class, M7R dynamics)",
    "yaw_trim": "size prior (380 class, M7R dynamics)",
    "nominal_rpm": "most flown headspeed",
-   "gear_ratio": "size prior (380 class, M7R dynamics)",
+   "gear_ratio": "heli file",
    "hover_throttle": "size prior (380 class, M7R dynamics)",
    "pack_cells": "estimated from Vbat",
    "pack_ah": "size prior (380 class, M7R dynamics)",
@@ -77,19 +78,21 @@
    "v_hover": "size prior (380 class, M7R dynamics)",
    "rotor_radius": "size prior (380 class, M7R dynamics)",
    "hub_height": "size prior (380 class, M7R dynamics)",
-   "ctrl_rpm_exp": "fit 2026-11-08 (rate stage)",
+   "ctrl_rpm_exp": "fit 2026-11-09 (rate stage)",
    "Zcol": "size prior (380 class, M7R dynamics)",
    "thrust_inflow": "size prior (380 class, M7R dynamics)",
-   "Nped": "fit 2026-11-08 (yaw stage)",
-   "Nr": "fit 2026-11-08 (yaw stage)"
+   "Nped": "fit 2026-11-09 (yaw stage)",
+   "Nr": "fit 2026-11-09 (yaw stage)",
+   "Ncol": "fit 2026-11-09 (yaw stage)"
   },
   "held_out_scores": {
    "rotor": 11.477293821030104,
    "thrust": 0.24273500000000003,
    "rate": 0.10086717907081193,
    "flap": 0.2091729318647316,
-   "yaw": 0.42586512215786165,
-   "power": null
+   "yaw": 0.583584769419992,
+   "power": null,
+   "pack": 0.2069106255356456
   }
  }
 }

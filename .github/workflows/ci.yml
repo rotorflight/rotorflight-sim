@@ -104,6 +104,18 @@ jobs:
     - name: Rescue check, 700 class (OMP M7R preset, governor)
       run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --model m7r --governor 1800 --rescue --check
 
+    - name: Hover and rescue checks of the trained helis (380, 500, Nimbus, 700 - fitting/helis/<heli>/model.json)
+      run: |
+        # the committed models of fitting/scripts/train.py, at their nominal headspeed: a
+        # retraining that leaves a heli unflyable shows up here
+        for heli in protos380 devil505 nimbus omp_m7r; do
+          rpm=$(python3 -c "import json; print(int(json.load(open('fitting/helis/$heli/model.json'))['args']['nominal_rpm']))")
+          echo "::group::$heli at $rpm rpm"
+          python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --model $heli --governor $rpm --seconds 34 --check
+          python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --model $heli --governor $rpm --rescue --check
+          echo "::endgroup::"
+        done
+
     - name: Take-off and landing on a 15 deg slope
       run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --slope 15 --check
 

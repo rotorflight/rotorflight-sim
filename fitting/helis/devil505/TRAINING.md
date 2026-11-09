@@ -1,6 +1,6 @@
 # ALZRC Devil 505 - training report
 
-Trained 2026-11-08 on setup `683c976e` (craft Devil 505, firmware 4.5, board RDMS NEXUS_XR, tail servo, collective -1250,1250, esc 0/0), from the prior: size prior (500 class, M7R dynamics). Written by `scripts/train.py`.
+Trained 2026-11-09 on setup `683c976e` (craft Devil 505, firmware 4.5, board RDMS NEXUS_XR, tail servo, collective -1250,1250, esc 0/0), from the prior: size prior (500 class, M7R dynamics). Written by `scripts/train.py`.
 
 - fit logs (2): Devil_505_20260129_125822.0, Devil_505_20260129_163848.0
 - held-out logs (0): none
@@ -15,6 +15,7 @@ Trained 2026-11-08 on setup `683c976e` (craft Devil 505, firmware 4.5, board RDM
 | flap | kept, not validated | - | - |
 | yaw | taken, not validated (over a size prior) | - | - |
 | power | no proposal | - | - |
+| pack | no proposal | - | - |
 
 **rotor**: no proposal
 - A or B uncertain: 55 / 66 %
@@ -35,12 +36,16 @@ Trained 2026-11-08 on setup `683c976e` (craft Devil 505, firmware 4.5, board RDM
 - held-out after: no held-out logs
 
 **yaw**: taken, not validated (over a size prior)
-- N_ped 19.9 at 2300 rpm (R^2 0.42) -> Nped 19.9 at 2300 rpm, Nr -0.11
+- N_ped 19.9 at 2300 rpm (R^2 0.42) -> Nped 19.9 at 2300 rpm, Nr -0.11, Ncol 18.7
 - held-out before: no held-out logs
 - held-out after: no held-out logs
 
 **power**: no proposal
 - no gated hover at 2300 rpm with Vbat and Ibat
+
+**pack**: no proposal
+- resistance not identified (R^2 0.94, +- inf %)
+- capacity not identified (4.42 Ah +- inf %, the largest draw 54 % of it)
 
 ## Held-out scores
 
@@ -54,5 +59,6 @@ Lower is better (`scripts/holdout.py`).
 | flap | - | - | - |
 | yaw | - | - | - |
 | power | - | - | - |
+| pack | - | - | - |
 
 Model changed: yes.

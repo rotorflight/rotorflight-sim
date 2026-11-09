@@ -1,6 +1,6 @@
 {
  "base": "fitted",
- "description": "Nimbus: trained 2026-11-08 from 12 logs (setup 4062f5c0), checked on 6 held-out",
+ "description": "Nimbus: trained 2026-11-09 from 12 logs (setup 4062f5c0), checked on 6 held-out",
  "attrs": {
   "motor_poles": 10,
   "v_hover": 3.4,
@@ -20,7 +20,8 @@
    0.003738,
    0.004809,
    2.0
-  ]
+  ],
+  "Ncol": -4.63
  },
  "args": {
   "rate_gain_roll": 4.055,
@@ -34,17 +35,17 @@
   "turb_hz": 2.5,
   "yaw_trim": 0.394,
   "nominal_rpm": 1900.0,
-  "gear_ratio": 8.75,
+  "gear_ratio": 9.633,
   "hover_throttle": 0.746,
   "pack_cells": 6,
-  "pack_ah": 3.3,
-  "pack_r": 0.04,
+  "pack_ah": 3.058,
+  "pack_r": 0.02561,
   "hover_power_w": 626.4,
   "cyclic_scale": 1.0,
   "yaw_scale": 1.0
  },
  "provenance": {
-  "trained": "2026-11-08",
+  "trained": "2026-11-09",
   "group": "4062f5c0",
   "logs": {
    "fit": [
@@ -71,8 +72,8 @@
    ]
   },
   "params": {
-   "rate_gain_roll": "fit 2026-11-08 (rate stage)",
-   "rate_gain_pitch": "fit 2026-11-08 (rate stage)",
+   "rate_gain_roll": "fit 2026-11-09 (rate stage)",
+   "rate_gain_pitch": "fit 2026-11-09 (rate stage)",
    "Lb1s": "size prior (? class, M7R dynamics)",
    "Ma1s": "size prior (? class, M7R dynamics)",
    "tf": "size prior (? class, M7R dynamics)",
@@ -80,34 +81,36 @@
    "tf_rpm_exp": "size prior (? class, M7R dynamics)",
    "turb": "size prior (? class, M7R dynamics)",
    "turb_hz": "size prior (? class, M7R dynamics)",
-   "yaw_trim": "fit 2026-11-08 (yaw stage)",
+   "yaw_trim": "fit 2026-11-09 (yaw stage)",
    "nominal_rpm": "most flown headspeed",
-   "gear_ratio": "size prior (? class, M7R dynamics)",
-   "hover_throttle": "fit 2026-11-08 (power stage)",
+   "gear_ratio": "heli file",
+   "hover_throttle": "fit 2026-11-09 (power stage)",
    "pack_cells": "estimated from Vbat",
-   "pack_ah": "size prior (? class, M7R dynamics)",
-   "pack_r": "size prior (? class, M7R dynamics)",
-   "hover_power_w": "fit 2026-11-08 (power stage)",
+   "pack_ah": "fit 2026-11-09 (pack stage)",
+   "pack_r": "fit 2026-11-09 (pack stage)",
+   "hover_power_w": "fit 2026-11-09 (power stage)",
    "cyclic_scale": "size prior (? class, M7R dynamics)",
    "yaw_scale": "size prior (? class, M7R dynamics)",
    "motor_poles": "size prior (? class, M7R dynamics)",
    "v_hover": "size prior (? class, M7R dynamics)",
    "rotor_radius": "size prior (? class, M7R dynamics)",
    "hub_height": "size prior (? class, M7R dynamics)",
-   "ctrl_rpm_exp": "fit 2026-11-08 (rate stage)",
-   "Zcol": "fit 2026-11-08 (thrust stage)",
-   "thrust_inflow": "fit 2026-11-08 (thrust stage)",
-   "Nped": "fit 2026-11-08 (yaw stage)",
-   "Nr": "fit 2026-11-08 (yaw stage)",
-   "motor_fit": "fit 2026-11-08 (rotor stage)"
+   "ctrl_rpm_exp": "fit 2026-11-09 (rate stage)",
+   "Zcol": "fit 2026-11-09 (thrust stage)",
+   "thrust_inflow": "fit 2026-11-09 (thrust stage)",
+   "Nped": "fit 2026-11-09 (yaw stage)",
+   "Nr": "fit 2026-11-09 (yaw stage)",
+   "motor_fit": "fit 2026-11-09 (rotor stage)",
+   "Ncol": "fit 2026-11-09 (yaw stage)"
   },
   "held_out_scores": {
    "rotor": 2.286309555814488,
    "thrust": 0.011713694035199673,
    "rate": 0.06505699009934925,
    "flap": 0.15926498697980895,
-   "yaw": 0.28252724450622124,
-   "power": null
+   "yaw": 0.2789811519895995,
+   "power": null,
+   "pack": 0.1772529290723077
   }
  }
 }

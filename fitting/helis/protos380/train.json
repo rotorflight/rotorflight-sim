@@ -1,6 +1,6 @@
 {
  "heli": "MSH Protos 380",
- "trained": "2026-11-08",
+ "trained": "2026-11-09",
  "group": "b8916a32",
  "setup": {
   "craft": "Protos",
@@ -68,7 +68,7 @@
     "args": {
      "Lb1s": 2347.8,
      "tf_roll": 0.0248,
-     "rate_gain_roll": 5.243,
+     "rate_gain_roll": 4.698,
      "Ma1s": 739.3,
      "tf_pitch": 0.0444,
      "rate_gain_pitch": 5.08
@@ -80,34 +80,35 @@
     "pitch from 40 sharp inputs at 2200 rpm: L 739 +- 5 %, tf 0.044 +- 5 %, VAF 0.95"
    ],
    "score_before": 0.2091729318647316,
-   "score_after": 0.12831682789972132,
+   "score_after": 0.12463139665541723,
    "score_detail": {
     "before": "1 - VAF 0.209 over 8 sharp inputs",
-    "after": "1 - VAF 0.128 over 8 sharp inputs"
+    "after": "1 - VAF 0.125 over 8 sharp inputs"
    },
    "others_worse": [
-    "rate 0.1009 -> 0.128"
+    "rate 0.1009 -> 0.1829"
    ],
-   "decision": "kept: makes rate 0.1009 -> 0.128 worse"
+   "decision": "kept: makes rate 0.1009 -> 0.1829 worse"
   },
   "yaw": {
    "proposal": {
     "attrs": {
      "Nped": 31.44,
-     "Nr": -0.1
+     "Nr": -0.1,
+     "Ncol": 23.05
     }
    },
    "notes": [
-    "N_ped 31.4 at 2200 rpm (R^2 0.56) -> Nped 31.4 at 2200 rpm, Nr -0.10"
+    "N_ped 31.4 at 2200 rpm (R^2 0.56) -> Nped 31.4 at 2200 rpm, Nr -0.10, Ncol 23.1"
    ],
-   "score_before": 0.5900776203814073,
-   "score_after": 0.42586512215786165,
+   "score_before": 0.5878350547345232,
+   "score_after": 0.583584769419992,
    "score_detail": {
-    "before": "R^2 0.410",
-    "after": "R^2 0.574"
+    "before": "R^2 0.412",
+    "after": "R^2 0.416"
    },
    "others_worse": [],
-   "decision": "taken: held-out 0.5901 -> 0.4259"
+   "decision": "taken: held-out 0.5878 -> 0.5836"
   },
   "power": {
    "proposal": null,
@@ -115,9 +116,181 @@
     "no gated hover at 2200 rpm with Vbat and Ibat"
    ],
    "decision": "no proposal"
+  },
+  "pack": {
+   "proposal": null,
+   "notes": [
+    "resistance not identified (R^2 0.93, +- 79 %)",
+    "capacity not identified (2.82 Ah +- 46 %, the largest draw 42 % of it)"
+   ],
+   "decision": "no proposal"
   }
  },
- "replay": null,
+ "replay": {
+  "logs": [
+   {
+    "log": "Protos_20260622_094304.0",
+    "window": [
+     11.2,
+     66.7
+    ],
+    "rpm": 2000,
+    "old": 3.3676678849323576,
+    "old_metrics": {
+     "roll_err_rms": [
+      11.99,
+      4.54
+     ],
+     "pitch_err_rms": [
+      13.47,
+      7.09
+     ],
+     "yaw_err_rms": [
+      15.67,
+      13.11
+     ],
+     "throttle": [
+      61.0,
+      54.7
+     ],
+     "tail": [
+      -44.0,
+      -22.6
+     ],
+     "roll_spectrum_db": 19.2,
+     "pitch_spectrum_db": 9.3,
+     "yaw_spectrum_db": 14.6
+    },
+    "new": 3.7219076678727308,
+    "new_metrics": {
+     "roll_err_rms": [
+      11.99,
+      3.93
+     ],
+     "pitch_err_rms": [
+      13.47,
+      7.01
+     ],
+     "yaw_err_rms": [
+      15.67,
+      20.04
+     ],
+     "throttle": [
+      61.0,
+      54.8
+     ],
+     "tail": [
+      -44.0,
+      -19.7
+     ],
+     "roll_spectrum_db": 20.2,
+     "pitch_spectrum_db": 11.2,
+     "yaw_spectrum_db": 16.5
+    }
+   },
+   {
+    "log": "Protos_20260622_095452.0",
+    "window": [
+     22.0,
+     56.3
+    ],
+    "rpm": 2200,
+    "old": 3.939224820932415,
+    "old_metrics": {
+     "roll_err_rms": [
+      15.0,
+      3.75
+     ],
+     "pitch_err_rms": [
+      11.34,
+      2.23
+     ],
+     "yaw_err_rms": [
+      39.33,
+      28.66
+     ],
+     "throttle": [
+      65.4,
+      60.6
+     ],
+     "tail": [
+      -42.3,
+      -18.8
+     ],
+     "roll_spectrum_db": 25.1,
+     "pitch_spectrum_db": 15.6,
+     "yaw_spectrum_db": 9.0
+    },
+    "new": 3.8613970996062656,
+    "new_metrics": {
+     "roll_err_rms": [
+      15.0,
+      3.09
+     ],
+     "pitch_err_rms": [
+      11.34,
+      2.26
+     ],
+     "yaw_err_rms": [
+      39.33,
+      48.81
+     ],
+     "throttle": [
+      65.4,
+      60.85
+     ],
+     "tail": [
+      -42.3,
+      -19.6
+     ],
+     "roll_spectrum_db": 25.8,
+     "pitch_spectrum_db": 15.3,
+     "yaw_spectrum_db": 11.2
+    }
+   }
+  ],
+  "old": 3.653,
+  "new": 3.792,
+  "verdict": "ok",
+  "old_is": "prior",
+  "model_trained": "2026-11-09",
+  "model_args": {
+   "rate_gain_roll": 5.512,
+   "rate_gain_pitch": 5.334,
+   "Lb1s": 700.0,
+   "Ma1s": 700.0,
+   "tf": 0.05,
+   "stiff_rpm_exp": 2.0,
+   "tf_rpm_exp": 1.0,
+   "turb": 0.0,
+   "turb_hz": 2.5,
+   "yaw_trim": 0.2,
+   "nominal_rpm": 2200.0,
+   "gear_ratio": 8.69,
+   "hover_throttle": 0.6,
+   "pack_cells": 6,
+   "pack_ah": 1.8,
+   "pack_r": 0.03,
+   "hover_power_w": 1150.0,
+   "cyclic_scale": 1.0,
+   "yaw_scale": 1.0
+  },
+  "model_attrs": {
+   "motor_poles": 10,
+   "v_hover": 3.5,
+   "rotor_radius": 0.38,
+   "hub_height": 0.19,
+   "ctrl_rpm_exp": 1.261,
+   "Zcol": -35.921794871794866,
+   "thrust_inflow": [
+    39.21568627450981,
+    0.13133333333333333
+   ],
+   "Nped": 31.44,
+   "Nr": -0.1,
+   "Ncol": 23.05
+  }
+ },
  "changed": true,
  "scores": {
   "prior": {
@@ -125,24 +298,27 @@
    "thrust": 0.24273500000000003,
    "rate": 0.129428367139033,
    "flap": 0.34881285092226516,
-   "yaw": 0.5900776203814073,
-   "power": null
+   "yaw": 0.5878350547345232,
+   "power": null,
+   "pack": 0.2069106255356456
   },
   "current": {
    "rotor": 11.477293821030104,
    "thrust": 0.24273500000000003,
    "rate": 0.129428367139033,
    "flap": 0.34881285092226516,
-   "yaw": 0.5900776203814073,
-   "power": null
+   "yaw": 0.5878350547345232,
+   "power": null,
+   "pack": 0.2069106255356456
   },
   "new": {
    "rotor": 11.477293821030104,
    "thrust": 0.24273500000000003,
    "rate": 0.10086717907081193,
    "flap": 0.2091729318647316,
-   "yaw": 0.42586512215786165,
-   "power": null
+   "yaw": 0.583584769419992,
+   "power": null,
+   "pack": 0.2069106255356456
   }
  },
  "gates": {
@@ -155,7 +331,11 @@
   "flap_events": 5,
   "flap_rel": 0.35,
   "yaw_r2": 0.3,
-  "yaw_rel": 0.25
+  "yaw_rel": 0.25,
+  "pack_r2": 0.8,
+  "pack_rel_r": 0.3,
+  "pack_rel_c": 0.25,
+  "pack_share": 0.25
  },
  "tolerance": 0.02
 }

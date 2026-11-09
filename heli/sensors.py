@@ -19,11 +19,13 @@ in the soak is quantisation-limited and replaced by the other two).
 
 Vibration (per heli, order tracking of logged gyroRAW, `fitting/scripts/vibration.py`
 -> `fitting/helis/<heli>/vibration.json`): for every harmonic of the main rotor, tail
-rotor and motor, A_axis (rpm / rpm_ref)^2 sin(order x rotor angle + phase_axis), locked
+rotor and motor, A_axis (rpm / rpm_ref)^k sin(order x rotor angle + phase_axis), locked
 to the model's rotor angle so the firmware's RPM filter can track it; plus a white
-broadband floor with the logged density above 100 Hz, also x (rpm / rpm_ref)^2 (an
-out-of-balance force grows with the square of the speed; the logs, two headspeeds per
-heli, do not pin the exponent better). No accelerometer vibration: the logs carry none.
+broadband floor with the logged density above 100 Hz, x (rpm / rpm_ref)^2. k is the
+harmonic's own fitted exponent where the logs pin it (rpm_exp_se <= 0.5, clamped 0..4),
+else 2 (an out-of-balance force grows with the square of the speed): over eight helis
+the well-pinned exponents scatter from 0 to 4 around ~1.9 - resonances, not one law.
+No accelerometer vibration: the logs carry none.
 
 Quantisation and range clipping happen in the SITL (16.4 LSB/deg/s, 256 LSB/g, int16).
 Everything is seeded, so a check stays repeatable. Only the Python standard library.
@@ -64,6 +66,26 @@ def available(folder):
     return sorted(f for f in os.listdir(d) if os.path.exists(os.path.join(d, f, 'vibration.json')))
 
 
+EXP_SE_MAX = 0.5          # a harmonic's own rpm exponent is used if pinned this well
+EXP_RANGE = (0.0, 4.0)
+
+
+def rpm_exponents(h):
+    """Per axis, the rpm exponent of a harmonic's amplitude: its own fit where the logs pin
+    it (standard error <= 0.5, vibration.py's rpm_exp_se), clamped to 0..4, else 2. Over
+    eight helis the well-pinned exponents scatter from 0 to 4 (median 1.7: an amplitude
+    rises or falls as its line moves towards or away from a frame resonance), so 2 - an
+    out-of-balance force - stays the default."""
+    out = []
+    for i in range(3):
+        se = (h.get('rpm_exp_se') or [None] * 3)[i]
+        if se is not None and se <= EXP_SE_MAX:
+            out.append(min(max(h['rpm_exp'][i], EXP_RANGE[0]), EXP_RANGE[1]))
+        else:
+            out.append(2.0)
+    return out
+
+
 class Sensors:
     def __init__(self, chip=None, vibration=None, seed=1, vib_scale=1.0, tail_ratio=None, gear_ratio=None):
         self.rng = random.Random(seed)
@@ -89,7 +111,7 @@ class Sensors:
                     order = h['n'] * gear_ratio
                 phases = [self.rng.uniform(0, 2 * math.pi) for _ in range(3)]
                 amps = [a * D2R * vib_scale for a in h['amp_dps']]
-                self.harm.append((order, amps, phases))
+                self.harm.append((order, amps, phases, rpm_exponents(h)))
             self.rpm_ref = float(self.vib['rpm_ref'])
             self.floor = [a * D2R * vib_scale for a in self.vib.get('floor_asd_dps_rthz', [0, 0, 0])]
         if self.chip:
@@ -147,11 +169,12 @@ class Sensors:
             # still 1e-10 rad resolution in a double)
             self.theta += rotor_w * dt
             if rotor_w > 1.0:
-                s = (rotor_w * 60 / (2 * math.pi) / self.rpm_ref) ** 2
-                for order, amps, phases in self.harm:
+                wr = rotor_w * 60 / (2 * math.pi) / self.rpm_ref
+                s = wr * wr
+                for order, amps, phases, expo in self.harm:
                     ang = order * self.theta
                     for i in range(3):
-                        g[i] += s * amps[i] * math.sin(ang + phases[i])
+                        g[i] += wr ** expo[i] * amps[i] * math.sin(ang + phases[i])
                 sq = s / math.sqrt(2 * dt)      # one-sided density over 0..1/(2 dt)
                 for i in range(3):
                     g[i] += self.floor[i] * sq * self.rng.gauss(0, 1)

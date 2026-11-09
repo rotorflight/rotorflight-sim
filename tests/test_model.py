@@ -575,16 +575,29 @@ class SensorModel(unittest.TestCase):
                     self.assertAlmostEqual(g_ / w_, 1.0, delta=0.05)
 
     def test_vibration_scales_with_rpm_squared(self):
-        for heli in available('helis'):
-            with self.subTest(heli=heli):
-                s = Sensors(None, heli)
-                w = s.rpm_ref * 2 * math.pi / 60
-                a = self.rms(Sensors(None, heli), w)
-                b = self.rms(Sensors(None, heli), 0.8 * w)
-                for x, y in zip(a, b):
-                    if x > 0.1:
-                        self.assertAlmostEqual(y / x, 0.64, delta=0.05)
-                self.assertEqual(self.rms(Sensors(None, heli), 0.0, 2000), [0.0, 0.0, 0.0])
+        # with every harmonic on the default exponent 2 (the floor always is)
+        from unittest import mock
+        import sensors
+        with mock.patch.object(sensors, 'rpm_exponents', lambda h: [2.0, 2.0, 2.0]):
+            for heli in available('helis'):
+                with self.subTest(heli=heli):
+                    s = Sensors(None, heli)
+                    w = s.rpm_ref * 2 * math.pi / 60
+                    a = self.rms(Sensors(None, heli), w)
+                    b = self.rms(Sensors(None, heli), 0.8 * w)
+                    for x, y in zip(a, b):
+                        if x > 0.1:
+                            self.assertAlmostEqual(y / x, 0.64, delta=0.05)
+                    self.assertEqual(self.rms(Sensors(None, heli), 0.0, 2000), [0.0, 0.0, 0.0])
+
+    def test_vibration_rpm_exponents(self):
+        # a harmonic's own exponent where the logs pin it, clamped to 0..4, else 2
+        from sensors import rpm_exponents
+        h = {'rpm_exp': [1.2, 7.5, -3.0], 'rpm_exp_se': [0.2, 0.3, 0.4]}
+        self.assertEqual(rpm_exponents(h), [1.2, 4.0, 0.0])
+        h = {'rpm_exp': [1.2, 3.0, 0.5], 'rpm_exp_se': [0.9, None, 0.5]}
+        self.assertEqual(rpm_exponents(h), [2.0, 2.0, 0.5])
+        self.assertEqual(rpm_exponents({'rpm_exp': [5.0, 5.0, 5.0]}), [2.0, 2.0, 2.0])   # older files
 
 
 class ModelFiles(unittest.TestCase):

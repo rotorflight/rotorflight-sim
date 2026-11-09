@@ -15,6 +15,10 @@ Labels (exclusive, in this order of precedence):
                 at least
   cruise        the rest of the airborne time (forward flight, gentle manoeuvres)
 
+Overlays (inputs(), not exclusive): spoolup, doublet (sharp stick inputs) and sweep
+(frequency sweeps on roll or pitch) - what excites the rotor law, the flap/body mode and
+the frequency response.
+
 Without airspeed, hover and slow forward flight at constant height differ only in the
 attitude, so short hovers can be missed and slow drifts counted. The baro altitude is
 taken relative to the ground before the first take-off; hover below `ige_m` (default
@@ -109,6 +113,73 @@ def has_baro(log):
     return 'altitude' in log.N and np.ptp(log.c('altitude')) > 100
 
 
+INPUTS = ('spoolup', 'doublet', 'sweep')
+
+
+def inputs(log):
+    """Overlay masks (not exclusive, unlike the labels) of what excites what:
+      spoolup   the motor powered and the rotor below 90 % of its later speed, accelerating
+                (> 3 %/s): what identifies the rotor law's motor torque against inertia
+      doublet   0.3 s before to 1.2 s after a sharp roll or pitch input (setpoint swinging
+                by > 150 deg/s within 0.3 s, as fit_flap.py): flap/body dynamics
+      sweep     a roll or pitch stick oscillating (1 s RMS setpoint > 20 deg/s) whose
+                frequency (zero crossings in 4 s windows) rises 3x or more over 10 s or
+                longer: the frequency response
+    """
+    fs = 1.0 / log.dt
+    n = len(log.t)
+    out = {}
+    # spool-up
+    hs = uniform_filter1d(log.c('headspeed'), max(1, int(0.5 * fs))) if 'headspeed' in log.N else np.zeros(n)
+    top = np.percentile(hs, 95) if hs.any() else 0.0
+    rising = np.gradient(hs, log.t) > 0.03 * max(top, 1.0)
+    powered = log.c('motor[0]') > 50 if 'motor[0]' in log.N else np.zeros(n, bool)
+    out['spoolup'] = powered & rising & (hs < 0.9 * top) & (hs > 0.05 * top)
+    # doublets
+    d = np.zeros(n, bool)
+    k = max(1, int(0.3 * fs))
+    for ax in (0, 1):
+        sp = log.c('setpoint[%d]' % ax)
+        jump = np.flatnonzero(np.abs(sp[k:] - sp[:-k]) > 150)
+        last = -10 ** 9
+        for i in jump:
+            if i - last > fs:            # one per second at most
+                d[max(0, i - int(0.3 * fs)):i + int(1.2 * fs)] = True
+                last = i
+    out['doublet'] = d
+    # sweeps: zero-crossing rate of the setpoint in 4 s windows, stepped by 1 s
+    sw = np.zeros(n, bool)
+    win, step = int(4 * fs), int(fs)
+    for ax in (0, 1):
+        sp = log.c('setpoint[%d]' % ax)
+        rows = []
+        for a in range(0, n - win, step):
+            x = sp[a:a + win] - np.mean(sp[a:a + win])
+            rms = np.sqrt(np.mean(x ** 2))
+            zc = np.count_nonzero(np.diff(np.signbit(x))) / 8.0      # Hz
+            rows.append((a, rms > 20, zc, rms))
+        run = []
+        for a, active, zc, rms in rows + [(None, False, 0.0, 0.0)]:
+            if active:
+                run.append((a, zc, rms))
+                continue
+            if run:
+                # without the edges, whose windows overlap the stick at rest
+                med = np.median([r for _, _, r in run])
+                while run and run[-1][2] < 0.8 * med:
+                    run.pop()
+                while run and run[0][2] < 0.8 * med:
+                    run.pop(0)
+            if len(run) >= 7 and run[-1][1] >= 3 * max(run[0][1], 0.1):
+                zs = [z for _, z, _ in run]
+                # mostly rising: a sweep, not stirring
+                if np.corrcoef(np.arange(len(zs)), zs)[0, 1] > 0.8:
+                    sw[run[0][0]:run[-1][0] + win] = True
+            run = []
+    out['sweep'] = sw
+    return out
+
+
 def main():
     heli = json.load(open(sys.argv[1]))
     print('%-28s ' % 'log' + ' '.join('%12s' % k for k in LABELS) + '   hover in ground effect')
@@ -121,8 +192,10 @@ def main():
             continue
         lab, alt, ige = segment(log)
         fs = 1.0 / log.dt
+        inp = inputs(log)
         print('%-28s ' % name + ' '.join('%10.1f s' % (lab[k].sum() / fs) for k in LABELS)
-              + '   %.1f s' % (ige.sum() / fs))
+              + '   %.1f s' % (ige.sum() / fs)
+              + '   | ' + ', '.join('%s %.1f s' % (k, inp[k].sum() / fs) for k in INPUTS))
 
 
 if __name__ == '__main__':

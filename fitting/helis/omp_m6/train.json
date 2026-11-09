@@ -1,6 +1,6 @@
 {
  "heli": "OMP M6",
- "trained": "2026-11-08",
+ "trained": "2026-11-09",
  "group": "3e472a5b",
  "setup": {
   "craft": "OMP M6",
@@ -41,8 +41,10 @@
     "before": "RMS throttle error 11.5 % over 40400 samples",
     "after": "RMS throttle error 0.9 % over 40400 samples"
    },
-   "others_worse": [],
-   "decision": "taken: held-out 11.46 -> 0.8571"
+   "others_worse": [
+    "yaw 0.4102 -> 0.4404"
+   ],
+   "decision": "kept: makes yaw 0.4102 -> 0.4404 worse"
   },
   "thrust": {
    "proposal": null,
@@ -92,34 +94,45 @@
     "no gated hover at 2200 rpm with Vbat and Ibat"
    ],
    "decision": "no proposal"
+  },
+  "pack": {
+   "proposal": null,
+   "notes": [
+    "resistance not identified (R^2 0.94, +- inf %)",
+    "capacity not identified (3.87 Ah +- inf %, the largest draw 42 % of it)"
+   ],
+   "decision": "no proposal"
   }
  },
  "replay": null,
- "changed": true,
+ "changed": false,
  "scores": {
   "prior": {
    "rotor": 11.464838419486874,
    "thrust": 0.06950781249999999,
    "rate": 0.04756512411551081,
    "flap": 0.04626712993827228,
-   "yaw": 0.46078043363459786,
-   "power": null
+   "yaw": 0.41018410582770315,
+   "power": null,
+   "pack": 0.7160700557276889
   },
   "current": {
    "rotor": 11.464838419486874,
    "thrust": 0.06950781249999999,
    "rate": 0.04756512411551081,
    "flap": 0.04626712993827228,
-   "yaw": 0.46078043363459786,
-   "power": null
+   "yaw": 0.41018410582770315,
+   "power": null,
+   "pack": 0.7160700557276889
   },
   "new": {
-   "rotor": 0.857120188185452,
+   "rotor": 11.464838419486874,
    "thrust": 0.06950781249999999,
    "rate": 0.04756512411551081,
    "flap": 0.04626712993827228,
-   "yaw": 0.46078043363459786,
-   "power": null
+   "yaw": 0.41018410582770315,
+   "power": null,
+   "pack": 0.7160700557276889
   }
  },
  "gates": {
@@ -132,7 +145,11 @@
   "flap_events": 5,
   "flap_rel": 0.35,
   "yaw_r2": 0.3,
-  "yaw_rel": 0.25
+  "yaw_rel": 0.25,
+  "pack_r2": 0.8,
+  "pack_rel_r": 0.3,
+  "pack_rel_c": 0.25,
+  "pack_share": 0.25
  },
  "tolerance": 0.02
 }

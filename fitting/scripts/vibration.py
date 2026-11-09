@@ -14,7 +14,9 @@ Each steady 4 s window (headspeed within 0.5 %, airborne when the log has AIRBOR
 events) gives a Welch spectrum per axis; a harmonic's power is the spectrum over +-2.5 %
 of its frequency (at least 1.5 Hz) above the local floor, its amplitude sqrt(2 power).
 Harmonics above 90 % of Nyquist are skipped (the decimation low-pass and aliasing).
-Per harmonic and axis, amplitude = a (rpm / rpm_ref)^k is fitted over all windows.
+Per harmonic and axis, amplitude = a (rpm / rpm_ref)^k exp(m (collective - coll_ref)) is
+fitted over all windows (log-linear least squares; k with its standard error rpm_exp_se,
+m as coll_coef per unit collective; a term is left out where its range is too small).
 The relative width (RMS spread of the floor-corrected peak in the order spectrum, in
 fractions of its frequency) tells how broad the peak is: the main rotor 2x is broadened
 by the flap/lag modes on the M-series helis.
@@ -94,8 +96,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('heli')
     ap.add_argument('--plot')
+    ap.add_argument('--group', help='setup group (default: the one of the trained model, else all logs)')
     a = ap.parse_args()
     heli = json.load(open(a.heli))
+    group = a.group
+    mpath = os.path.join(os.path.dirname(a.heli), 'model.json')
+    if group is None and os.path.exists(mpath):
+        group = (json.load(open(mpath)).get('provenance') or {}).get('group')
+    if group:
+        heli = dict(heli, logs=[e for e in heli['logs'] if e.get('group') in (None, group)])
+        print('setup %s: %d logs' % (group, len(heli['logs'])))
     src = sources(heli)
     rows = []          # (rpm the source is locked to, coll, src index, axis, amp)
     floors = []        # (rpm, axis, asd 100-450 Hz)
@@ -163,26 +173,38 @@ def main():
     rows = np.array(rows)
     main_rows = np.isin(rows[:, 2], [i for i, (kind, _, _) in enumerate(src) if kind != 'tailmotor'])
     rpm_ref = float(np.median(rows[main_rows, 0]))
-    out = {'heli': heli['name'], 'rpm_ref': round(rpm_ref), 'source': 'gyroRAW, order tracking (vibration.py)',
+    coll_ref = float(np.median(rows[main_rows, 1]))
+    out = {'heli': heli['name'], 'rpm_ref': round(rpm_ref), 'coll_ref': round(coll_ref, 3),
+           'source': 'gyroRAW, order tracking (vibration.py)',
            'windows': int(len(rows) / 3 / len(src)) if len(src) else 0, 'harmonics': []}
     print('\nreference %.0f rpm; amplitude deg/s (peak) per axis at it, rpm exponent, relative width' % rpm_ref)
     for si, (kind, k, order) in enumerate(src):
         sel = rows[:, 2] == si
         if not sel.any():
             continue
-        amp, expo = [], []
+        amp, expo, expo_se, ccoef = [], [], [], []
         ref = rpm_ref if kind != 'tailmotor' else float(np.median(rows[sel, 0]))
         for ax in range(3):
             s = sel & (rows[:, 3] == ax) & (rows[:, 4] > 0)
             if s.sum() < 5:
-                amp.append(0.0); expo.append(0.0)
+                amp.append(0.0); expo.append(0.0); expo_se.append(None); ccoef.append(0.0)
                 continue
-            x, y = np.log(rows[s, 0] / ref), np.log(rows[s, 4])
+            # log amplitude against log rpm and collective together: collective changes
+            # with headspeed in a flight, and alone it would pass for an rpm exponent
+            x, y, c = np.log(rows[s, 0] / ref), np.log(rows[s, 4]), rows[s, 1] - coll_ref
+            cols = [np.ones_like(x)]
             if np.ptp(x) > 0.05:
-                kk, c0 = np.polyfit(x, y, 1)
-            else:
-                kk, c0 = 0.0, np.median(y)
-            amp.append(float(np.exp(c0))); expo.append(float(kk))
+                cols.append(x)
+            if np.ptp(c) > 0.1:
+                cols.append(c)
+            X = np.column_stack(cols)
+            beta, *_ = np.linalg.lstsq(X, y, rcond=None)
+            res = y - X @ beta
+            cov = np.linalg.pinv(X.T @ X) * (res @ res) / max(1, len(y) - X.shape[1])
+            kk = beta[1] if np.ptp(x) > 0.05 else 0.0
+            se = float(np.sqrt(cov[1, 1])) if np.ptp(x) > 0.05 else None
+            cc = beta[-1] if np.ptp(c) > 0.1 else 0.0
+            amp.append(float(np.exp(beta[0]))); expo.append(float(kk)); expo_se.append(se); ccoef.append(float(cc))
         width = []
         for ax in range(3 if kind != 'tailmotor' else 0):
             num = den = 0.0
@@ -200,6 +222,8 @@ def main():
         h = {'source': kind, 'n': k, 'order': round(order, 4),
              'amp_dps': [round(v, 3) for v in amp],
              'rpm_exp': [round(v, 2) for v in expo],
+             'rpm_exp_se': [None if v is None else round(v, 2) for v in expo_se],
+             'coll_coef': [round(v, 2) for v in ccoef],
              'rel_width': [round(v, 4) for v in width]}
         if kind == 'tailmotor':
             # locked to the tail rotor's own speed, amplitudes at its reference speed

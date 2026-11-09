@@ -30,14 +30,22 @@ tail type. New sizes should come from parameters, not from a fitting campaign.
       pitch inertia, hub dampers) in their heli files - without them neither check above can
       run. The OMP M5, M6 and M7R logs (`fitting/helis/*/fit.json`) already show the rate per
       cyclic growing ~rpm on all three sizes, as stiffness ~rpm^2 and tf ~1/rpm predict
-- [ ] Size presets as parameter sets: ~200, 380, 550, 700 class (and 800 / 90 mm blades for
-      the high-voltage end); the Blade 360 kept as a reference
+- [x] Size presets as parameter sets: the trained helis fly by name - 200 (`stratos200`,
+      preset), 380 (`protos380`), 500 (`devil505`), Nimbus, 700 (`omp_m7r`, `stratos700`,
+      preset `m7r`); the Blade 360 kept as a reference. CI flies the hover and rescue
+      checks of `protos380`, `devil505`, `nimbus` and `omp_m7r` from their committed
+      `model.json`
+- [ ] The Stratos 700 fails both checks (governor droop 3.3 %, the rescue does not climb):
+      its rotor law was refused (it made the held-out yaw worse through the torque
+      reaction), so it flies the generic DC motor, which the logged hover throttle leaves
+      too little headroom. An 800 / 90 mm class needs logs
 - [x] `--model` takes a preset name or a parameter file (JSON: base preset, constructor
       args, class constants; `heli_model.load_model`)
 - [x] CI runs hover, governor and rescue checks per size class, not only the Blade 360:
-      M7R (700) on the bridge's defaults, Stratos (200, motorized tail) with its CLI dump
+      the M7R preset (700) on the bridge's defaults, the trained 380, 500, Nimbus and 700
+      helis, and the Stratos (200, motorized tail) with its CLI dump
       (`heli/replays/stratos_3300/dump.txt`; on the defaults it yaws away). The pilots'
-      collective and the rescue collectives go in proportion to the preset's hover
+      collective and the rescue collectives go in proportion to each model's hover
       collective (the Blade 360's ratios), full throttle stick under the governor
 
 ## 2. Gyro noise and vibration
@@ -60,8 +68,16 @@ independent of the heli) from vibration (per heli, scaled with rpm):
       1-2x and the broadband floor. Done for the OMP M5, M6 and M7R (`fitting/helis/`)
 - [x] Vibration of the Stratos (direct drive, motorized tail): main rotor lines; its tail
       (~4x main, varying with yaw) cannot be told from the main 4x
-- [ ] Vibration against collective; the rpm exponent (two headspeeds per heli scatter it,
-      the model uses rpm^2); motorized-tail lines in the sensor model once a heli has them
+- [x] Vibration against collective and the rpm exponent: `vibration.py` fits both together
+      (log amplitude on log rpm and collective, with the exponent's standard error), on
+      eight helis now. The well-pinned exponents (se < 0.5) scatter from 0 to 4 (median
+      1.7, weighted mean 1.9): lines move through frame resonances, no one law. The sensor
+      model takes a harmonic's own exponent where it is pinned (clamped 0..4), else 2.
+      Collective barely matters (median -0.14 per unit: 1-2 % per 0.1)
+- [x] Tail and motor gear ratios from the vibration (`find_orders.py`): rotor-locked lines
+      at non-integer orders, combined over headspeeds; filled in for the Devil 505, Nimbus,
+      Protos 380 and Stratos 700. Integer tail ratios (M7R 5.0) sit on main rotor lines
+- [ ] Motorized-tail lines in the sensor model once a heli has them
 - [x] Model: gyro and accel = true value + chip noise (white, bias walk, from the Allan fit)
       + vibration (harmonics locked to the model's rotor, tail and motor rpm, amplitudes from
       the logs). Seeded (`heli/sensors.py`, `--gyro-chip`, `--vibration`)
@@ -71,7 +87,10 @@ independent of the heli) from vibration (per heli, scaled with rpm):
 - [x] Checks: with vibration on, the RPM filter must remove the tracked harmonics (filtered
       gyro error below 3 deg/s RMS over MSP in the calm descent), and the hover check still
       passes; with the RPM filter off it must fail (CI, both)
-- [ ] Compare sim and real filtered-gyro spectra in `compare_replay.py`
+- [x] Compare sim and real filtered-gyro spectra in `compare_replay.py`: the log-spectral
+      distance per axis (RMS dB, 1-30 Hz), also in the replay check's report. The M7R replay
+      sits 9-16 dB off: the real heli's filtered gyro carries far more (vibration left after
+      the filters, turbulence) than the sim's calm air
 
 ## 3. Refining parameter sets from more flight logs
 
@@ -91,7 +110,9 @@ heli and gives back a preset with its validation:
       cruise per sample (hover from baro vario, attitude around the roll trim and calm
       sticks; in ground effect flagged); `fit_heli.py` takes its hover stage from it with a
       5 s gate per headspeed
-- [ ] Spool-up and stick-input (doublet, sweep) segments
+- [x] Spool-up and stick-input (doublet, sweep) segments: `segment.inputs()` overlays,
+      seconds per log in `fit.json`; the rotor law fits every powered sample, spool-ups
+      included (what identifies A). No log has a frequency sweep yet (manoeuvre card 6)
 - [ ] **Fits as stages**, each with a coherence / R^2 gate: rotor law, rate gains per
       headspeed, yaw, hover collective per headspeed (thrust law), vibration (2), then the
       closed-loop flap/body sweep by replay (`sweep_replay.py`, `m7r_sweep.py` generalised).
@@ -101,9 +122,11 @@ heli and gives back a preset with its validation:
 - [ ] **Joint fit across helis**: the parameters of `PhysicalHeli` (1) fitted on all helis
       together, with the geometry as known input, so each new heli refines the scaling laws
       instead of getting its own constants. Report where a heli is off the shared law
-- [ ] **Validation report** per heli: replay scores (tracking error, whirl band power,
-      throttle, yaw mixer) sim vs real per profile, written to a file and committed with
-      the preset
+- [x] **Validation report** per heli: replay scores (tracking error, throttle, tail,
+      spectrum distance) of the held-out flights, prior against trained, in each heli's
+      `TRAINING.md` and `replay.json` (`replay_report.py`, or `train.py --elf`, which also
+      drops stages that make the closed loop worse). Done for the M7R, Nimbus, Stratos 700,
+      Protos 380 and Stratos 200
 - [ ] **Regression**: a small set of public, short log excerpts and their expected scores,
       replayed in CI (scheduled run, it is slow), so a model change that worsens a fitted
       heli shows up
@@ -234,9 +257,15 @@ The current disturbance is a random moment on the body, with `turb_hz` tuned per
 ## 8. Couplings
 
 - [ ] Roll/pitch cross coupling of the flapping (`Lfa1s`, `Mfb1s`, `Lflg`, `Mflt`, off in
-      the fitted presets): fit from sharp-input flights
-- [ ] Collective to yaw torque on servo tails (`Ncol`, off), to test the firmware's
-      collective precompensation
+      the fitted presets): fit from sharp-input flights. Probed on the Stratos 700, Nimbus,
+      M7R and Protos: the off-axis response to a sharp input is small and mostly unexplained
+      (1 - VAF 0.2-10 with or without coupling), the fitted cross gains (-0.12..+0.12 of the
+      own-axis input) disagree in sign between helis - not identifiable from these flights.
+      Needs one-axis inputs held long enough for the off-axis rate to build up
+- [x] Collective to yaw torque on servo tails (`Ncol`), to test the firmware's collective
+      precompensation: the yaw stage proposes it from the yaw regression's collective term,
+      less the model's own main-rotor torque reaction through its drag (which responds to
+      collective too); the held-out yaw prediction includes both
 - [ ] Main rotor gyroscopic and tail rotor gyroscopic terms
 - [ ] Tail rotor speed, thrust and inflow (servo tails), tail authority loss at low rpm
 
@@ -254,7 +283,10 @@ The current disturbance is a random moment on the body, with `turb_hz` tuned per
 - [ ] Servo load (stall torque against the feathering moment), types from measured servos
 - [x] Pack: LiPo discharge curve (open-circuit voltage per cell against state of charge)
       and internal resistance rising towards empty, instead of the straight line
-- [ ] Pack temperature (resistance and capacity), and a curve fitted from logged Vbat/Ibat
+- [x] A pack fitted from logged Vbat/Ibat (`fit_pack.py`, the `pack` stage of `train.py`):
+      capacity and internal resistance against the LiPo curve, one starting charge per log,
+      leave-one-log-out errors; the capacity only where a log drew a quarter of the pack
+- [ ] Pack temperature (resistance and capacity)
 
 ## 10. Engineering
 

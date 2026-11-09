@@ -11,8 +11,10 @@ Each stage of the fits proposes the model numbers it identifies, if its gates pa
            (steady rate per cyclic, its rpm law)      rpm law from two headspeeds 10 % apart
   flap     Lb1s / Ma1s, tf_roll / tf_pitch and the   VAF >= 0.85 over >= 5 sharp inputs; L and
            sharp inputs' rate gain K (fit_flap.py)    tf within 35 %
-  yaw      Nped, Nr, yaw_trim (servo tails)          R^2 >= 0.3; Nped within 25 %
+  yaw      Nped, Nr, Ncol, yaw_trim (servo tails)    R^2 >= 0.3; Nped within 25 %
   power    hover_power_w                             a gated hover with Vbat and Ibat
+  pack     pack_r, pack_ah (fit_pack.py: Vbat/Ibat   R^2 >= 0.8; R within 30 %; C within 25 %
+           against the LiPo curve)                    and a log that drew 25 % of it
 
 "within x %" is the jackknife's relative standard error (jackknife.py). A stage whose
 gates fail proposes nothing and its numbers stay at the prior. train.py then checks each
@@ -35,7 +37,8 @@ from heli_model import G, MODELS, Stratos200, M7R  # noqa: E402
 from jackknife import leaves  # noqa: E402
 
 GATES = {'rotor_r2': 0.6, 'rotor_rel': 0.25, 'hover_rel': 0.10, 'coherence': 0.6, 'rate_rel': 0.20,
-         'flap_vaf': 0.85, 'flap_events': 5, 'flap_rel': 0.35, 'yaw_r2': 0.3, 'yaw_rel': 0.25}
+         'flap_vaf': 0.85, 'flap_events': 5, 'flap_rel': 0.35, 'yaw_r2': 0.3, 'yaw_rel': 0.25,
+         'pack_r2': 0.8, 'pack_rel_r': 0.30, 'pack_rel_c': 0.25, 'pack_share': 0.25}
 
 # typical rotor radius (m) and hover induced velocity (m/s) per size class
 SIZES = {200: (0.21, 3.8), 380: (0.38, 3.5), 420: (0.41, 3.5), 450: (0.36, 3.4), 500: (0.52, 3.4),
@@ -43,7 +46,7 @@ SIZES = {200: (0.21, 3.8), 380: (0.38, 3.5), 420: (0.41, 3.5), 450: (0.36, 3.4),
 # pack capacity (Ah) and resistance (Ohm) per size class, when the heli file has none
 PACKS = {200: (0.85, 0.05), 380: (1.8, 0.03), 420: (2.2, 0.03), 450: (2.2, 0.03), 500: (3.3, 0.03),
          550: (3.3, 0.04), 600: (4.0, 0.04), 700: (4.5, 0.047), 800: (5.0, 0.047)}
-STAGES = ('rotor', 'thrust', 'rate', 'flap', 'yaw', 'power')
+STAGES = ('rotor', 'thrust', 'rate', 'flap', 'yaw', 'power', 'pack')
 
 
 def nearest(table, size):
@@ -129,12 +132,33 @@ def flap_at(p, axis, rpm):
     return rate_gain(p, axis, rpm), L, tf
 
 
+def torque_terms(p):
+    """(scale, drag(c) per w^2) of the model's main rotor torque reaction on yaw:
+    r' += scale * w^2 * drag(c) (body frame, heli_model.Heli.step)."""
+    from heli_model import from_params
+    h = from_params(p)
+    if not h.torque_yaw:
+        return 0.0, lambda c: np.zeros_like(np.asarray(c, float))
+    scale = h.torque_yaw * h.nominal_w / h.shaft_hover
+    if h.motor_fit:
+        k0, k1, n = h.motor_fit[2:5]
+        return scale, lambda c: k0 + k1 * np.abs(c) ** n
+    return scale, lambda c: h.k_d * (0.25 + np.abs(c) ** 1.5)
+
+
+def torque_slope(p, rpm, c, eps=0.01):
+    """d r'/d collective of the torque reaction at rpm and collective c (body frame)."""
+    scale, drag = torque_terms(p)
+    w = rpm / 60 * 2 * np.pi
+    return float(scale * w * w * (drag(c + eps) - drag(c - eps)) / (2 * eps))
+
+
 def nominal_rpm(fit):
     air = fit.get('airborne_s') or {}
     return int(max(air, key=air.get)) if air else None
 
 
-def proposals(base, fit, flap, se, unstable, flap_se=None):
+def proposals(base, fit, flap, se, unstable, flap_se=None, pack=None):
     """Per stage: (changes {'args': {...}, 'attrs': {...}} or None, notes). base is the
     parameter dict the changes go on (its nominal_rpm and rpm laws)."""
     out = {}
@@ -262,8 +286,15 @@ def proposals(base, fit, flap, se, unstable, flap_se=None):
             r = min(ys, key=lambda k: abs(k - N))
             ch['attrs']['Nped'] = round(ys[r]['N_ped'] / (r / N) ** 2, 2)
             ch['attrs']['Nr'] = round(min(ys[r]['N_r'], -0.1), 3)
-            notes.append('N_ped %.1f at %d rpm (R^2 %.2f) -> Nped %.1f at %d rpm, Nr %.2f'
-                         % (ys[r]['N_ped'], r, ys[r]['r2'], ch['attrs']['Nped'], N, ch['attrs']['Nr']))
+            # collective to yaw (what the firmware's precompensation cancels). The fit's N_col
+            # is in the firmware frame (yaw = the model's -r) and holds all of it, the main
+            # rotor's torque reaction through its drag too - which the model has already
+            # (torque_yaw): Ncol is what is left, -N_col - that slope, per (w/w_n)^2
+            slope = torque_slope(base, r, ys[r].get('collective', 0.0))
+            ch['attrs']['Ncol'] = round((-ys[r]['N_col'] - slope) / (r / N) ** 2, 2)
+            notes.append('N_ped %.1f at %d rpm (R^2 %.2f) -> Nped %.1f at %d rpm, Nr %.2f, Ncol %.1f'
+                         % (ys[r]['N_ped'], r, ys[r]['r2'], ch['attrs']['Nped'], N, ch['attrs']['Nr'],
+                            ch['attrs']['Ncol']))
         h = (fit.get('hover') or {}).get('%d' % N)
         if h and h['gate'] == 'ok':
             ch['args']['yaw_trim'] = round(abs(h['yaw_mixer']), 4)
@@ -278,6 +309,28 @@ def proposals(base, fit, flap, se, unstable, flap_se=None):
                         ['hover %.0f W at %.1f V, throttle %.2f (%d rpm)' % (h['power_w'], h['volts'], h['throttle'], N)])
     else:
         out['power'] = (None, ['no gated hover at %d rpm with Vbat and Ibat' % N])
+
+    # pack: capacity and resistance from Vbat/Ibat (fit_pack.py)
+    if not pack:
+        out['pack'] = (None, ['no Vbat/Ibat'])
+    else:
+        ch, notes = {'args': {}}, []
+        rr = pack.get('resistance_se', float('inf')) / pack['resistance_ohm']
+        rc = pack.get('capacity_se', float('inf')) / pack['capacity_ah']
+        if pack['r2'] >= GATES['pack_r2'] and rr <= GATES['pack_rel_r']:
+            ch['args']['pack_r'] = pack['resistance_ohm']
+            notes.append('%.1f mOhm +- %.0f %% (%dS, RMS %.2f V over %d logs)'
+                         % (1000 * pack['resistance_ohm'], 100 * rr, pack['cells'], pack['rms_v'], pack['logs']))
+        else:
+            notes.append('resistance not identified (R^2 %.2f, +- %.0f %%)' % (pack['r2'], 100 * rr))
+        if ch['args'] and pack['ah_share'] >= GATES['pack_share'] and rc <= GATES['pack_rel_c']:
+            ch['args']['pack_ah'] = pack['capacity_ah']
+            notes.append('%.2f Ah +- %.0f %%, the largest draw %.0f %% of it'
+                         % (pack['capacity_ah'], 100 * rc, 100 * pack['ah_share']))
+        else:
+            notes.append('capacity not identified (%.2f Ah +- %.0f %%, the largest draw %.0f %% of it)'
+                         % (pack['capacity_ah'], 100 * rc, 100 * pack['ah_share']))
+        out['pack'] = (ch if ch['args'] else None, notes)
     return out
 
 

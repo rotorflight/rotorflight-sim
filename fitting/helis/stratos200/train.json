@@ -1,6 +1,6 @@
 {
  "heli": "Stratos 200 (Bo105 fuselage)",
- "trained": "2026-11-08",
+ "trained": "2026-11-09",
  "group": "cfbc5200",
  "setup": {
   "craft": "Stratos 200",
@@ -94,9 +94,139 @@
     "no gated hover at 3600 rpm with Vbat and Ibat"
    ],
    "decision": "no proposal"
+  },
+  "pack": {
+   "proposal": {
+    "args": {
+     "pack_r": 0.10506
+    }
+   },
+   "notes": [
+    "105.1 mOhm +- 10 % (4S, RMS 0.06 V over 5 logs)",
+    "capacity not identified (0.55 Ah +- 20 %, the largest draw 22 % of it)"
+   ],
+   "score_before": 0.05820555578634562,
+   "score_after": 0.08684718476741188,
+   "score_detail": {
+    "before": "RMS Vbat error 0.06 V over 1 logs",
+    "after": "RMS Vbat error 0.09 V over 1 logs"
+   },
+   "others_worse": [],
+   "decision": "kept (worse): held-out 0.05821 -> 0.08685"
   }
  },
- "replay": null,
+ "replay": {
+  "logs": [
+   {
+    "log": "20261008_172721_00",
+    "window": [
+     15.2,
+     65.5
+    ],
+    "rpm": 3600,
+    "old": 2.0677589508731318,
+    "old_metrics": {
+     "roll_err_rms": [
+      12.36,
+      0.96
+     ],
+     "pitch_err_rms": [
+      7.62,
+      1.59
+     ],
+     "yaw_err_rms": [
+      3.2,
+      2.89
+     ],
+     "throttle": [
+      45.1,
+      42.6
+     ],
+     "tail": [
+      21.8,
+      17.7
+     ],
+     "roll_spectrum_db": 25.7,
+     "pitch_spectrum_db": 14.6,
+     "yaw_spectrum_db": 13.9
+    },
+    "new": 2.1667120860589364,
+    "new_metrics": {
+     "roll_err_rms": [
+      12.36,
+      0.87
+     ],
+     "pitch_err_rms": [
+      7.62,
+      1.32
+     ],
+     "yaw_err_rms": [
+      3.2,
+      2.94
+     ],
+     "throttle": [
+      45.1,
+      42.6
+     ],
+     "tail": [
+      21.8,
+      17.6
+     ],
+     "roll_spectrum_db": 24.9,
+     "pitch_spectrum_db": 14.6,
+     "yaw_spectrum_db": 14.0
+    }
+   }
+  ],
+  "old": 2.068,
+  "new": 2.167,
+  "verdict": "ok",
+  "old_is": "prior",
+  "model_trained": "2026-11-09",
+  "model_args": {
+   "rate_gain_roll": 6.717,
+   "rate_gain_pitch": 5.41,
+   "Lb1s": 1400.0,
+   "Ma1s": 2000.0,
+   "tf": 0.05,
+   "stiff_rpm_exp": 2.0,
+   "tf_rpm_exp": 1.0,
+   "turb": 0.0,
+   "turb_hz": 5.0,
+   "yaw_trim": 0.215,
+   "tail_rpm_hover": 14340.0,
+   "nominal_rpm": 3600.0,
+   "gear_ratio": 1.0,
+   "hover_throttle": 0.47,
+   "pack_cells": 4,
+   "pack_ah": 0.85,
+   "pack_r": 0.05,
+   "hover_power_w": 50.0,
+   "cyclic_scale": 1.0,
+   "yaw_scale": 1.0
+  },
+  "model_attrs": {
+   "motor_fit": [
+    987.74,
+    16.843,
+    0.0007003,
+    0.01101,
+    2.0
+   ],
+   "motor_poles": 24,
+   "v_hover": 3.8,
+   "rotor_radius": 0.21,
+   "hub_height": 0.15,
+   "tail_motor": true,
+   "Zcol": -15.419261006289307,
+   "thrust_inflow": [
+    16.685205784204673,
+    0.30646666666666667
+   ],
+   "Nped": -66.0,
+   "Nr": -0.5
+  }
+ },
  "changed": true,
  "scores": {
   "prior": {
@@ -105,7 +235,8 @@
    "rate": 0.12590746751386325,
    "flap": null,
    "yaw": null,
-   "power": null
+   "power": null,
+   "pack": 0.05820555578634562
   },
   "current": {
    "rotor": 0.6944241042620791,
@@ -113,7 +244,8 @@
    "rate": 0.12590746751386325,
    "flap": null,
    "yaw": null,
-   "power": null
+   "power": null,
+   "pack": 0.05820555578634562
   },
   "new": {
    "rotor": 0.6944241042620791,
@@ -121,7 +253,8 @@
    "rate": 0.006304489637541629,
    "flap": null,
    "yaw": null,
-   "power": null
+   "power": null,
+   "pack": 0.05820555578634562
   }
  },
  "gates": {
@@ -134,7 +267,11 @@
   "flap_events": 5,
   "flap_rel": 0.35,
   "yaw_r2": 0.3,
-  "yaw_rel": 0.25
+  "yaw_rel": 0.25,
+  "pack_r2": 0.8,
+  "pack_rel_r": 0.3,
+  "pack_rel_c": 0.25,
+  "pack_share": 0.25
  },
  "tolerance": 0.02
 }

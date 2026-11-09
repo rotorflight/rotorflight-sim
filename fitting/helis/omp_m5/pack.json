@@ -1,0 +1,14 @@
+{
+ "heli": "OMP M5",
+ "group": "1cfbd66a",
+ "capacity_ah": 2.419,
+ "resistance_ohm": 0.02616,
+ "cells": 12,
+ "rms_v": 0.469,
+ "r2": 0.945,
+ "soc0": [
+  1.05
+ ],
+ "ah_share": 0.556,
+ "logs": 1
+}

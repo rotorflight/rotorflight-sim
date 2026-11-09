@@ -1,6 +1,6 @@
 {
  "base": "fitted",
- "description": "OMP M5: trained 2026-11-08 from 1 logs (setup 1cfbd66a), checked on 1 held-out",
+ "description": "OMP M5: trained 2026-11-09 from 1 logs (setup 1cfbd66a), checked on 1 held-out",
  "attrs": {
   "motor_poles": 10,
   "v_hover": 3.4,
@@ -21,7 +21,8 @@
    0.004923,
    0.00272,
    1.5
-  ]
+  ],
+  "Ncol": -15.27
  },
  "args": {
   "rate_gain_roll": 6.8,
@@ -45,7 +46,7 @@
   "yaw_scale": 1.0
  },
  "provenance": {
-  "trained": "2026-11-08",
+  "trained": "2026-11-09",
   "group": "1cfbd66a",
   "logs": {
    "fit": [
@@ -82,18 +83,20 @@
    "ctrl_rpm_exp": "size prior (? class, M7R dynamics)",
    "Zcol": "size prior (? class, M7R dynamics)",
    "thrust_inflow": "size prior (? class, M7R dynamics)",
-   "Nped": "fit 2026-11-08 (yaw stage)",
-   "Nr": "fit 2026-11-08 (yaw stage)",
+   "Nped": "fit 2026-11-09 (yaw stage)",
+   "Nr": "fit 2026-11-09 (yaw stage)",
    "tail_motor": "heli file",
-   "motor_fit": "fit 2026-11-08 (rotor stage)"
+   "motor_fit": "fit 2026-11-09 (rotor stage)",
+   "Ncol": "fit 2026-11-09 (yaw stage)"
   },
   "held_out_scores": {
    "rotor": 1.1532174531024078,
    "thrust": null,
    "rate": 0.16940694563238284,
    "flap": 0.07779123953977077,
-   "yaw": 2.987977779258874,
-   "power": null
+   "yaw": 2.196208328217802,
+   "power": null,
+   "pack": 0.49712099133156534
   }
  }
 }

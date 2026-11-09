@@ -27,7 +27,8 @@ TRUTH = {
     'base': 'fitted',
     'attrs': {'motor_fit': [3.2, 0.36, 4.5e-4, 6.0e-4, 2.0], 'motor_poles': 10, 'v_hover': 3.3,
               'rotor_radius': 0.79, 'hub_height': 0.4, 'ctrl_rpm_exp': 0.0,
-              'Zcol': -9.80665 / 0.30, 'thrust_inflow': [3.0 / 0.09, 0.21 / 1.5], 'Nped': 48.0, 'Nr': -1.5},
+              'Zcol': -9.80665 / 0.30, 'thrust_inflow': [3.0 / 0.09, 0.21 / 1.5], 'Nped': 48.0, 'Nr': -1.5,
+              'Ncol': -12.0},
     'args': {'rate_gain_roll': 6.0, 'rate_gain_pitch': 5.2, 'Lb1s': 900.0, 'Ma1s': 600.0, 'tf': 0.05,
              'tf_roll': 0.045, 'tf_pitch': 0.06, 'stiff_rpm_exp': 2.0, 'tf_rpm_exp': 1.0, 'yaw_trim': 0.18,
              'nominal_rpm': 1800.0, 'gear_ratio': 8.75, 'hover_throttle': 0.6, 'pack_cells': 12,
@@ -142,15 +143,19 @@ def fly(params=TRUTH, name='synth', rpms=(1800,), seed=1, hover_s=14.0, noise_s=
             h.step(dt, thr, u[0], u[1], yaw_in, coll)
             if k % log_every == 0:
                 cols['time'].append(t * 1e6)
+                # the firmware's frame for yaw: positive yaw is nose left, the model's -r
+                # (and its yaw input sign_yaw = -1 in the bridge). Roll and pitch stay in
+                # the model's frame: their fits only need the input and the rate alike
+                fw = (1.0, 1.0, -1.0)
                 for ax in range(3):
-                    cols['setpoint[%d]' % ax].append(sp[ax] / D2R + rng.gauss(0, 0.2))
-                    cols['gyroADC[%d]' % ax].append(h.rates[ax] / D2R + rng.gauss(0, 0.5))
+                    cols['setpoint[%d]' % ax].append(fw[ax] * sp[ax] / D2R + rng.gauss(0, 0.2))
+                    cols['gyroADC[%d]' % ax].append(fw[ax] * h.rates[ax] / D2R + rng.gauss(0, 0.5))
                 cols['setpoint[3]'].append(coll * 1000)
-                for ax, v in enumerate((u[0], u[1], yaw_in, coll)):
+                for ax, v in enumerate((u[0], u[1], -yaw_in, coll)):
                     cols['mixer[%d]' % ax].append(v * 1000)
                 for ax, v in enumerate((roll, pitch, yaw)):
                     cols['attitude[%d]' % ax].append(v / D2R * 10)
-                for ax, v in enumerate((sp[0] / D2R, sp[1] / D2R, sp[2] / D2R, coll * 500, thr * 1000)):
+                for ax, v in enumerate((sp[0] / D2R, sp[1] / D2R, -sp[2] / D2R, coll * 500, thr * 1000)):
                     cols['rcCommand[%d]' % ax].append(v)
                 if baro:
                     # the baro reads zero on the ground before take-off (the AIRBORNE event)
