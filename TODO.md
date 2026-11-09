@@ -198,6 +198,8 @@ forward flight cannot be tested.
       rotor through the disk tilt in the inflow (a separate parasite-power term counted it
       twice)
 - [ ] Flapback, dihedral (Lv, Mu), weathervane (Nv), tail drag
+- [ ] Tail effectiveness and yaw damping against forward speed (the tail wag of 11 started
+      in fast forward flight)
 - [ ] Fit them from logs with GPS speed (blackbox GPS fields) - add a GPS-logged flight to
       the manoeuvre card
 - [ ] Replays without `--hold-alt` hold height in cruise; a forward-flight and a piro check
@@ -266,7 +268,12 @@ The current disturbance is a random moment on the body, with `turb_hz` tuned per
       less the model's own main-rotor torque reaction through its drag (which responds to
       collective too); the held-out yaw prediction includes both
 - [ ] Main rotor gyroscopic and tail rotor gyroscopic terms
-- [ ] Tail rotor speed, thrust and inflow (servo tails), tail authority loss at low rpm
+- [ ] Tail rotor speed, thrust and inflow (servo tails), tail authority loss at low rpm.
+      Today the tail thrust follows the pitch at once; with the inflow it builds up over
+      tens of ms, phase lag the yaw loop is missing (11)
+- [ ] Structural modes the gyro sees: tail boom torsion and bending, belt or torque-tube
+      windup, pushrod flex. Lightly damped, typically 10-20 Hz, as parameters per heli;
+      the model is one rigid body now (11)
 
 ## 9. Actuators and power
 
@@ -274,7 +281,10 @@ The current disturbance is a random moment on the body, with `turb_hz` tuned per
       models beyond HobbyWing V4
 - [x] Servos: speed limit, deadband and lag per servo type on each pulse before the swash
       decode (`heli/servos.py`, `--servos ideal|digital|fast|analog`; CI flies digital)
-- [ ] Servo load (stall torque against the feathering moment), types from measured servos
+- [ ] Servo load (stall torque against the feathering moment), types from measured servos.
+      A loaded tail servo slows and saturates on fast reversals, where a wag starts (11)
+- [ ] A tail servo type of its own: `--servos` sets every servo alike, while tail servos
+      are often slower and carry more load (11)
 - [x] Pack: LiPo discharge curve (open-circuit voltage per cell against state of charge)
       and internal resistance rising towards empty, instead of the straight line
 - [x] A pack fitted from logged Vbat/Ibat (`fit_pack.py`, the `pack` stage of `train.py`):
@@ -290,3 +300,36 @@ The current disturbance is a random moment on the body, with `turb_hz` tuned per
       response within 2 %, mode frequency within 1 %) for the Blade 360, Stratos and M7R;
       repeat for each new size class
 - [ ] Keep `heli/` on the Python standard library; numpy/scipy stay in `fitting/`
+
+## 11. Tail wag after an in-flight profile switch
+
+rotorflight-firmware#586: a downshift in fast forward flight (PID profile switch to a lower
+headspeed) set off a violent, self-excited 12 Hz tail wag. Each profile is tuned for its own
+headspeed, and tail authority goes with rpm^2, so the low-headspeed profile carries ~1.8x the
+yaw gains. Switched at once, those gains run on the still-fast rotor until the governor has
+brought the headspeed down: for a few seconds the yaw loop gain is ~1.8x the tune.
+rotorflight-firmware#591 blends the gains along the headspeed instead (`gov_profile_blend`).
+
+The sim cannot show the wag yet. Its yaw axis is first order (`Nr`, `Nped`) behind one
+servo lag, and the firmware's filters add little, so the loop's phase at 12 Hz stays short
+of -180 deg: no yaw gain makes it oscillate (yaw P up to 1000 with analog servos on the
+Blade 360 stayed stable). It does show the loop gain across the switch - with the blend off
++52 % on a 2100 -> 1700 rpm downshift and -34 % on the upshift, with it on within 1 % - but
+not what that gain does to the tail.
+
+**One of the OMP M7R logs contains data for replicating this issue**
+(`fitting/helis/omp_m7r/heli.json` lists them): use it for the calibration below.
+
+- [ ] The missing phase lag at 12 Hz from the items it comes from: tail thrust and inflow
+      lag (8), a structural mode (8), the loaded tail servo and its own servo type (9). Add
+      what the M7R log supports, not all of them
+- [ ] Calibrate on that log: the wag's frequency and growth with the logged gains give the
+      lag the real heli has at 12 Hz. The low-headspeed profile's gains must hold at their
+      own headspeed and wag at the high one
+- [ ] Profile switching in the bridge: an AUX channel driving the PID and rate profile
+      adjustments (`adjfunc` is dropped from dumps now), and the firmware's debug values
+      (`MSP_DEBUG`, debug mode `PROFILE_BLEND`) in the flight log. The rotorflight-firmware#591
+      runs did both from a wrapper around `heli_bridge.py`
+- [ ] A profile-switch check: governed flight (forward flight once 4 has it), downshift and
+      upshift on the switch. With `gov_profile_blend = OFF` the tail must wag after the
+      downshift, with `ON` the yaw rate stays within fixed bounds
