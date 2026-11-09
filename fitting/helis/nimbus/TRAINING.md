@@ -71,4 +71,23 @@ Lower is better (`scripts/holdout.py`).
 | power | - | - | - |
 | pack | 0.1981 | 0.1981 | 0.1773 |
 
+## Replay check
+
+Held-out flights replayed through the SITL (`replay_check.py`) with the prior and the new model, scored against the real flight (lower is better): 3.33 -> 1.956, verdict **ok**.
+
+`Nimbus_20260811_160756.0`, 118-149 s at 2000 rpm:
+
+| | real | prior | new |
+|---|---|---|---|
+| roll_err_rms | 40.49 | 16.36 | 30.57 |
+| pitch_err_rms | 39.76 | 32.18 | 33.99 |
+| yaw_err_rms | 12.67 | 9.46 | 10.91 |
+| throttle | 76.6 | 63.0 | 79.9 |
+| tail | -33.8 | -18.8 | -48.1 |
+| roll_spectrum_db | | 16.5 | 16.8 |
+| pitch_spectrum_db | | 8.6 | 8.3 |
+| yaw_spectrum_db | | 4.9 | 4.7 |
+| score | | 3.33 | 1.956 |
+
+
 Model changed: yes.

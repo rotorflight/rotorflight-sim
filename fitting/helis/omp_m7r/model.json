@@ -19,10 +19,9 @@
    39.21568627450981,
    0.13133333333333333
   ],
-  "Nped": 27.0,
-  "Nr": -0.597,
-  "tail_motor": false,
-  "Ncol": 4.04
+  "Nped": 55.0,
+  "Nr": -2.0,
+  "tail_motor": false
  },
  "args": {
   "rate_gain_roll": 6.691,
@@ -89,17 +88,16 @@
    "ctrl_rpm_exp": "preset m7r",
    "Zcol": "preset m7r",
    "thrust_inflow": "preset m7r",
-   "Nped": "fit 2026-11-09 (yaw stage)",
-   "Nr": "fit 2026-11-09 (yaw stage)",
-   "tail_motor": "heli file",
-   "Ncol": "fit 2026-11-09 (yaw stage)"
+   "Nped": "preset m7r",
+   "Nr": "preset m7r",
+   "tail_motor": "heli file"
   },
   "held_out_scores": {
    "rotor": 1.7424185287531584,
    "thrust": 0.0034399999999999986,
    "rate": 0.06829823323251588,
    "flap": 0.05955002857924738,
-   "yaw": 0.6980603659972509,
+   "yaw": 0.9906243233225968,
    "power": null,
    "pack": 0.4465969891642816
   }

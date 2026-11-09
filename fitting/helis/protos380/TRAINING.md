@@ -62,4 +62,37 @@ Lower is better (`scripts/holdout.py`).
 | power | - | - | - |
 | pack | 0.2069 | 0.2069 | 0.2069 |
 
+## Replay check
+
+Held-out flights replayed through the SITL (`replay_check.py`) with the prior and the new model, scored against the real flight (lower is better): 3.653 -> 3.792, verdict **ok**.
+
+`Protos_20260622_094304.0`, 11-67 s at 2000 rpm:
+
+| | real | prior | new |
+|---|---|---|---|
+| roll_err_rms | | (11.99, 4.54) | (11.99, 3.93) |
+| pitch_err_rms | | (13.47, 7.09) | (13.47, 7.01) |
+| yaw_err_rms | | (15.67, 13.11) | (15.67, 20.04) |
+| throttle | | (61.0, 54.7) | (61.0, 54.8) |
+| tail | | (-44.0, -22.6) | (-44.0, -19.7) |
+| roll_spectrum_db | | 19.2 | 20.2 |
+| pitch_spectrum_db | | 9.3 | 11.2 |
+| yaw_spectrum_db | | 14.6 | 16.5 |
+| score | | 3.368 | 3.722 |
+
+`Protos_20260622_095452.0`, 22-56 s at 2200 rpm:
+
+| | real | prior | new |
+|---|---|---|---|
+| roll_err_rms | | (15.0, 3.75) | (15.0, 3.09) |
+| pitch_err_rms | | (11.34, 2.23) | (11.34, 2.26) |
+| yaw_err_rms | | (39.33, 28.66) | (39.33, 48.81) |
+| throttle | | (65.4, 60.6) | (65.4, 60.85) |
+| tail | | (-42.3, -18.8) | (-42.3, -19.6) |
+| roll_spectrum_db | | 25.1 | 25.8 |
+| pitch_spectrum_db | | 15.6 | 15.3 |
+| yaw_spectrum_db | | 9.0 | 11.2 |
+| score | | 3.939 | 3.861 |
+
+
 Model changed: yes.

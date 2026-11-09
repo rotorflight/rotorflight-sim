@@ -126,7 +126,171 @@
    "decision": "no proposal"
   }
  },
- "replay": null,
+ "replay": {
+  "logs": [
+   {
+    "log": "Protos_20260622_094304.0",
+    "window": [
+     11.2,
+     66.7
+    ],
+    "rpm": 2000,
+    "old": 3.3676678849323576,
+    "old_metrics": {
+     "roll_err_rms": [
+      11.99,
+      4.54
+     ],
+     "pitch_err_rms": [
+      13.47,
+      7.09
+     ],
+     "yaw_err_rms": [
+      15.67,
+      13.11
+     ],
+     "throttle": [
+      61.0,
+      54.7
+     ],
+     "tail": [
+      -44.0,
+      -22.6
+     ],
+     "roll_spectrum_db": 19.2,
+     "pitch_spectrum_db": 9.3,
+     "yaw_spectrum_db": 14.6
+    },
+    "new": 3.7219076678727308,
+    "new_metrics": {
+     "roll_err_rms": [
+      11.99,
+      3.93
+     ],
+     "pitch_err_rms": [
+      13.47,
+      7.01
+     ],
+     "yaw_err_rms": [
+      15.67,
+      20.04
+     ],
+     "throttle": [
+      61.0,
+      54.8
+     ],
+     "tail": [
+      -44.0,
+      -19.7
+     ],
+     "roll_spectrum_db": 20.2,
+     "pitch_spectrum_db": 11.2,
+     "yaw_spectrum_db": 16.5
+    }
+   },
+   {
+    "log": "Protos_20260622_095452.0",
+    "window": [
+     22.0,
+     56.3
+    ],
+    "rpm": 2200,
+    "old": 3.939224820932415,
+    "old_metrics": {
+     "roll_err_rms": [
+      15.0,
+      3.75
+     ],
+     "pitch_err_rms": [
+      11.34,
+      2.23
+     ],
+     "yaw_err_rms": [
+      39.33,
+      28.66
+     ],
+     "throttle": [
+      65.4,
+      60.6
+     ],
+     "tail": [
+      -42.3,
+      -18.8
+     ],
+     "roll_spectrum_db": 25.1,
+     "pitch_spectrum_db": 15.6,
+     "yaw_spectrum_db": 9.0
+    },
+    "new": 3.8613970996062656,
+    "new_metrics": {
+     "roll_err_rms": [
+      15.0,
+      3.09
+     ],
+     "pitch_err_rms": [
+      11.34,
+      2.26
+     ],
+     "yaw_err_rms": [
+      39.33,
+      48.81
+     ],
+     "throttle": [
+      65.4,
+      60.85
+     ],
+     "tail": [
+      -42.3,
+      -19.6
+     ],
+     "roll_spectrum_db": 25.8,
+     "pitch_spectrum_db": 15.3,
+     "yaw_spectrum_db": 11.2
+    }
+   }
+  ],
+  "old": 3.653,
+  "new": 3.792,
+  "verdict": "ok",
+  "old_is": "prior",
+  "model_trained": "2026-11-09",
+  "model_args": {
+   "rate_gain_roll": 5.512,
+   "rate_gain_pitch": 5.334,
+   "Lb1s": 700.0,
+   "Ma1s": 700.0,
+   "tf": 0.05,
+   "stiff_rpm_exp": 2.0,
+   "tf_rpm_exp": 1.0,
+   "turb": 0.0,
+   "turb_hz": 2.5,
+   "yaw_trim": 0.2,
+   "nominal_rpm": 2200.0,
+   "gear_ratio": 8.69,
+   "hover_throttle": 0.6,
+   "pack_cells": 6,
+   "pack_ah": 1.8,
+   "pack_r": 0.03,
+   "hover_power_w": 1150.0,
+   "cyclic_scale": 1.0,
+   "yaw_scale": 1.0
+  },
+  "model_attrs": {
+   "motor_poles": 10,
+   "v_hover": 3.5,
+   "rotor_radius": 0.38,
+   "hub_height": 0.19,
+   "ctrl_rpm_exp": 1.261,
+   "Zcol": -35.921794871794866,
+   "thrust_inflow": [
+    39.21568627450981,
+    0.13133333333333333
+   ],
+   "Nped": 31.44,
+   "Nr": -0.1,
+   "Ncol": 23.05
+  }
+ },
  "changed": true,
  "scores": {
   "prior": {

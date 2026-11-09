@@ -1,0 +1,224 @@
+{
+ "heli": "ALZRC Devil 505",
+ "rpm_ref": 2250,
+ "coll_ref": 0.275,
+ "source": "gyroRAW, order tracking (vibration.py)",
+ "windows": 83,
+ "harmonics": [
+  {
+   "source": "main",
+   "n": 1,
+   "order": 1.0,
+   "amp_dps": [
+    7.389,
+    0.715,
+    1.002
+   ],
+   "rpm_exp": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rpm_exp_se": [
+    null,
+    null,
+    null
+   ],
+   "coll_coef": [
+    0.03,
+    -1.45,
+    -0.09
+   ],
+   "rel_width": [
+    0.016,
+    0.0217,
+    0.0196
+   ]
+  },
+  {
+   "source": "main",
+   "n": 2,
+   "order": 2.0,
+   "amp_dps": [
+    9.055,
+    7.376,
+    5.71
+   ],
+   "rpm_exp": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rpm_exp_se": [
+    null,
+    null,
+    null
+   ],
+   "coll_coef": [
+    0.5,
+    0.2,
+    0.57
+   ],
+   "rel_width": [
+    0.0194,
+    0.0181,
+    0.0207
+   ]
+  },
+  {
+   "source": "main",
+   "n": 3,
+   "order": 3.0,
+   "amp_dps": [
+    1.078,
+    0.712,
+    1.661
+   ],
+   "rpm_exp": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rpm_exp_se": [
+    null,
+    null,
+    null
+   ],
+   "coll_coef": [
+    -0.28,
+    -0.81,
+    -0.51
+   ],
+   "rel_width": [
+    0.0139,
+    0.0176,
+    0.0143
+   ]
+  },
+  {
+   "source": "main",
+   "n": 4,
+   "order": 4.0,
+   "amp_dps": [
+    1.71,
+    3.174,
+    0.877
+   ],
+   "rpm_exp": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rpm_exp_se": [
+    null,
+    null,
+    null
+   ],
+   "coll_coef": [
+    0.3,
+    0.56,
+    -0.48
+   ],
+   "rel_width": [
+    0.0161,
+    0.0168,
+    0.0177
+   ]
+  },
+  {
+   "source": "tail",
+   "n": 1,
+   "order": 4.588,
+   "amp_dps": [
+    15.847,
+    11.354,
+    4.52
+   ],
+   "rpm_exp": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rpm_exp_se": [
+    null,
+    null,
+    null
+   ],
+   "coll_coef": [
+    0.06,
+    0.3,
+    -0.04
+   ],
+   "rel_width": [
+    0.0045,
+    0.006,
+    0.0054
+   ]
+  },
+  {
+   "source": "tail",
+   "n": 2,
+   "order": 9.176,
+   "amp_dps": [
+    0.759,
+    1.019,
+    0.185
+   ],
+   "rpm_exp": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rpm_exp_se": [
+    null,
+    null,
+    null
+   ],
+   "coll_coef": [
+    0.57,
+    -0.07,
+    0.09
+   ],
+   "rel_width": [
+    0.042,
+    0.0503,
+    0.0496
+   ]
+  },
+  {
+   "source": "motor",
+   "n": 1,
+   "order": 8.697,
+   "amp_dps": [
+    1.045,
+    5.748,
+    0.641
+   ],
+   "rpm_exp": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rpm_exp_se": [
+    null,
+    null,
+    null
+   ],
+   "coll_coef": [
+    -0.14,
+    0.05,
+    -0.12
+   ],
+   "rel_width": [
+    0.0332,
+    0.0143,
+    0.018
+   ]
+  }
+ ],
+ "floor_asd_dps_rthz": [
+  0.0471,
+  0.0617,
+  0.0243
+ ]
+}

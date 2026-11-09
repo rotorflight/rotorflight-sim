@@ -205,7 +205,119 @@
    "decision": "taken: held-out 0.1981 -> 0.1773"
   }
  },
- "replay": null,
+ "replay": {
+  "logs": [
+   {
+    "log": "Nimbus_20260811_160756.0",
+    "window": [
+     117.5,
+     148.6
+    ],
+    "rpm": 2000,
+    "old": 3.3301839684814247,
+    "old_metrics": {
+     "roll_err_rms": [
+      40.49,
+      16.36
+     ],
+     "pitch_err_rms": [
+      39.76,
+      32.18
+     ],
+     "yaw_err_rms": [
+      12.67,
+      9.46
+     ],
+     "throttle": [
+      76.6,
+      63.0
+     ],
+     "tail": [
+      -33.8,
+      -18.8
+     ],
+     "roll_spectrum_db": 16.5,
+     "pitch_spectrum_db": 8.6,
+     "yaw_spectrum_db": 4.9
+    },
+    "new": 1.9559021239052683,
+    "new_metrics": {
+     "roll_err_rms": [
+      40.49,
+      30.57
+     ],
+     "pitch_err_rms": [
+      39.76,
+      33.99
+     ],
+     "yaw_err_rms": [
+      12.67,
+      10.91
+     ],
+     "throttle": [
+      76.6,
+      79.9
+     ],
+     "tail": [
+      -33.8,
+      -48.1
+     ],
+     "roll_spectrum_db": 16.8,
+     "pitch_spectrum_db": 8.3,
+     "yaw_spectrum_db": 4.7
+    }
+   }
+  ],
+  "old": 3.33,
+  "new": 1.956,
+  "verdict": "ok",
+  "old_is": "prior",
+  "model_trained": "2026-11-09",
+  "model_args": {
+   "rate_gain_roll": 4.055,
+   "rate_gain_pitch": 4.264,
+   "Lb1s": 700.0,
+   "Ma1s": 700.0,
+   "tf": 0.05,
+   "stiff_rpm_exp": 2.0,
+   "tf_rpm_exp": 1.0,
+   "turb": 0.0,
+   "turb_hz": 2.5,
+   "yaw_trim": 0.394,
+   "nominal_rpm": 1900.0,
+   "gear_ratio": 8.75,
+   "hover_throttle": 0.746,
+   "pack_cells": 6,
+   "pack_ah": 3.058,
+   "pack_r": 0.02561,
+   "hover_power_w": 626.4,
+   "cyclic_scale": 1.0,
+   "yaw_scale": 1.0
+  },
+  "model_attrs": {
+   "motor_poles": 10,
+   "v_hover": 3.4,
+   "rotor_radius": 0.6,
+   "hub_height": 0.3,
+   "ctrl_rpm_exp": 0.069,
+   "Zcol": -33.13057,
+   "thrust_inflow": [
+    36.23476,
+    0.14214
+   ],
+   "Nped": 41.29,
+   "Nr": -0.826,
+   "motor_fit": [
+    56.633699,
+    3.799164,
+    0.003738,
+    0.004809,
+    2.0
+   ],
+   "Ncol": -4.63
+  },
+  "stale": false
+ },
  "changed": true,
  "scores": {
   "prior": {

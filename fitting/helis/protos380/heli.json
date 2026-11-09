@@ -10,9 +10,10 @@
     "resistance_ohm": null
   },
   "drive": {
-    "gear_ratio": null,
+    "gear_ratio": 8.69,
     "motor_poles": null,
-    "esc": null
+    "esc": null,
+    "gear_ratio_from": "motor 1x order in gyroRAW (find_orders.py)"
   },
   "tail": {
     "type": null

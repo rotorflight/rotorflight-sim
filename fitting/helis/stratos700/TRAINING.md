@@ -71,4 +71,37 @@ Lower is better (`scripts/holdout.py`).
 | power | 0.2027 | 0.2027 | 0.03141 |
 | pack | 0.2984 | 0.2984 | 0.1515 |
 
+## Replay check
+
+Held-out flights replayed through the SITL (`replay_check.py`) with the prior and the new model, scored against the real flight (lower is better): 1.955 -> 1.545, verdict **ok**.
+
+`Stratos700_20261008_133648.0`, 8-110 s at 1700 rpm:
+
+| | real | prior | new |
+|---|---|---|---|
+| roll_err_rms | 13.7 | 5.55 | 3.04 |
+| pitch_err_rms | 21.61 | 17.74 | 15.89 |
+| yaw_err_rms | 46.2 | 26.38 | 26.95 |
+| throttle | 60.5 | 57.5 | 65.2 |
+| tail | -21.6 | -35.4 | -29.2 |
+| roll_spectrum_db | | 22.0 | 21.5 |
+| pitch_spectrum_db | | 7.0 | 8.6 |
+| yaw_spectrum_db | | 9.9 | 5.0 |
+| score | | 2.234 | 2.013 |
+
+`Stratos700_20261008_134116.0`, 46-76 s at 1700 rpm:
+
+| | real | prior | new |
+|---|---|---|---|
+| roll_err_rms | 5.96 | 1.95 | 1.65 |
+| pitch_err_rms | 6.02 | 3.12 | 2.89 |
+| yaw_err_rms | 56.61 | 36.71 | 36.73 |
+| throttle | 62.4 | 54.0 | 63.8 |
+| tail | -19.4 | -20.4 | -20.6 |
+| roll_spectrum_db | | 22.4 | 21.4 |
+| pitch_spectrum_db | | 14.9 | 14.3 |
+| yaw_spectrum_db | | 10.2 | 8.6 |
+| score | | 1.676 | 1.077 |
+
+
 Model changed: yes.

@@ -62,4 +62,9 @@ Lower is better (`scripts/holdout.py`).
 | power | - | - | - |
 | pack | 0.4971 | 0.4971 | 0.4971 |
 
+## Replay check
+
+Held-out flights replayed through the SITL (`replay_check.py`) with the prior and the new model, scored against the real flight (lower is better): - -> -, verdict **not run**.
+
+
 Model changed: yes.

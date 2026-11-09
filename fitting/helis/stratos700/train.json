@@ -211,7 +211,173 @@
    "decision": "taken: held-out 0.2984 -> 0.1515"
   }
  },
- "replay": null,
+ "replay": {
+  "logs": [
+   {
+    "log": "Stratos700_20261008_133648.0",
+    "window": [
+     8.1,
+     110.4
+    ],
+    "rpm": 1700,
+    "old": 2.2337445458143597,
+    "old_metrics": {
+     "roll_err_rms": [
+      13.7,
+      5.55
+     ],
+     "pitch_err_rms": [
+      21.61,
+      17.74
+     ],
+     "yaw_err_rms": [
+      46.2,
+      26.38
+     ],
+     "throttle": [
+      60.5,
+      57.5
+     ],
+     "tail": [
+      -21.6,
+      -35.4
+     ],
+     "roll_spectrum_db": 22.0,
+     "pitch_spectrum_db": 7.0,
+     "yaw_spectrum_db": 9.9
+    },
+    "new": 2.013457326897494,
+    "new_metrics": {
+     "roll_err_rms": [
+      13.7,
+      3.04
+     ],
+     "pitch_err_rms": [
+      21.61,
+      15.89
+     ],
+     "yaw_err_rms": [
+      46.2,
+      26.95
+     ],
+     "throttle": [
+      60.5,
+      65.2
+     ],
+     "tail": [
+      -21.6,
+      -29.2
+     ],
+     "roll_spectrum_db": 21.5,
+     "pitch_spectrum_db": 8.6,
+     "yaw_spectrum_db": 5.0
+    }
+   },
+   {
+    "log": "Stratos700_20261008_134116.0",
+    "window": [
+     45.8,
+     76.1
+    ],
+    "rpm": 1700,
+    "old": 1.6761017058679695,
+    "old_metrics": {
+     "roll_err_rms": [
+      5.96,
+      1.95
+     ],
+     "pitch_err_rms": [
+      6.02,
+      3.12
+     ],
+     "yaw_err_rms": [
+      56.61,
+      36.71
+     ],
+     "throttle": [
+      62.4,
+      54.0
+     ],
+     "tail": [
+      -19.4,
+      -20.4
+     ],
+     "roll_spectrum_db": 22.4,
+     "pitch_spectrum_db": 14.9,
+     "yaw_spectrum_db": 10.2
+    },
+    "new": 1.0768899449819875,
+    "new_metrics": {
+     "roll_err_rms": [
+      5.96,
+      1.65
+     ],
+     "pitch_err_rms": [
+      6.02,
+      2.89
+     ],
+     "yaw_err_rms": [
+      56.61,
+      36.73
+     ],
+     "throttle": [
+      62.4,
+      63.8
+     ],
+     "tail": [
+      -19.4,
+      -20.6
+     ],
+     "roll_spectrum_db": 21.4,
+     "pitch_spectrum_db": 14.3,
+     "yaw_spectrum_db": 8.6
+    }
+   }
+  ],
+  "old": 1.955,
+  "new": 1.545,
+  "verdict": "ok",
+  "old_is": "prior",
+  "model_trained": "2026-11-09",
+  "model_args": {
+   "rate_gain_roll": 3.997,
+   "rate_gain_pitch": 4.119,
+   "Lb1s": 3068.5,
+   "Ma1s": 941.8,
+   "tf": 0.05,
+   "stiff_rpm_exp": 2.0,
+   "tf_rpm_exp": 1.0,
+   "turb": 0.0,
+   "turb_hz": 2.5,
+   "yaw_trim": 0.2,
+   "nominal_rpm": 1900.0,
+   "gear_ratio": 8.75,
+   "hover_throttle": 0.699,
+   "pack_cells": 12,
+   "pack_ah": 6.351,
+   "pack_r": 0.02687,
+   "hover_power_w": 1487.7,
+   "cyclic_scale": 1.0,
+   "yaw_scale": 1.0,
+   "tf_roll": 0.0374,
+   "tf_pitch": 0.067
+  },
+  "model_attrs": {
+   "motor_poles": 10,
+   "v_hover": 3.3,
+   "rotor_radius": 0.79,
+   "hub_height": 0.395,
+   "ctrl_rpm_exp": 0.162,
+   "Zcol": -35.921794871794866,
+   "thrust_inflow": [
+    39.21568627450981,
+    0.13133333333333333
+   ],
+   "Nped": 55.0,
+   "Nr": -2.0
+  },
+  "stale": false
+ },
  "changed": true,
  "scores": {
   "prior": {
