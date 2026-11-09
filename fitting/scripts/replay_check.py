@@ -134,9 +134,32 @@ def tail(L, t0, t1):
     return float(np.median(L.c('mixer[2]')[m])) / 10
 
 
-def score(real, sim, t0, t1):
+def align_near(real, sim, expect, span=10.0):
+    """Time offset sim - real from the sticks, searched within expect +- span s: the
+    replay's construction fixes it up to the sim blackbox's start (a few seconds), and a free
+    search (compare_replay.align) can lock onto a short spurious overlap."""
+    def sig(L):
+        tt = np.arange(0, L.t[-1], 0.01)
+        return np.diff(sum(np.interp(tt, L.t, L.c('rcCommand[%d]' % i)) for i in (0, 1, 3)))
+    r, s = sig(real), sig(sim)
+    best = None
+    for k in range(int(round((expect - span) / 0.01)), int(round((expect + span) / 0.01)) + 1):
+        # sim index i <-> real index i - k (sim = real + k * 0.01)
+        lo, hi = max(0, k), min(len(s), len(r) + k)
+        if hi - lo < 1000:
+            continue
+        c = float(np.dot(s[lo:hi], r[lo - k:hi - k])) / (hi - lo)
+        if best is None or c > best[0]:
+            best = (c, k * 0.01)
+    if best is None:
+        raise ValueError('no stick overlap near the expected offset')
+    return best[1]
+
+
+def score(real, sim, t0, t1, s0=None):
     import compare_replay
-    lag = compare_replay.align(real, sim)
+    # sim time = real - s0 + the bridge's lead (8 s) - the blackbox's start after arming
+    lag = align_near(real, sim, 8.0 - 3.0 - s0) if s0 is not None else compare_replay.align(real, sim)
     a, b = t0 + SETTLE_S, t1
     R = compare_replay.metrics(real, a, b)
     S = compare_replay.metrics(sim, a + lag, b + lag)
@@ -154,8 +177,10 @@ def score(real, sim, t0, t1):
     return float(s), out
 
 
-def compare(elf, heli, old, new, entries, say=print, max_logs=2):
-    """Replay up to max_logs held-out logs with both models: {'verdict', 'logs': [...]}."""
+def compare(elf, heli, old, new, entries, say=print, max_logs=2, old_results=None):
+    """Replay up to max_logs held-out logs with both models: {'verdict', 'logs': [...]}.
+    old_results (an earlier compare() of the same old model) skips flying it again."""
+    reuse = {r['log']: r for r in (old_results or {}).get('logs', [])}
     dump = find_file(heli['cli_dump']) if heli.get('cli_dump') else None
     if heli.get('cli_dump') and not dump:
         say('replay: CLI dump %s not in the store, flying the bridge default setup' % heli['cli_dump'])
@@ -171,12 +196,21 @@ def compare(elf, heli, old, new, entries, say=print, max_logs=2):
         write_inputs(log, s0, t1, folder)
         rec = {'log': log.name, 'window': [round(t0, 1), round(t1, 1)], 'rpm': rpm}
         for tag, p in (('old', old), ('new', new)):
+            if tag == 'old' and log.name in reuse and reuse[log.name].get('old') is not None:
+                rec['old'], rec['old_metrics'] = reuse[log.name]['old'], reuse[log.name]['old_metrics']
+                continue
             sim = fly(elf, p, folder, tag, rpm, dump)
             if sim is None:
                 rec[tag] = None
                 say('replay %s %s: no SITL blackbox (see %s)' % (log.name, tag, folder))
                 continue
-            rec[tag], rec[tag + '_metrics'] = score(log, sim, t0, t1)
+            try:
+                rec[tag], rec[tag + '_metrics'] = score(log, sim, t0, t1, s0)
+            except ValueError as err:
+                # the sim's blackbox does not cover the stretch (a crash, an alignment the
+                # sticks could not fix): this log cannot judge the models
+                rec[tag] = None
+                say('replay %s %s: not scored (%s), see %s' % (log.name, tag, err, folder))
         say('replay %s %.0f-%.0f s at %d rpm: score old %s, new %s' % (log.name, t0, t1, rpm, rec.get('old'), rec.get('new')))
         out['logs'].append(rec)
     both = [r for r in out['logs'] if r.get('old') is not None and r.get('new') is not None]

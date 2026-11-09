@@ -30,15 +30,22 @@ tail type. New sizes should come from parameters, not from a fitting campaign.
       pitch inertia, hub dampers) in their heli files - without them neither check above can
       run. The OMP M5, M6 and M7R logs (`fitting/helis/*/fit.json`) already show the rate per
       cyclic growing ~rpm on all three sizes, as stiffness ~rpm^2 and tf ~1/rpm predict
-- [ ] Size presets as parameter sets: ~200, 380, 550, 700 class (and 800 / 90 mm blades for
-      the high-voltage end); the Blade 360 kept as a reference
+- [x] Size presets as parameter sets: the trained helis fly by name - 200 (`stratos200`,
+      preset), 380 (`protos380`), 500 (`devil505`), Nimbus, 700 (`omp_m7r`, `stratos700`,
+      preset `m7r`); the Blade 360 kept as a reference. CI flies the hover and rescue
+      checks of `protos380`, `devil505`, `nimbus` and `omp_m7r` from their committed
+      `model.json`
+- [ ] The Stratos 700 fails both checks (governor droop 3.3 %, the rescue does not climb):
+      its rotor law was refused (it made the held-out yaw worse through the torque
+      reaction), so it flies the generic DC motor, which the logged hover throttle leaves
+      too little headroom. An 800 / 90 mm class needs logs
 - [x] `--model` takes a preset name or a parameter file (JSON: base preset, constructor
       args, class constants; `heli_model.load_model`)
-- [ ] CI runs hover, governor and rescue checks per size class, not only the Blade 360.
-      Done for the M7R (700): the scripted pilots fly relative to the preset's hover
-      collective, rescue collectives likewise. The Stratos (200, motorized tail) lifts off
-      but yaws at 3.2 rad/s and does not roll inverted on the default gains: it needs its
-      own tune (tail gains) without a dump
+- [x] CI runs hover, governor and rescue checks per size class, not only the Blade 360:
+      the M7R preset (700) and the trained 380, 500, Nimbus and 700 helis (the scripted
+      pilots fly relative to each model's hover collective). The Stratos (200, motorized
+      tail) yaws away on the default gains: its checks fly with its CLI dump
+      (rotorflight-sim#13)
 
 ## 2. Gyro noise and vibration
 
@@ -60,8 +67,16 @@ independent of the heli) from vibration (per heli, scaled with rpm):
       1-2x and the broadband floor. Done for the OMP M5, M6 and M7R (`fitting/helis/`)
 - [x] Vibration of the Stratos (direct drive, motorized tail): main rotor lines; its tail
       (~4x main, varying with yaw) cannot be told from the main 4x
-- [ ] Vibration against collective; the rpm exponent (two headspeeds per heli scatter it,
-      the model uses rpm^2); motorized-tail lines in the sensor model once a heli has them
+- [x] Vibration against collective and the rpm exponent: `vibration.py` fits both together
+      (log amplitude on log rpm and collective, with the exponent's standard error), on
+      eight helis now. The well-pinned exponents (se < 0.5) scatter from 0 to 4 (median
+      1.7, weighted mean 1.9): lines move through frame resonances, no one law. The sensor
+      model takes a harmonic's own exponent where it is pinned (clamped 0..4), else 2.
+      Collective barely matters (median -0.14 per unit: 1-2 % per 0.1)
+- [x] Tail and motor gear ratios from the vibration (`find_orders.py`): rotor-locked lines
+      at non-integer orders, combined over headspeeds; filled in for the Devil 505, Nimbus,
+      Protos 380 and Stratos 700. Integer tail ratios (M7R 5.0) sit on main rotor lines
+- [ ] Motorized-tail lines in the sensor model once a heli has them
 - [x] Model: gyro and accel = true value + chip noise (white, bias walk, from the Allan fit)
       + vibration (harmonics locked to the model's rotor, tail and motor rpm, amplitudes from
       the logs). Seeded (`heli/sensors.py`, `--gyro-chip`, `--vibration`)
@@ -106,9 +121,11 @@ heli and gives back a preset with its validation:
 - [ ] **Joint fit across helis**: the parameters of `PhysicalHeli` (1) fitted on all helis
       together, with the geometry as known input, so each new heli refines the scaling laws
       instead of getting its own constants. Report where a heli is off the shared law
-- [ ] **Validation report** per heli: replay scores (tracking error, whirl band power,
-      throttle, yaw mixer) sim vs real per profile, written to a file and committed with
-      the preset
+- [x] **Validation report** per heli: replay scores (tracking error, throttle, tail,
+      spectrum distance) of the held-out flights, prior against trained, in each heli's
+      `TRAINING.md` and `replay.json` (`replay_report.py`, or `train.py --elf`, which also
+      drops stages that make the closed loop worse). Done for the M7R, Nimbus, Stratos 700,
+      Protos 380 and Stratos 200
 - [ ] **Regression**: a small set of public, short log excerpts and their expected scores,
       replayed in CI (scheduled run, it is slow), so a model change that worsens a fitted
       heli shows up

@@ -30,7 +30,8 @@ One command per heli, run whenever logs are added (intake.py). Steps:
     guess), never over a preset or an earlier fit.
  6. Optional (--elf): the held-out logs' sticks are replayed through the SITL with the
     current and the new model (replay_check.py); the new model must track the real
-    flight no worse, else nothing changes.
+    flight no worse. If it does not, the taken stages are dropped from the last one back (at
+    most three) and replayed again; if none passes, nothing changes.
  7. Write: model.json (base "fitted", every number with its provenance) if anything
     changed, and train.json / TRAINING.md: the report - what each stage proposed, the
     held-out scores before and after, what was taken and why.
@@ -61,6 +62,7 @@ from logstore import decoded_name, save  # noqa: E402
 
 # stages whose proposals depend on another's numbers: re-proposed before judging it
 DEPENDS = {'rotor': ('yaw', 'power'), 'thrust': ('rotor', 'yaw', 'power')}
+MAX_BACKOFF = 3     # stages the replay check may drop, last taken first
 TOL = 0.02          # relative: how much worse another stage may score (noise); its own may not
 VALIDATE_EVERY = 4  # one log in four is held out
 MIN_AIR_S = 20.0    # a log shorter than this in the air does not count as a flight
@@ -283,10 +285,39 @@ def train(heli_path, group=None, folds=8, dry=False, elf=None, say=print):
     replay = None
     if elf and cand != current and vlogs:
         import replay_check
-        replay = replay_check.compare(elf, heli, current, cand, [e for e in entries if e['role'] == 'validate'], say=say)
-        if replay and replay['verdict'] == 'worse':
+        val = [e for e in entries if e['role'] == 'validate']
+        replay = replay_check.compare(elf, heli, current, cand, val, say=say)
+        # worse in closed loop: drop the taken stages from the last one back, one at a
+        # time, and replay again (the old model's replays are reused)
+        taken = [st for st in mp.STAGES if stages[st]['decision'].startswith('taken')]
+        tries = 0
+        while replay['verdict'] == 'worse' and taken and tries < MAX_BACKOFF:
+            st = taken.pop()
+            tries += 1
+            for k in keys_of(stages[st]['proposal']):
+                for sec in ('args', 'attrs'):
+                    if k in cand.get(sec, {}):
+                        if k in current.get(sec, {}):
+                            cand[sec][k] = current[sec][k]
+                        else:
+                            del cand[sec][k]
+                if k in cur_prov:
+                    cand_prov[k] = cur_prov[k]
+                else:
+                    cand_prov.pop(k, None)
+            stages[st]['decision'] = 'dropped: the replay check found the model worse with it (%s -> %s)' % (
+                fmt(replay.get('old')), fmt(replay.get('new')))
+            say('replay check worse: %s dropped, replaying again' % st)
+            if cand == current:
+                break
+            replay = replay_check.compare(elf, heli, current, cand, val, say=say, old_results=replay)
+        if replay['verdict'] == 'worse':
             say('replay check: the new model tracks the held-out flights worse - nothing changes')
             cand, cand_prov = current, cur_prov
+        replay.update(old_is='current' if current is not prior else 'prior',
+                      model_args=cand['args'], model_attrs=cand['attrs'], model_trained=today)
+        with open(os.path.join(folder, 'replay.json'), 'w') as f:
+            json.dump(replay, f, indent=1)
 
     final = {'prior': score(prior), 'current': score(current), 'new': score(cand)}
     changed = cand != current
@@ -307,6 +338,15 @@ def train(heli_path, group=None, folds=8, dry=False, elf=None, say=print):
             with open(model_path, 'w', newline='\n') as f:
                 f.write(json.dumps(out, indent=1) + '\n')
             say('-> %s' % model_path)
+        rpath = os.path.join(folder, 'replay.json')
+        if replay is None and os.path.exists(rpath):
+            # an earlier replay check (replay_report.py): kept in the report, marked when it
+            # was of other numbers than the model now has
+            old = json.load(open(rpath))
+            # the gear ratio and motor poles only set the motor rpm the firmware sees
+            dyn = lambda d: {k: v for k, v in (d or {}).items() if k not in ('gear_ratio', 'motor_poles')}
+            same = (dyn(old.get('model_args')), dyn(old.get('model_attrs'))) == (dyn(cand['args']), dyn(cand['attrs']))
+            report['replay'] = dict(old, stale=not same)
         json.dump(report, open(os.path.join(folder, 'train.json'), 'w'), indent=1, default=str)
         write_markdown(report, os.path.join(folder, 'TRAINING.md'))
     say('held-out scores (lower is better):')
@@ -337,8 +377,27 @@ def write_markdown(r, path):
           '| stage | prior | current | new |', '|---|---|---|---|']
     for s in mp.STAGES:
         L.append('| %s | %s | %s | %s |' % (s, fmt(r['scores']['prior'][s]), fmt(r['scores']['current'][s]), fmt(r['scores']['new'][s])))
-    if r.get('replay'):
-        L += ['', '## Replay check', '', '```', json.dumps(r['replay'], indent=1), '```']
+    rp = r.get('replay')
+    if rp:
+        L += ['', '## Replay check', '',
+              'Held-out flights replayed through the SITL (`replay_check.py`) with the %s and the new model, '
+              'scored against the real flight (lower is better): %s -> %s, verdict **%s**.'
+              % (rp.get('old_is', 'current'), fmt(rp.get('old')), fmt(rp.get('new')), rp['verdict'])]
+        if rp.get('stale'):
+            L.append('(Made for the model trained %s, whose numbers differ from the current ones: '
+                     'run `replay_report.py` again.)' % rp.get('model_trained'))
+        L.append('')
+        for lg in rp['logs']:
+            L += ['`%s`, %.0f-%.0f s at %d rpm:' % (lg['log'], lg['window'][0], lg['window'][1], lg['rpm']), '',
+                  '| | real | %s | new |' % rp.get('old_is', 'current'), '|---|---|---|---|']
+            om, nm = lg.get('old_metrics') or {}, lg.get('new_metrics') or {}
+            for k in om:
+                a, b = om[k], nm.get(k)
+                if isinstance(a, list):
+                    L.append('| %s | %s | %s | %s |' % (k, a[0], a[1], b[1] if b else '-'))
+                else:
+                    L.append('| %s | | %s | %s |' % (k, a, b if b is not None else '-'))
+            L += ['| score | | %s | %s |' % (fmt(lg.get('old')), fmt(lg.get('new'))), '']
     L += ['', 'Model changed: %s.' % ('yes' if r['changed'] else 'no'), '']
     with open(path, 'w', newline='\n') as f:
         f.write('\n'.join(L))

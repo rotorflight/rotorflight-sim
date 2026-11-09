@@ -327,16 +327,25 @@ stay out of the repository.
 was taken (lower is better, units in `holdout.py`); "kept": proposed and refused, "-": no
 proposal (gates):
 
-| heli | fit / held-out logs | rotor | thrust | rate | flap | yaw | power | pack |
-|---|---|---|---|---|---|---|---|---|
-| OMP M5 | 1 / 1 | 9.59 -> 1.15 | - | kept | kept | 2.34 -> 2.20 | - | - |
-| OMP M6 | 1 / 1 | kept | - | kept | - | - | - | - |
-| OMP M7R | 2 / 1 | 6.04 -> 1.74 | - | kept | 0.061 -> 0.060 | 1.00 -> 0.70 | - | - |
-| Stratos 200 | 5 / 1 | kept | - | 0.126 -> 0.006 | - | - | - | kept |
-| ALZRC Devil 505 | 2 / 0 | - | - | not validated | kept | not validated | - | - |
-| MSH Protos 380 | 6 / 2 | - | - | 0.129 -> 0.101 | kept | 0.588 -> 0.584 | - | - |
-| Nimbus | 12 / 6 | 15.6 -> 2.29 | 0.014 -> 0.012 | 0.41 -> 0.065 | kept | 0.43 -> 0.28 | not validated | 0.198 -> 0.177 |
-| Stratos 700 | 14 / 8 | kept | kept | 0.40 -> 0.066 | 0.46 -> 0.061 | kept | 0.20 -> 0.031 | 0.30 -> 0.15 |
+| heli | fit / held-out logs | rotor | thrust | rate | flap | yaw | power | pack | replay (prior -> trained) |
+|---|---|---|---|---|---|---|---|---|---|
+| OMP M5 | 1 / 1 | 9.59 -> 1.15 | - | kept | kept | 2.34 -> 2.20 | - | - | no 30 s upright stretch |
+| OMP M6 | 1 / 1 | kept | - | kept | - | - | - | - | (no model) |
+| OMP M7R | 2 / 1 | 6.04 -> 1.74 | - | kept | 0.061 -> 0.060 | dropped | - | - | 0.82 -> 0.88 |
+| Stratos 200 | 5 / 1 | kept | - | 0.126 -> 0.006 | - | - | - | kept | 2.07 -> 2.17 |
+| ALZRC Devil 505 | 2 / 0 | - | - | not validated | not validated | not validated | - | - | no held-out logs |
+| MSH Protos 380 | 6 / 2 | - | - | 0.129 -> 0.101 | kept | 0.588 -> 0.584 | - | - | 3.65 -> 3.79 |
+| Nimbus | 12 / 6 | 15.6 -> 2.29 | 0.014 -> 0.012 | 0.41 -> 0.065 | kept | 0.43 -> 0.28 | not validated | 0.198 -> 0.177 | 3.33 -> 1.96 |
+| Stratos 700 | 14 / 8 | kept | kept | 0.40 -> 0.066 | 0.46 -> 0.061 | kept | 0.20 -> 0.031 | 0.30 -> 0.15 | 1.96 -> 1.55 |
+
+The replay column is `replay_check.py`'s closed-loop score (lower is better; a model more
+than 10 % worse than the prior is refused). The Nimbus and Stratos 700 track their
+held-out flights clearly better than their size priors; the Protos and Stratos 200 within
+the margin. The M7R's yaw stage (Nped 27, Ncol 4.0 against the preset's 55 and 0) passed
+the open-loop check but replayed worse (0.91: tail trim -19.9 % against the real -24.1 %,
+yaw tracking 11.3 against 9.6 deg/s) and was dropped by `train.py --elf`; without it
+0.88. `replay_report.py` runs the check on trained helis and keeps it in the report
+(`replay.json`, marked stale when the model's numbers change).
 
 - The helis with many logs (Stratos 700, Nimbus) take most stages; the OMP sport flights
   (one fit log each) mostly the rotor law and the yaw.
@@ -544,6 +553,27 @@ injected lines at their amplitude x (2100/1797)^2 - main 1x 5.27/7.25/4.37 deg/s
 (6.73/2.16/1.36), tail 1x 2.55/0.77/0.44 (2.67/0.80/0.49). `compare_replay.py` compares
 the vibration that reached the sensor (gyroRAW) and the PIDs (gyroADC) above 20 Hz between
 a replay and its real flight.
+
+### Across eight helis (2026-11-09)
+
+The Devil 505, Protos 380, Nimbus and Stratos 700 logs add many headspeeds (the Protos
+2000-2600 rpm). `vibration.py` now fits each harmonic's amplitude against rpm and
+collective together (`rpm_exp` with `rpm_exp_se`, `coll_coef`), on the trained setup's
+logs only (`--group`, default the model's). Of the 61 exponents pinned to within 0.5,
+median 1.7 and weighted mean 1.9, but from 0 to 4 between harmonics and helis (main rotor
+median 2.4, tail 0.5, motor 2.5): an amplitude rises or falls as its line moves towards
+or away from a frame resonance, it does not follow one power law. Collective barely
+matters: median -0.14 per unit collective, 1-2 % per 0.1. The sensor model keeps rpm^2
+as the default and takes a harmonic's own exponent where it is pinned (clamped 0..4).
+
+**Gear ratios from the vibration** (`scripts/find_orders.py helis/<heli>/heli.json
+[--write]`): the gyroRAW spectrum in rotor orders per headspeed level, combined by the
+geometric mean, keeps only lines locked to the rotor - a tail or motor line sits at the
+same order at every headspeed, a frame resonance moves. Checked on the OMP helis (M6
+tail 4.748 and motor 9.308 for 4.75 and 9.308; M7R motor 8.72 for 8.75; its tail 5.0 is an
+integer and sits on a main rotor line; the M5's motor line is too weak and its strongest
+candidate a tail sideband, 2 x 4.75 + 1 - excluded). Written: Devil 505 tail 4.588 /
+motor 8.697, Nimbus 4.613 / 9.633, Protos 380 motor 8.69, Stratos 700 motor 9.613.
 
 ## Open
 
