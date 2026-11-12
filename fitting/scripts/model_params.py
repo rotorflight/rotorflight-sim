@@ -282,6 +282,9 @@ def proposals(base, fit, flap, se, unstable, flap_se=None, pack=None):
         ys = {int(k): y for k, y in (fit.get('yaw') or {}).items()
               if y['r2'] >= GATES['yaw_r2'] and 'yaw/%s/N_ped' % k not in unstable and rel('yaw/%s/N_ped' % k) <= GATES['yaw_rel']}
         ch, notes = {'attrs': {}, 'args': {}}, []
+        h = (fit.get('hover') or {}).get('%d' % N)
+        if h and h['gate'] == 'ok':
+            ch['args']['yaw_trim'] = round(abs(h['yaw_mixer']), 4)
         if ys:
             r = min(ys, key=lambda k: abs(k - N))
             ch['attrs']['Nped'] = round(ys[r]['N_ped'] / (r / N) ** 2, 2)
@@ -289,15 +292,14 @@ def proposals(base, fit, flap, se, unstable, flap_se=None, pack=None):
             # collective to yaw (what the firmware's precompensation cancels). The fit's N_col
             # is in the firmware frame (yaw = the model's -r) and holds all of it, the main
             # rotor's torque reaction through its drag too - which the model has already
-            # (torque_yaw): Ncol is what is left, -N_col - that slope, per (w/w_n)^2
-            slope = torque_slope(base, r, ys[r].get('collective', 0.0))
+            # (torque_yaw = -|Nped| yaw_trim, so with this stage's own Nped and trim, not the
+            # base's): Ncol is what is left, -N_col - that slope, per (w/w_n)^2
+            slope = torque_slope(apply(base, ch), r, ys[r].get('collective', 0.0))
             ch['attrs']['Ncol'] = round((-ys[r]['N_col'] - slope) / (r / N) ** 2, 2)
             notes.append('N_ped %.1f at %d rpm (R^2 %.2f) -> Nped %.1f at %d rpm, Nr %.2f, Ncol %.1f'
                          % (ys[r]['N_ped'], r, ys[r]['r2'], ch['attrs']['Nped'], N, ch['attrs']['Nr'],
                             ch['attrs']['Ncol']))
-        h = (fit.get('hover') or {}).get('%d' % N)
-        if h and h['gate'] == 'ok':
-            ch['args']['yaw_trim'] = round(abs(h['yaw_mixer']), 4)
+        if 'yaw_trim' in ch['args']:
             notes.append('hover tail trim %.3f at %d rpm' % (h['yaw_mixer'], N))
         ch = {k: v for k, v in ch.items() if v}
         out['yaw'] = (ch or None, notes or ['no yaw fit passes R^2 >= %.1f, no gated hover at %d rpm' % (GATES['yaw_r2'], N)])
