@@ -105,8 +105,22 @@ reaches the rotor through the disk tilt and the inflow), and the speed derivativ
 **Servos and pack.** `--servos digital|fast|analog` puts servo dynamics between the
 firmware's pulses and the swash decode: speed (0.06 / 0.04 / 0.12 s per 60 deg at 10 us
 per degree), deadband (1 / 1 / 4 us) and a first-order lag (10 / 6 / 20 ms); `ideal`
-(default) passes the pulses through (`heli/servos.py`). The pack follows a LiPo discharge
-curve with an internal resistance that rises towards empty.
+(default) passes the pulses through (`heli/servos.py`). `--tail-servo TYPE` gives the tail
+servo a type of its own (tail servos are often slower than the cyclic ones). The pack follows
+a LiPo discharge curve with an internal resistance that rises towards empty.
+
+**Profile switches and debug values.** `--profile-switch T_ON[,T_OFF]` switches the PID and
+rate profile from 1 to 2 at T_ON s, and back at T_OFF, in flight: AUX4 drives two continuous
+adjustment functions (`adjfunc`), as a pilot's profile switch does. Set profile 2 up with
+`--cli` (e.g. `--cli "profile 1" --cli "set gov_headspeed = 1700" --cli "profile 0"`).
+`--debug-log CSV` reads the firmware's eight debug values over MSP every 20 ms and writes
+them with the sim time; `--debug-mode NAME` sets the debug mode (`PROFILE_BLEND` shows the
+profile gain blend of rotorflight-firmware#591: progress, headspeed and its target, the
+blended gains). A downshift with the blend's debug values:
+
+    python3 heli/heli_bridge.py <sitl elf> --governor 2100 --profile-switch 21,24 \
+            --cli "profile 1" --cli "set gov_headspeed = 1700" --cli "profile 0" \
+            --debug-mode PROFILE_BLEND --debug-log blend.csv
 
 **Ground.** The heli stands on four skid contact points below its centre of gravity
 (plus the rotor head, nose and tail, for a heli that tips over), each a spring and damper
