@@ -69,7 +69,9 @@ jobs:
 
   linux:
 
-    runs-on: ubuntu-latest
+    # ubuntu-latest moved to 26.04 (GCC 15), where the firmware's vtx_table.c fails
+    # -Werror=unterminated-string-initialization; pin until the firmware builds there
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Check out repository
