@@ -122,6 +122,23 @@ blended gains). A downshift with the blend's debug values:
             --cli "profile 1" --cli "set gov_headspeed = 1700" --cli "profile 0" \
             --debug-mode PROFILE_BLEND --debug-log blend.csv
 
+With `--check` the scripted flight judges the tail after the switch instead of the
+headspeed: the yaw rate less its centred 0.1 s mean (the oscillation above ~5 Hz) must stay
+below 20 deg/s for 6 s. `heli/scenarios/m7r_586.txt` holds the two profiles of
+rotorflight-firmware#586 (the OMP M7R's 2000 and 1500 rpm profiles, as flown):
+
+    python3 heli/heli_bridge.py <sitl elf> --model m7r --governor 2000 --profile-switch 21 \
+            --cli-file heli/scenarios/m7r_586.txt --cli "set gov_profile_blend = OFF" --check
+
+fails on a 13 Hz tail wag of ~200 deg/s; with `ON` (a firmware with #591) it passes.
+
+**Servo tail dynamics.** Between the tail command and the yaw the gyro sees, a servo tail
+can have a thrust lag (`tail_lag`, s, first order: the tail inflow builds up) and a lightly
+damped mode (`yaw_mode_hz`, `yaw_mode_zeta`: boom, drive and mounts flexing, unit gain at
+rest), class constants of the model. Off by default; the M7R preset carries the values
+`fitting/scripts/fit_tail.py` fitted from its log (6 ms, 16.4 Hz, zeta 0.23). They give the
+yaw loop its phase lag at 10-15 Hz, where too much yaw gain wags the tail.
+
 **Ground.** The heli stands on four skid contact points below its centre of gravity
 (plus the rotor head, nose and tail, for a heli that tips over), each a spring and damper
 normal to the ground (1 cm static deflection, damping ratio 0.6) and stick-slip friction

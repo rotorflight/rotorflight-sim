@@ -154,6 +154,14 @@ class Heli:
     tail_motor = False
     tail_tau = 0.035
     yaw_lag = 0.0
+    # servo tail dynamics between the tail command and the yaw the gyro sees (0 = off, the
+    # first-order yaw of before): tail_lag, the tail thrust's build-up with its inflow (s,
+    # first order); yaw_mode_hz / yaw_mode_zeta, a lightly damped mode the tail moment
+    # reaches the body through (tail boom, drive and mounts flexing; unit gain at rest).
+    # They give the yaw loop the phase lag that lets too much yaw gain wag the tail
+    tail_lag = 0.0
+    yaw_mode_hz = 0.0
+    yaw_mode_zeta = 0.3
     servo_tau = 0.0
     turb = 0.0            # rad/s^2 std of random roll/pitch moments (0 = calm)
     turb_hz = 20.0        # their bandwidth (first-order)
@@ -263,6 +271,8 @@ class Heli:
         self.w = 0.0                      # rotor, rad/s
         self.n = 0.0                      # rotor thrust, g (along -z body)
         self.vi = 0.0                     # induced velocity, m/s
+        self.tail_state = 0.0             # tail moment behind tail_lag, rad/s^2
+        self.yaw_mode = [0.0, 0.0]        # tail moment through the yaw mode, and its rate
         self.on_ground = True
         self.air_time = 0.0
         self.anchors = {}
@@ -426,6 +436,22 @@ class Heli:
         self.vi += (target - self.vi) * a
         return vc_up + self.vi, sgn * (vc_up + self.vi)
 
+    def tail_moment(self, dt, n_cmd):
+        """The tail's yaw moment (rad/s^2) on the body for the commanded n_cmd: behind the
+        thrust lag and the yaw mode when they are set. The mode's state is advanced
+        semi-implicitly (stable for the SITL's steps at these frequencies)."""
+        if self.tail_lag > 0:
+            self.tail_state += (n_cmd - self.tail_state) * min(1.0, dt / self.tail_lag)
+            n_cmd = self.tail_state
+        if self.yaw_mode_hz > 0:
+            wn = 2 * math.pi * self.yaw_mode_hz
+            x, xd = self.yaw_mode
+            xd += (wn * wn * (n_cmd - x) - 2 * self.yaw_mode_zeta * wn * xd) * dt
+            x += xd * dt
+            self.yaw_mode = [x, xd]
+            n_cmd = x
+        return n_cmd
+
     def step(self, dt, throttle, roll, pitch, yaw, collective):
         throttle = max(0.0, min(1.0, throttle))
         ctrl_x = self.sign_roll * self.cyclic_scale * roll
@@ -506,7 +532,8 @@ class Heli:
             yaw_power, yaw_cmd = self.Nped, self.yaw_lag
         else:
             yaw_power = rr * self.Nped
-        r_dot = (self.Nv * v + self.Nr * r + yaw_power * yaw_cmd + self.Nw * w_
+        n_tail = self.tail_moment(dt, yaw_power * yaw_cmd)
+        r_dot = (self.Nv * v + self.Nr * r + n_tail + self.Nw * w_
                  + rr * self.Ncol * (coll - self.coll_hover))
         if self.torque_yaw:
             # main rotor drag torque reacts on the fuselage; the tail cancels it in hover

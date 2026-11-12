@@ -269,12 +269,12 @@ The current disturbance is a random moment on the body, with `turb_hz` tuned per
       less the model's own main-rotor torque reaction through its drag (which responds to
       collective too); the held-out yaw prediction includes both
 - [ ] Main rotor gyroscopic and tail rotor gyroscopic terms
-- [ ] Tail rotor speed, thrust and inflow (servo tails), tail authority loss at low rpm.
-      Today the tail thrust follows the pitch at once; with the inflow it builds up over
-      tens of ms, phase lag the yaw loop is missing (11)
-- [ ] Structural modes the gyro sees: tail boom torsion and bending, belt or torque-tube
-      windup, pushrod flex. Lightly damped, typically 10-20 Hz, as parameters per heli;
-      the model is one rigid body now (11)
+- [ ] Tail rotor speed and inflow (servo tails), tail authority loss at low rpm
+- [x] Tail thrust lag and a yaw mode between the tail and the gyro (`tail_lag`,
+      `yaw_mode_hz`, `yaw_mode_zeta`; `fitting/scripts/fit_tail.py`, the M7R: 6 ms and
+      16.4 Hz at zeta 0.23) - the phase the yaw loop was missing (11). One lumped mode: which
+      part flexes (boom, belt or torque tube, pushrods, mounts) the logs cannot tell
+- [ ] The same fit for the other servo-tail helis (needs a replay case each)
 
 ## 9. Actuators and power
 
@@ -316,26 +316,33 @@ yaw gains. Switched at once, those gains run on the still-fast rotor until the g
 brought the headspeed down: for a few seconds the yaw loop gain is ~1.8x the tune.
 rotorflight-firmware#591 blends the gains along the headspeed instead (`gov_profile_blend`).
 
-The sim cannot show the wag yet. Its yaw axis is first order (`Nr`, `Nped`) behind one
-servo lag, and the firmware's filters add little, so the loop's phase at 12 Hz stays short
-of -180 deg: no yaw gain makes it oscillate (yaw P up to 1000 with analog servos on the
-Blade 360 stayed stable). It does show the loop gain across the switch - with the blend off
-+52 % on a 2100 -> 1700 rpm downshift and -34 % on the upshift, with it on within 1 % - but
-not what that gain does to the tail.
+The sim shows it now: the OMP M7R preset with its tail dynamics fitted from
+OMP_M7R_20261022_155150 (the #586 log), flying that log's two profiles
+(`heli/scenarios/m7r_586.txt`), wags at 13 Hz right after the downshift and saturates the
+tail; the wag dies out near 1450 rpm. The real heli: 12 Hz, from ~1800 rpm down to ~1520.
+With `gov_profile_blend = ON` the yaw rate stays within 4 deg/s.
 
-**One of the OMP M7R logs contains data for replicating this issue**
-(`fitting/helis/omp_m7r/heli.json` lists them): use it for the calibration below.
+The yaw axis was first order (`Nr`, `Nped`) behind one servo lag, which never reaches
+-180 deg at 12 Hz: no yaw gain made it oscillate. The log's mixer-to-gyro response (the
+yaw setpoint as instrument; the plain estimate returns the controller's inverse) has 2x
+the first-order gain at 5-10 Hz and ~60 deg more lag at 12 Hz.
 
-- [ ] The missing phase lag at 12 Hz from the items it comes from: tail thrust and inflow
-      lag (8), a structural mode (8), the loaded tail servo and its own servo type (9). Add
-      what the M7R log supports, not all of them
-- [ ] Calibrate on that log: the wag's frequency and growth with the logged gains give the
-      lag the real heli has at 12 Hz. The low-headspeed profile's gains must hold at their
-      own headspeed and wag at the high one
+- [x] The missing phase lag at 12 Hz: a 6 ms tail thrust lag and a 16.4 Hz yaw mode
+      (zeta 0.23), fitted against a replay of the log through the SITL with the real RPM
+      filter, whose 1x notch adds most of the firmware's own lag at 12 Hz (`fit_tail.py`)
+- [x] Calibrate on that log: the log's header holds another profile's gains (yaw P/D
+      110/20); fitted from the logged terms, profile 1 flies 154/48 at 1500 rpm and
+      profile 3 87/24 at 2000 rpm (`m7r_profiles.py`, now absolute). Each holds at its own
+      headspeed in the sim, profile 1's wags at profile 3's
+- [ ] The sim's wag starts at once and grows ~3x faster than the real one, which began
+      ~1 s after the switch near 1800 rpm: the real heli was in fast forward flight, with
+      more yaw damping and tail inflow (4) - fly it again once forward flight is modelled
 - [x] Profile switching in the bridge: `--profile-switch T_ON[,T_OFF]` drives the PID and
       rate profile adjustments on AUX4 (`adjfunc` is still dropped from dumps), and
       `--debug-mode` / `--debug-log` write the firmware's debug values (`MSP_DEBUG`, e.g.
       `PROFILE_BLEND`) every 20 ms
-- [ ] A profile-switch check: governed flight (forward flight once 4 has it), downshift and
-      upshift on the switch. With `gov_profile_blend = OFF` the tail must wag after the
-      downshift, with `ON` the yaw rate stays within fixed bounds
+- [x] A profile-switch check: `--profile-switch` with `--check` judges the yaw rate above
+      ~5 Hz for 6 s after the switch (below 20 deg/s). CI job `profile-switch` merges
+      rotorflight-firmware#591 onto the SITL and flies the M7R downshift in hover: with
+      `gov_profile_blend = OFF` it must fail on the wag, with `ON` pass
+- [ ] The upshift, and forward flight once 4 has it

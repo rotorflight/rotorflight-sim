@@ -552,6 +552,50 @@ class Actuators(unittest.TestCase):
         self.assertGreater(h.pack_voltage(0.0) - h.pack_voltage(40.0), sag_half)
 
 
+class TailDynamics(unittest.TestCase):
+    """The servo tail's thrust lag and yaw mode (Heli.tail_moment): off on the base model,
+    unit gain at rest, and the gain and phase of first order x second order at 12 Hz -
+    the lag that lets the M7R's 1500 rpm yaw gains wag the tail at 2000 rpm."""
+
+    @staticmethod
+    def response(heli, f, seconds=2.0):
+        """Gain and phase (deg) of tail_moment for a sine at f Hz, over the last second."""
+        heli.reset()
+        n = int(seconds / DT)
+        last = int(1.0 / DT)
+        c = s_ = 0.0
+        for i in range(n):
+            t = i * DT
+            y = heli.tail_moment(DT, math.sin(2 * math.pi * f * t))
+            if i >= n - last:
+                c += y * math.cos(2 * math.pi * f * t)
+                s_ += y * math.sin(2 * math.pi * f * t)
+        k = 2.0 / last
+        return math.hypot(c * k, s_ * k), math.degrees(math.atan2(c * k, s_ * k))
+
+    def test_off_on_the_base_model(self):
+        heli = Heli()
+        heli.reset()
+        self.assertEqual(heli.tail_moment(DT, 0.7), 0.7)
+
+    def test_unit_gain_at_rest(self):
+        heli = M7R()
+        heli.reset()
+        for _ in range(int(1.0 / DT)):
+            y = heli.tail_moment(DT, 1.0)
+        self.assertAlmostEqual(y, 1.0, places=3)
+
+    def test_m7r_at_12hz(self):
+        heli = M7R()
+        gain, phase = self.response(heli, 12.0)
+        s = 2j * math.pi * 12.0
+        wn = 2 * math.pi * heli.yaw_mode_hz
+        h = 1 / (1 + s * heli.tail_lag) * wn ** 2 / (s * s + 2 * heli.yaw_mode_zeta * wn * s + wn * wn)
+        self.assertAlmostEqual(gain, abs(h), delta=0.03 * abs(h))
+        self.assertAlmostEqual(phase, math.degrees(math.atan2(h.imag, h.real)), delta=3.0)   # Euler steps
+        self.assertLess(phase, -45.0)          # the lag the first-order yaw axis was missing
+
+
 class SensorModel(unittest.TestCase):
 
     def rms(self, s, w, n=20000):

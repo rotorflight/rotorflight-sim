@@ -1,3 +1,5 @@
+feature RPM_FILTER
+set tail_rotor_gear_ratio = 1000,5000
 set roll_p_gain = 50
 set roll_i_gain = 100
 set roll_d_gain = 20
@@ -8,9 +10,9 @@ set pitch_i_gain = 100
 set pitch_d_gain = 80
 set pitch_f_gain = 100
 set pitch_b_gain = 0
-set yaw_p_gain = 110
+set yaw_p_gain = 154
 set yaw_i_gain = 120
-set yaw_d_gain = 20
+set yaw_d_gain = 48
 set yaw_f_gain = 0
 set yaw_b_gain = 0
 set roll_response = 0

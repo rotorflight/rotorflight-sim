@@ -178,7 +178,7 @@ gains and rates.
 ```sh
 node <skill>/bbl.js decode OMP_M7R_<date>.bbl -o data/m7r
 python -I scripts/m7r_fit.py data/m7r.0.npy                  # open-loop fits
-python -I scripts/m7r_profiles.py data/m7r.0.npy               # gains of profiles 2 and 3
+python -I scripts/m7r_profiles.py data/m7r.0.npy               # gains of profiles 1, 2 and 3
 python -I scripts/m7r_inputs.py data/m7r.0.npy replay/m7r [1|2|3]   # CLI file + sticks per profile
 python -I scripts/m7r_sweep.py [-p 1|2|3] <elf> data/m7r.0.npy replay/m7r replay/m7r/sweep L=700,1500 tf=0.05,0.1
 ```
@@ -194,7 +194,8 @@ python -I scripts/m7r_sweep.py [-p 1|2|3] <elf> data/m7r.0.npy replay/m7r replay
   1800, 0.179 over 3 s at 2000) mix in forward flight and fit no single thrust law; the
   preset takes the Stratos' inflow share (72 %), which gives 0.273 at 1800.
 - **Servo tail**: 38 rad/s^2 per unit at 1500 rpm (R^2 0.68 in the cruise flying; the 3D
-  parts fit poorly), damping -2 /s.
+  parts fit poorly), damping -2 /s. Superseded by the tail fit below (Nped 91 with its
+  lag and mode).
 - **Pack**: 12S, 50.4 V full, 47 mOhm, ~4.5 Ah.
 - **Replay** of the cruise profile (real 242-318 s) with `--hold-alt 10`, scored where the
   sim flies above 1 m - the flap/body sweep:
@@ -212,10 +213,14 @@ python -I scripts/m7r_sweep.py [-p 1|2|3] <elf> data/m7r.0.npy replay/m7r replay
   the Stratos, real disturbances are missing). Yaw tracking 11.1 vs 9.3 deg/s, yaw mixer
   -21.3 vs -21.4 %.
 
-- **3D profiles**: the header holds profile 1 only. `m7r_profiles.py` takes profiles 2
-  and 3 from the logged PID terms - each term against its input, as a ratio to profile 1
-  (which gives back its header gains within 1-2). Rates and stop gains are profile 1's;
-  roll D rises to ~32, yaw P falls to 71 / 61, collective rate 114. The replays (preset,
+- **3D profiles**: the header holds the gains of the profile active when logging began,
+  not profile 1's (the log switches to profile 1 before the spool-up). `m7r_profiles.py`
+  fits the gains of profiles 1-3 absolutely from the logged PID terms through the
+  firmware's term scales (checked on SITL logs with known gains: P, D, F within ~5 %, I
+  7-14 % low). Cyclic gains stay near the header's; yaw P/D is 154/48 (profile 1, 1500
+  rpm), 101/33 (2, 1800) and 87/24 (3, 2000) against the header's 110/20, collective
+  rate 114 for 2 and 3. The table below was flown with the earlier ratio method (yaw P
+  71 / 61 for 2 / 3). The replays (preset,
   `--hold-alt 10`, which divides its correction by the rotor axis' upward share so it
   holds inverted too) fly 3D including inverted hover; scored above 1 m (55 % of them -
   open-loop sticks lose the heli in the fast parts the pilot corrected by eye):
@@ -440,6 +445,31 @@ a 5 s gate per headspeed. These sport flights pass it at one headspeed each: M6 
 1600 rpm (7 s), M7R 0.351 at 1500 rpm (8 s; the preset's hand-picked 0.346). Every other
 headspeed has 0-3 s of hover - the inflow law needs a flight that hovers at two
 headspeeds (manoeuvre card).
+
+## Servo tail dynamics (`scripts/fit_tail.py`)
+
+```sh
+python -I scripts/fit_tail.py <decoded>/OMP_M7R_20261022_155150.0.npy <replay>.0.npy 70,400 1450,1560 236,242
+```
+
+The tail of rotorflight-firmware#586 wagged at 12 Hz, where the model's first-order yaw
+axis is ~90 deg short of -180. The log's mixer-to-gyro response tells what is missing -
+estimated with the yaw setpoint as instrument (the plain closed-loop estimate returns the
+controller's inverse above ~8 Hz) and divided by the same estimate on a replay of the
+flight through the SITL with the tail dynamics off and the real RPM filter, which cancels
+the firmware's filters (its 1x notch near 25 Hz adds most of their lag at 12 Hz):
+
+| Hz | 2 | 4 | 6 | 8 | 10 | 12 |
+|---|---|---|---|---|---|---|
+| real / sim gain | 1.3 | 2.0 | 1.9 | 1.9 | 2.1 | 2.8 |
+| real / sim phase, deg | -10 | -6 | -29 | -35 | -64 | -49 |
+
+Fitted as Nped / 55 / (1 + s tail_lag) x a second-order mode: Nped 91, tail_lag 6 ms,
+yaw_mode_hz 16.4, yaw_mode_zeta 0.23 (the M7R preset). Through the SITL with the log's two
+profiles (`heli/scenarios/m7r_586.txt`), profile 1's gains hold at 1500 rpm, profile 3's at
+2000, and profile 1's on the 2000 rpm rotor wag the tail at 13 Hz until ~1450 rpm (real:
+12 Hz, ~1520 rpm). The sim's wag starts at once and grows faster than the real one, which
+was flown in fast forward flight.
 
 ## Flap/body dynamics from sharp inputs (`scripts/fit_flap.py`)
 
