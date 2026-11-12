@@ -27,6 +27,10 @@ env:
   # rotorflight/rotorflight-firmware master once it is merged.
   FIRMWARE_REPO: ${{ inputs.firmware_repo || 'NightHawk32/rotorflight-firmware' }}
   FIRMWARE_REF: ${{ inputs.firmware_ref || 'feature/sitl-build' }}
+  # The profile gain blend (gov_profile_blend) is rotorflight/rotorflight-firmware#591, merged
+  # onto the SITL for the profile-switch job; drop the merge once both are in master.
+  BLEND_REPO: NightHawk32/rotorflight-firmware
+  BLEND_REF: feature/profile-gain-blend
 
 jobs:
 
@@ -158,6 +162,51 @@ jobs:
 
     - name: Replay of a real flight (Stratos 200, 3300 rpm, motorized tail)
       run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --replay-case heli/replays/stratos_3300 --check
+
+  profile-switch:
+
+    # rotorflight-firmware#586: the OMP M7R's downshift from its 2000 rpm profile to its
+    # 1500 rpm profile wags the tail; the profile gain blend of #591 must keep it quiet
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Check out firmware
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ env.FIRMWARE_REPO }}
+        ref: ${{ env.FIRMWARE_REF }}
+        path: firmware
+        fetch-depth: 0
+
+    - name: Merge the profile gain blend
+      working-directory: firmware
+      run: |
+        git fetch https://github.com/${{ env.BLEND_REPO }}.git ${{ env.BLEND_REF }}
+        git -c user.name=ci -c user.email=ci@localhost merge --no-edit FETCH_HEAD
+        git log -2 --format='firmware %H %s'
+
+    - name: Build SITL
+      working-directory: firmware
+      run: |
+        make arm_sdk_install
+        make TARGET=SITL
+
+    - name: Downshift with the gain blend (OMP M7R, 2000 -> 1500 rpm profile)
+      run: python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --model m7r --governor 2000 --profile-switch 21 --cli-file heli/scenarios/m7r_586.txt --cli "set gov_profile_blend = ON" --check
+
+    - name: The same downshift without the blend wags the tail
+      run: |
+        # it must fail on the tail wag (and the yaw rate it brings), not on a crash or another check
+        rc=0
+        python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --model m7r --governor 2000 --profile-switch 21 --cli-file heli/scenarios/m7r_586.txt --cli "set gov_profile_blend = OFF" --check > blend_off.log 2>&1 || rc=$?
+        cat blend_off.log
+        if [ "$rc" -eq 0 ] || ! grep -q '^FAIL profile switch: no tail wag' blend_off.log \
+           || grep '^FAIL' blend_off.log | grep -v 'profile switch: no tail wag' | grep -vq 'yaw held'; then
+          echo "::error::the downshift without the blend did not fail on the tail wag alone"; exit 1
+        fi
 
   windows:
 

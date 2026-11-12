@@ -661,6 +661,7 @@ def main():
         imu_probe |= vib_probe
         imu_fw = []
         debug_t, debug_v = [], []      # MSP_DEBUG requests (sim time) and their replies
+        wag = []                       # (t, yaw rate deg/s) at 1 kHz after a profile switch
         decode_err, decode_at, decode_sq, decode_n = [0.0] * 4, [None] * 4, [0.0] * 4, 0
         time.sleep(1.0)
         msp.send(msp_frame(MSP_ACC_CALIBRATION))
@@ -777,6 +778,8 @@ def main():
             else:
                 frozen = max(frozen, t - ctrl_since)
 
+            if switch and switch[0] <= t < switch[0] + WAG_SPAN and n % int(0.001 / DT) == 0:
+                wag.append((t, math.degrees(heli.rates[2])))
             if n % int(float(os.environ.get('LOG_EVERY', '0.1')) / DT) == 0:
                 roll, pitch, yaw = euler(heli.q)
                 rows.append((t, heli.altitude, -heli.vel[2], math.degrees(roll), math.degrees(pitch),
@@ -895,7 +898,7 @@ def main():
                 sys.exit('--check with a replay needs --replay-case (the reference to judge against)')
             sys.exit(0 if check_replay(rows, timeouts, steps, replay_resets, case, heli.tail_motor) else 1)
         sys.exit(0 if check_flight(rows, timeouts, steps, a.governor, vib_rms,
-                                   slope and (slope[0], heli)) else 1)
+                                   slope and (slope[0], heli), switch and (switch[0], wag)) else 1)
 
 
 def check_replay(rows, timeouts, steps, resets, case, tail_motor=False):
@@ -953,9 +956,35 @@ VIB_RMS_MAX = 3.0     # deg/s: filtered gyro error allowed with --gyro-chip / --
 SLOPE_AT = 4.0        # s: the heli is set down on the slope after the level ACC calibration
 
 
-def check_flight(rows, timeouts, steps, governor, vib_rms=None, slope=None):
+WAG_SPAN = 6.0        # s after a profile switch: the yaw rate is sampled at 1 kHz
+WAG_MAX = 20.0        # deg/s: oscillation above ~5 Hz allowed in the yaw rate after it
+
+
+def tail_wag(samples):
+    """Largest yaw-rate oscillation above ~5 Hz (deg/s, the rate less its centred 0.1 s
+    mean - which keeps the stick and governor responses out) and its frequency (Hz, from
+    the zero crossings around the largest swing)."""
+    if len(samples) < 200:
+        return 0.0, 0.0
+    t = [s[0] for s in samples]
+    r = [s[1] for s in samples]
+    h = 50
+    acc = [0.0]
+    for v in r:
+        acc.append(acc[-1] + v)
+    hp = [r[i] - (acc[i + h + 1] - acc[i - h]) / (2 * h + 1) for i in range(h, len(r) - h)]
+    i_max = max(range(len(hp)), key=lambda i: abs(hp[i]))
+    lo, hi = max(0, i_max - 250), min(len(hp) - 1, i_max + 250)
+    zc = [i for i in range(lo, hi) if hp[i] * hp[i + 1] < 0]
+    f = (len(zc) - 1) / 2 / (t[h + zc[-1]] - t[h + zc[0]]) if len(zc) > 2 else 0.0
+    return abs(hp[i_max]), f
+
+
+def check_flight(rows, timeouts, steps, governor, vib_rms=None, slope=None, switch=None):
     """The scripted angle-mode flight (schedule()): lift off at 18 s, roll stick 21-22 s,
-    pitch stick 23-24 s, collective punch 24-25 s, descend from 26 s. Fixed bounds."""
+    pitch stick 23-24 s, collective punch 24-25 s, descend from 26 s. Fixed bounds.
+    switch: (t, yaw-rate samples) of --profile-switch - the governor moves the headspeed
+    to the new profile's, and the tail must not wag (rotorflight-firmware#586)."""
     def at(t):
         return min(rows, key=lambda r: abs(r[0] - t))
 
@@ -977,7 +1006,12 @@ def check_flight(rows, timeouts, steps, governor, vib_rms=None, slope=None):
          '%.2f rad/s' % max(abs(v) for v in span(18, 33, R))),
         ('lockstep: under 1 % of steps without reply', timeouts <= steps // 100, '%d of %d' % (timeouts, steps)),
     ]
-    if governor:
+    if switch:
+        amp, f = tail_wag(switch[1])
+        checks.append(('profile switch: no tail wag, yaw rate oscillation above 5 Hz below %.0f deg/s '
+                       'for %.0f s after the switch at %.1f s' % (WAG_MAX, WAG_SPAN, switch[0]), amp < WAG_MAX,
+                       '%.1f deg/s at %.1f Hz' % (amp, f)))
+    elif governor:
         dev = max(abs(v - governor) for v in span(20, 33, RPM)) / governor
         checks.append(('governor: headspeed within 3 %% of %d rpm, 20-33 s' % governor, dev < 0.03,
                        '%.1f %%' % (100 * dev)))

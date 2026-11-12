@@ -14,7 +14,16 @@
   "  yaw            servo tail 38 rad/s^2 per unit at 1500 rpm (55 at 1800, x rpm^2; R^2",
   "                 0.68 in the cruise flying, the 3D parts fit poorly), damping -2 /s,",
   "                 hover tail trim -0.26..-0.28 at all headspeeds, against the main",
-  "                 rotor torque",
+  "                 rotor torque. Nped 91 since the tail fit below: the low-frequency fit",
+  "                 saw the tail behind its own lag",
+  "  tail           fit_tail.py, yaw setpoint as instrument, real against a replay with",
+  "                 the RPM filter (1-13 Hz, 1500 rpm): Nped 91, thrust lag 6 ms and a",
+  "                 yaw mode at 16.4 Hz, zeta 0.23 between the tail and the gyro - 2x the",
+  "                 first-order gain at 5-10 Hz and -60 deg more phase at 12 Hz. With the",
+  "                 flown gains (profile 1 yaw P/D 154/48 at 1500 rpm, profile 3 87/24 at",
+  "                 2000) each profile holds at its own headspeed and profile 1's wags the",
+  "                 tail at 13 Hz on profile 3's headspeed (rotorflight-firmware#586: 12 Hz),",
+  "                 dying out near 1450 rpm (1520) - heli/scenarios/m7r_586.txt",
   "  hover          collective 0.346 at 1500 rpm (cruise profile, 39 s upright with calm",
   "                 sticks); the inflow law with the Stratos' inflow share (72 %) gives",
   "                 0.273 at 1800 - the 1800 rpm 3D profile's calm moments read 0.280.",
@@ -52,8 +61,11 @@
    39.21568627450981,
    0.13133333333333333
   ],
-  "Nped": 55.0,
-  "Nr": -2.0
+  "Nped": 91.0,
+  "Nr": -2.0,
+  "tail_lag": 0.006,
+  "yaw_mode_hz": 16.4,
+  "yaw_mode_zeta": 0.23
  },
  "args": {
   "rate_gain_roll": 6.8,

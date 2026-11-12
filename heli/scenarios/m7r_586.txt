@@ -1,0 +1,44 @@
+# rotorflight-firmware#586: the OMP M7R's downshift from its 2000 rpm profile to its 1500 rpm
+# profile, as in OMP_M7R_20261022_155150 (real 285.8 s). Fly it with
+#   heli_bridge.py <elf> --model m7r --governor 2000 --profile-switch 21 \
+#                  --cli-file heli/scenarios/m7r_586.txt --check
+# Profile 1 (index 0): the 2000 rpm profile, 2 (index 1): the 1500 rpm one. Gains as flown,
+# fitted absolutely from the logged PID terms (fitting/scripts/m7r_profiles.py) - the log
+# header's own gains are another profile's. The RPM filter as on the real heli.
+feature RPM_FILTER
+set tail_rotor_gear_ratio = 1000,5000
+profile 0
+set roll_p_gain = 44
+set roll_i_gain = 104
+set roll_d_gain = 29
+set roll_f_gain = 90
+set pitch_p_gain = 84
+set pitch_i_gain = 105
+set pitch_d_gain = 81
+set pitch_f_gain = 101
+set yaw_p_gain = 87
+set yaw_i_gain = 124
+set yaw_d_gain = 24
+set yaw_f_gain = 0
+set yaw_cw_stop_gain = 120
+set yaw_ccw_stop_gain = 80
+set gov_p_gain = 41
+set gov_headspeed = 2000
+profile 1
+set roll_p_gain = 50
+set roll_i_gain = 100
+set roll_d_gain = 20
+set roll_f_gain = 100
+set pitch_p_gain = 90
+set pitch_i_gain = 100
+set pitch_d_gain = 80
+set pitch_f_gain = 100
+set yaw_p_gain = 154
+set yaw_i_gain = 120
+set yaw_d_gain = 48
+set yaw_f_gain = 0
+set yaw_cw_stop_gain = 120
+set yaw_ccw_stop_gain = 80
+set gov_p_gain = 40
+set gov_headspeed = 1500
+profile 0
