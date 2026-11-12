@@ -33,7 +33,7 @@ import sys
 import numpy as np
 from scipy.optimize import least_squares, lsq_linear
 from scipy.ndimage import uniform_filter1d
-from scipy.signal import butter, csd, sosfiltfilt, welch
+from scipy.signal import butter, csd, lfilter, sosfiltfilt, welch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import Log  # noqa: E402
@@ -82,8 +82,18 @@ def powered(lg, w):
     return m
 
 
-def prepare(logs):
-    """The per-log series the stages need, computed once (segmentation, filtering)."""
+def esc_lagged(u, fs, tau):
+    """The throttle as the motor gets it: behind the ESC's first-order lag (heli_model
+    esc_tau), per log - so the rotor law is fitted and scored as the model applies it."""
+    if not tau or tau <= 0:
+        return u
+    a = np.exp(-1.0 / (fs * tau))
+    return lfilter([1 - a], [1, -a], u)
+
+
+def prepare(logs, esc_tau=0.0):
+    """The per-log series the stages need, computed once (segmentation, filtering).
+    esc_tau: the model's ESC lag, applied to each log's throttle before the rotor law."""
     prep = []
     for lg in logs:
         fs = 1.0 / lg.dt
@@ -100,7 +110,8 @@ def prepare(logs):
             'air': airborne(lg) & (lg.c('headspeed') > 500),
             'powered': powered(lg, w),
             'w': w, 'wd': np.gradient(w, lg.t),
-            'u': sosfiltfilt(lp, lg.c('motor[0]') / 1000), 'v': sosfiltfilt(lp, lg.c('Vbat') / 100),
+            'u': sosfiltfilt(lp, esc_lagged(lg.c('motor[0]') / 1000, fs, esc_tau)),
+            'v': sosfiltfilt(lp, lg.c('Vbat') / 100),
             'c': sosfiltfilt(lp, lg.c('mixer[3]') / 1000),
             'power': lg.c('Vbat') * lg.c('Ibat') / 1e4 if 'Ibat' in lg.N and np.any(lg.c('Ibat') > 0) else None,
         })
@@ -326,7 +337,12 @@ def main():
     logs = load_logs(log_names(heli))
     if not logs:
         raise SystemExit('no logs')
-    out = dict({'heli': heli['name']}, **fit(prepare(logs)))
+    # the ESC lag of the heli's preset, if it has one (the rotor law is fitted behind it)
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'heli'))
+    from heli_model import MODELS
+    preset = MODELS.get((heli.get('preset') or '').lower())
+    tau = getattr(preset, 'esc_tau', 0.0) if preset else 0.0
+    out = dict({'heli': heli['name'], 'esc_tau': tau}, **fit(prepare(logs, esc_tau=tau)))
     dst = os.path.join(os.path.dirname(sys.argv[1]), 'fit.json')
     json.dump(out, open(dst, 'w'), indent=1)
     print('->', dst)

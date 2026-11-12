@@ -1,5 +1,6 @@
 """
-HobbyWing V4 ESC telemetry for the Rotorflight SITL, fed from the flight model.
+ESC telemetry for the Rotorflight SITL, fed from the flight model: HobbyWing V4 and
+BLHeli32 (KISS).
 
 The SITL serves UART3 on TCP 5763; with `serial 2 1024 ...` (ESC_SENSOR) and
 `esc_sensor_protocol = HOBBYWINGV4` its sensors/esc_sensor.c decodes what this sends:
@@ -12,10 +13,35 @@ The SITL serves UART3 on TCP 5763; with `serial 2 1024 ...` (ESC_SENSOR) and
 The firmware ignores voltage and current until it has seen an info frame after a few
 syncs, so a few go out first. Frames are sent on simulated time by the caller.
 
+BLHeli32 (`esc_sensor_protocol = BLHELI32`, Blh32Esc): the KISS telemetry frame, 10 bytes
+  temp[1] (C) volts[2] (10 mV) amps[2] (10 mA) mAh[2] erpm/100[2] crc8 (poly 0x07)
+On a real heli the firmware asks for each frame with the DShot telemetry bit and reads
+the next 10 bytes; the SITL has no DShot, so frames stream at the caller's rate and the
+firmware takes whole frames as they come (each send is one TCP write).
+
 Only the Python standard library is used.
 """
 
 import math
+
+
+class _Stream:
+    """A non-blocking socket that keeps what a short send() left over, so a frame is never
+    cut: the rest goes out before the next frame."""
+
+    def __init__(self, sock):
+        self.sock = sock
+        self.pending = b''
+
+    def write(self, frame):
+        self.pending += frame
+        try:
+            n = self.sock.send(self.pending)
+            self.pending = self.pending[n:]
+        except (BlockingIOError, OSError):
+            pass
+        if len(self.pending) > 4096:          # nobody reads: drop whole old data, keep the newest
+            self.pending = self.pending[-len(frame):]
 
 V_NUM, V_DEN = 2, 25          # 0.008 V per count: 32.7 V full scale
 I_NUM, I_DEN = 1, 20          # 0.05 A per count: 204 A full scale
@@ -35,7 +61,7 @@ def clamp12(x):
 
 class Hw4Esc:
     def __init__(self, sock):
-        self.sock = sock
+        self.out = _Stream(sock)
         self.count = 0
         self.infos = 0
         self.temp_fet = 30.0
@@ -62,7 +88,34 @@ class Hw4Esc:
             frame = self.info_frame()
         else:
             frame = self.data_frame(throttle, erpm, volts, amps)
-        try:
-            self.sock.send(frame)
-        except (BlockingIOError, OSError):
-            pass
+        self.out.write(frame)
+
+
+def crc8_kiss(data):
+    """crc8_kiss_update() of the firmware: CRC-8, polynomial 0x07, initial 0."""
+    crc = 0
+    for b in data:
+        crc ^= b
+        for _ in range(8):
+            crc = ((crc << 1) ^ 0x07) & 0xFF if crc & 0x80 else (crc << 1) & 0xFF
+    return crc
+
+
+class Blh32Esc:
+    """BLHeli32 / KISS telemetry: one 10-byte frame per send."""
+
+    def __init__(self, sock):
+        self.out = _Stream(sock)
+        self.temp = 30.0
+        self.mah = 0.0
+
+    def frame(self, erpm, volts, amps):
+        u16 = lambda x: max(0, min(0xFFFF, int(round(x)))).to_bytes(2, 'big')
+        body = (bytes([max(0, min(255, int(round(self.temp))))]) + u16(volts * 100) + u16(amps * 100)
+                + u16(self.mah) + u16(erpm / 100))
+        return body + bytes([crc8_kiss(body)])
+
+    def send(self, dt, throttle, erpm, volts, amps):
+        self.temp += (30.0 + 0.25 * amps - self.temp) * dt / 60.0
+        self.mah += amps * dt / 3.6
+        self.out.write(self.frame(erpm, volts, amps))

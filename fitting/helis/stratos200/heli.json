@@ -97,57 +97,9 @@
       "sha256": "89c54a28ee5445a6506f1736b78efd1b9b17c929d01c35c31921852847b2225c",
       "consent": "private",
       "role": "fit"
-    },
-    {
-      "file": "Stratos200_20261107_162158.0",
-      "source": "Stratos200_20261107_162158.bbl",
-      "sha256": "9ca37396f560c2a707de910342f9090f59c8f277f93ef15ae47e0f1328a4c0c8",
-      "consent": "private",
-      "group": "3943bcdf",
-      "start": "2026-11-07T16:21:58.513+00:00",
-      "headspeed": [
-        2100,
-        2500,
-        5000
-      ],
-      "intake": {
-        "rate_hz": 494,
-        "gyroRAW": true,
-        "power": true,
-        "baro": false,
-        "air_s": 256.9,
-        "hover_s": {
-          "2100": 0.5,
-          "2200": 0.1,
-          "2300": 0.1,
-          "2400": 0.1,
-          "2500": 25.5,
-          "4100": 0.0,
-          "4200": 0.1,
-          "4300": 0.1,
-          "4400": 0.1,
-          "4500": 0.1,
-          "4600": 0.1,
-          "4700": 0.1,
-          "4800": 0.1,
-          "4900": 0.1,
-          "5000": 1.0
-        },
-        "sharp_inputs": 142,
-        "autorotation_s": 0.0
-      },
-      "role": "fit"
     }
   ],
   "groups": {
-    "3943bcdf": {
-      "craft": "Stratos200",
-      "firmware": "4.6",
-      "board": "FOXE FOXEERF722V4",
-      "tail": "motor",
-      "collective": "-1167,1167",
-      "esc": "6/1"
-    },
     "cfbc5200": {
       "craft": "Stratos 200",
       "firmware": "4.7",

@@ -32,7 +32,7 @@ from heli_model import MODELS, euler, body_to_earth, load_model, resolve, traine
 from configs import load_dump         # noqa: E402
 import csv                            # noqa: E402
 from swash import Swash               # noqa: E402
-from esc import Hw4Esc                # noqa: E402
+from esc import Blh32Esc, Hw4Esc      # noqa: E402
 from sensors import Sensors, available as sensors_available   # noqa: E402
 from wind import Wind                 # noqa: E402
 from servos import Servos, TYPES as SERVO_TYPES   # noqa: E402
@@ -450,8 +450,8 @@ def main():
                     help='autorotation test with the governor (needs --governor): climb, throttle stick to '
                          '15 %% (governor AUTOROTATION), hold the headspeed on the collective, then flare and '
                          'land, or bail out at 20 m (governor BAILOUT); with --check, judged against fixed bounds')
-    ap.add_argument('--esc', choices=('none', 'hw4'), default='none',
-                    help='hw4: HobbyWing V4 telemetry from the model on UART3 (TCP 5763). The '
+    ap.add_argument('--esc', choices=('none', 'hw4', 'blheli32'), default='none',
+                    help='hw4: HobbyWing V4, blheli32: BLHeli32 (KISS) telemetry from the model on UART3 (TCP 5763). The '
                          'frequency sensor stays on: the ELECTRIC governor needs a fast rpm '
                          'source and does not take serial ESC telemetry')
     ap.add_argument('--governor', type=int, default=0, metavar='RPM',
@@ -495,6 +495,11 @@ def main():
                          'heli/servos.py); ideal = none')
     ap.add_argument('--tail-servo', choices=sorted(SERVO_TYPES), default=None,
                     help='a servo type of its own for the tail servo (default: as --servos)')
+    ap.add_argument('--servo-load', type=float, default=0.0, metavar='FRAC',
+                    help='blade feathering load on the servos as a fraction of their stall torque at full '
+                         'throw and nominal rpm (x rpm^2); needs --servos')
+    ap.add_argument('--tail-servo-load', type=float, default=None, metavar='FRAC',
+                    help='the same for the tail servo (default: --servo-load); needs --tail-servo or --servos')
     ap.add_argument('--profile-switch', metavar='T_ON[,T_OFF]',
                     help='switch the PID and rate profile from 1 to 2 at T_ON s (and back at T_OFF) '
                          'on AUX4, through adjustment functions; set up profile 2 with --cli')
@@ -538,7 +543,10 @@ def main():
                       gear_ratio=heli.gear)
     if a.gyro_chip or a.vibration:
         print('sensors:', sensors.describe())
-    servos = Servos(a.servos, tail=a.tail_servo)
+    if heli.tail_motor and (a.tail_servo or a.tail_servo_load):
+        ap.error('--tail-servo / --tail-servo-load: %s has a motorized tail (its lag is the model tail_tau)'
+                 % a.model)
+    servos = Servos(a.servos, tail=a.tail_servo, load=a.servo_load, tail_load=a.tail_servo_load)
     switch = None
     if a.profile_switch:
         try:
@@ -616,9 +624,9 @@ def main():
     if a.governor:
         commands += ['feature GOVERNOR', 'set gov_mode = ELECTRIC',
                      'set gov_headspeed = %d' % a.governor]
-    if a.esc == 'hw4':
+    if a.esc != 'none':
         commands += ['feature ESC_SENSOR', 'serial 2 1024 115200 57600 0 115200',
-                     'set esc_sensor_protocol = HOBBYWINGV4']
+                     'set esc_sensor_protocol = %s' % {'hw4': 'HOBBYWINGV4', 'blheli32': 'BLHELI32'}[a.esc]]
     if a.cli_file:
         a.cli = [ln.strip() for ln in open(a.cli_file) if ln.strip() and not ln.startswith('#')] + a.cli
     t_cli = time.time()
@@ -644,10 +652,10 @@ def main():
         print(swash.describe())
         msp.setblocking(False)
         esc = None
-        if a.esc == 'hw4':
+        if a.esc != 'none':
             esc_sock = socket.create_connection(('127.0.0.1', 5763), timeout=3)
             esc_sock.setblocking(False)
-            esc = Hw4Esc(esc_sock)
+            esc = {'hw4': Hw4Esc, 'blheli32': Blh32Esc}[a.esc](esc_sock)
         esc_every = int(0.02 / DT)
         msp_rx = b''
         at30 = (0.0, 0.0, 0.0)
@@ -662,6 +670,7 @@ def main():
         imu_fw = []
         debug_t, debug_v = [], []      # MSP_DEBUG requests (sim time) and their replies
         wag = []                       # (t, yaw rate deg/s) at 1 kHz after a profile switch
+        coll_sw = []                   # (t, collective mixer) around a profile switch
         decode_err, decode_at, decode_sq, decode_n = [0.0] * 4, [None] * 4, [0.0] * 4, 0
         time.sleep(1.0)
         msp.send(msp_frame(MSP_ACC_CALIBRATION))
@@ -756,7 +765,7 @@ def main():
                     motor = struct.unpack_from('<4f', d, 0)
                     mix = struct.unpack_from('<5f', d, 48)
                     if a.controls == 'servos':
-                        servo_us = servos.step(DT, struct.unpack_from('<8f', d, 16))
+                        servo_us = servos.step(DT, struct.unpack_from('<8f', d, 16), (heli.w / heli.nominal_w) ** 2)
                         roll_, pitch_, yaw_, coll_ = swash.decode(servo_us)
                         if heli.tail_motor:
                             yaw_ = motor[1]       # motorized tail: the tail motor is the yaw input
@@ -780,6 +789,8 @@ def main():
 
             if switch and switch[0] <= t < switch[0] + WAG_SPAN and n % int(0.001 / DT) == 0:
                 wag.append((t, math.degrees(heli.rates[2])))
+            if switch and abs(t - switch[0]) <= COLL_SPAN:
+                coll_sw.append((t - switch[0], ctrl[4]))
             if n % int(float(os.environ.get('LOG_EVERY', '0.1')) / DT) == 0:
                 roll, pitch, yaw = euler(heli.q)
                 rows.append((t, heli.altitude, -heli.vel[2], math.degrees(roll), math.degrees(pitch),
@@ -898,7 +909,7 @@ def main():
                 sys.exit('--check with a replay needs --replay-case (the reference to judge against)')
             sys.exit(0 if check_replay(rows, timeouts, steps, replay_resets, case, heli.tail_motor) else 1)
         sys.exit(0 if check_flight(rows, timeouts, steps, a.governor, vib_rms,
-                                   slope and (slope[0], heli), switch and (switch[0], wag)) else 1)
+                                   slope and (slope[0], heli), switch and (switch[0], wag, coll_sw)) else 1)
 
 
 def check_replay(rows, timeouts, steps, resets, case, tail_motor=False):
@@ -958,6 +969,8 @@ SLOPE_AT = 4.0        # s: the heli is set down on the slope after the level ACC
 
 WAG_SPAN = 6.0        # s after a profile switch: the yaw rate is sampled at 1 kHz
 WAG_MAX = 20.0        # deg/s: oscillation above ~5 Hz allowed in the yaw rate after it
+COLL_SPAN = 0.2       # s around a profile switch: the collective (stick held) must not step
+COLL_STEP_MAX = 0.008  # collective change, median 0.05-0.2 s after less 0.05-0.2 s before (mixer)
 
 
 def tail_wag(samples):
@@ -983,8 +996,10 @@ def tail_wag(samples):
 def check_flight(rows, timeouts, steps, governor, vib_rms=None, slope=None, switch=None):
     """The scripted angle-mode flight (schedule()): lift off at 18 s, roll stick 21-22 s,
     pitch stick 23-24 s, collective punch 24-25 s, descend from 26 s. Fixed bounds.
-    switch: (t, yaw-rate samples) of --profile-switch - the governor moves the headspeed
-    to the new profile's, and the tail must not wag (rotorflight-firmware#586)."""
+    switch: (t, yaw-rate samples, collective samples) of --profile-switch - the governor
+    moves the headspeed to the new profile's, the tail must not wag (rotorflight-firmware#586)
+    and, with the stick held, the collective must not step where the rate profiles' curves
+    differ (gov_profile_blend_collective of #591)."""
     def at(t):
         return min(rows, key=lambda r: abs(r[0] - t))
 
@@ -1008,9 +1023,23 @@ def check_flight(rows, timeouts, steps, governor, vib_rms=None, slope=None, swit
     ]
     if switch:
         amp, f = tail_wag(switch[1])
+        sampled = len(switch[1]) >= int(0.9 * WAG_SPAN / 0.001)
         checks.append(('profile switch: no tail wag, yaw rate oscillation above 5 Hz below %.0f deg/s '
-                       'for %.0f s after the switch at %.1f s' % (WAG_MAX, WAG_SPAN, switch[0]), amp < WAG_MAX,
-                       '%.1f deg/s at %.1f Hz' % (amp, f)))
+                       'for %.0f s after the switch at %.1f s' % (WAG_MAX, WAG_SPAN, switch[0]),
+                       sampled and amp < WAG_MAX,
+                       '%.1f deg/s at %.1f Hz' % (amp, f) if sampled
+                       else 'only %d samples: the flight ends before the window' % len(switch[1])))
+        def med(lo, hi):
+            v = sorted(c for dt_, c in switch[2] if lo <= dt_ <= hi)
+            return v[len(v) // 2] if v else None
+        before, after = med(-COLL_SPAN, -0.05), med(0.05, COLL_SPAN)
+        if before is None or after is None:
+            checks.append(('profile switch: no collective step, below %.3f across the switch (stick held)'
+                           % COLL_STEP_MAX, False, 'no collective samples on both sides of the switch'))
+        else:
+            step = abs(after - before)
+            checks.append(('profile switch: no collective step, below %.3f across the switch (stick held)'
+                           % COLL_STEP_MAX, step < COLL_STEP_MAX, '%.4f' % step))
     elif governor:
         dev = max(abs(v - governor) for v in span(20, 33, RPM)) / governor
         checks.append(('governor: headspeed within 3 %% of %d rpm, 20-33 s' % governor, dev < 0.03,

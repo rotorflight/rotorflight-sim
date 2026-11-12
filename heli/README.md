@@ -131,6 +131,20 @@ rotorflight-firmware#586 (the OMP M7R's 2000 and 1500 rpm profiles, as flown):
             --cli-file heli/scenarios/m7r_586.txt --cli "set gov_profile_blend = OFF" --check
 
 fails on a 13 Hz tail wag of ~200 deg/s; with `ON` (a firmware with #591) it passes.
+The scenario's rate profiles carry the log's collective curves (114 / 122), so the check
+also judges `gov_profile_blend_collective`: with the stick held through the switch, the
+collective must not step (median after less median before, below 0.008).
+
+**Power and actuators.** `esc_tau` (class constant) lags the throttle into the motor
+(the M7R's analog ESC: 65 ms). `--esc blheli32` sends BLHeli32 / KISS telemetry frames
+(`--esc hw4`: HobbyWing V4). `--set pack_temp=5` flies a 5 C pack: higher resistance, less
+capacity, warming with its I^2 R. `--servo-load 0.5` loads the servos with half their stall
+torque at full throw (x rpm^2; needs `--servos`, the tail `--tail-servo-load`); a motorized
+tail has no tail servo. Gyro chips without a soak (ICM42688P, ICM42605, BMI270, MPU6000)
+carry datasheet white noise only.
+Ground resonance: class constants `lag_nu` (lag frequency per rotor speed; 0 = off),
+`lag_zeta`, `lag_mass` and `blades` add a blade lead-lag mode that couples with the body on
+its skids.
 
 **Servo tail dynamics.** Between the tail command and the yaw the gyro sees, a servo tail
 can have a thrust lag (`tail_lag`, s, first order: the tail inflow builds up) and a lightly

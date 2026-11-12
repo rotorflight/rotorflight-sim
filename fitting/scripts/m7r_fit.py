@@ -7,7 +7,7 @@ gyro spectrum.
 """
 import sys
 import numpy as np
-from scipy.signal import butter, sosfiltfilt, csd, welch
+from scipy.signal import butter, lfilter, sosfiltfilt, csd, welch
 from scipy.optimize import least_squares
 
 sys.path.insert(0, 'scripts')
@@ -44,26 +44,34 @@ m = air & (hs > 1000)
 m[::1] &= np.arange(len(t)) % 10 == 0        # decimate to 100 Hz
 
 
-def res(p, n):
+def res(p, n, uf):
     A, B, k0, k1 = p
     return (A * uf[m] * Vf[m] - B * w[m] - w[m] ** 2 * (k0 + k1 * np.abs(cf[m]) ** n) - wd[m]) / 100
 
 
+# the analog ESC's response: the throttle reaches the motor behind a first-order lag
+# (heli_model esc_tau). Fitted on a grid with the rotor law: 0 -> R^2 0.73, 65 ms -> 0.87
 best = None
-for n in (1.0, 1.5, 2.0):
-    r = least_squares(res, [100, 1, 1e-3, 1e-2], args=(n,), bounds=([0, 0, 0, 0], [np.inf] * 4))
-    yhat = wd[m] - r.fun * 100
-    r2 = 1 - np.var(r.fun * 100) / np.var(wd[m] + 1e-9)
-    # equation error on the speed balance: compare A u V with the rest (motor volts form)
-    lhs = r.x[0] * uf[m] * Vf[m]
-    rhs = r.x[1] * w[m] + w[m] ** 2 * (r.x[2] + r.x[3] * np.abs(cf[m]) ** n) + wd[m]
-    r2v = 1 - np.var(lhs - rhs) / np.var(lhs)
-    print('rotor law n %.1f: A %.2f B %.4f k0 %.3e k1 %.3e  R^2 (volts form) %.3f' % (n, *r.x, r2v))
-    if best is None or r2v > best[0]:
-        best = (r2v, n, r.x)
-r2v, n, (A, B, k0, k1) = best
-print('-> motor_fit = (%.4g, %.4g, %.4g, %.4g, %.1f); Kv-ish A/B %.1f rad/s per V (%.0f rpm/V at the rotor)'
-      % (A, B, k0, k1, n, A / B, A / B * 60 / (2 * np.pi)))
+for tau in (0.0, 0.02, 0.04, 0.05, 0.06, 0.065, 0.07, 0.08, 0.1, 0.15):
+    if tau:
+        a = np.exp(-1 / (fs * tau))
+        uf_tau = sosfiltfilt(lp, lfilter([1 - a], [1, -a], u))
+    else:
+        uf_tau = uf
+    for n in (1.0, 1.5, 2.0):
+        r = least_squares(res, [100, 1, 1e-3, 1e-2], args=(n, uf_tau), bounds=([0, 0, 0, 0], [np.inf] * 4))
+        # equation error on the speed balance: compare A u V with the rest (motor volts form)
+        lhs = r.x[0] * uf_tau[m] * Vf[m]
+        rhs = r.x[1] * w[m] + w[m] ** 2 * (r.x[2] + r.x[3] * np.abs(cf[m]) ** n) + wd[m]
+        r2v = 1 - np.var(lhs - rhs) / np.var(lhs)
+        if n == 2.0:
+            print('rotor law esc_tau %.3f s, n %.1f: A %.2f B %.4f k0 %.3e k1 %.3e  R^2 (volts form) %.3f'
+                  % (tau, n, *r.x, r2v))
+        if best is None or r2v > best[0]:
+            best = (r2v, n, r.x, tau)
+r2v, n, (A, B, k0, k1), tau = best
+print('-> esc_tau %.3f s, motor_fit = (%.4g, %.4g, %.4g, %.4g, %.1f); Kv-ish A/B %.1f rad/s per V (%.0f rpm/V '
+      'at the rotor), R^2 %.3f' % (tau, A, B, k0, k1, n, A / B, A / B * 60 / (2 * np.pi), r2v))
 
 # ---- hover collective per headspeed --------------------------------------------------------
 att_r, att_p = c('attitude[0]') / 10, c('attitude[1]') / 10

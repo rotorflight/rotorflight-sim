@@ -1,0 +1,27 @@
+{
+ "chip": "ICM42688P",
+ "source": "TDK InvenSense ICM-42688-P datasheet DS-000347: gyro 2.8 mdps/rtHz, accel 70 ug/rtHz (low-noise mode)",
+ "measured": false,
+ "note": "Typical datasheet noise density, the same on all axes; no soak: bias instability, its tau and rate walk are unknown (null = none). Replace with an allan.py fit of a soak when one exists.",
+ "lsb_per_dps": 16.4,
+ "gyro": {
+  "white_dps_rthz": [
+   0.0028,
+   0.0028,
+   0.0028
+  ],
+  "bias_instability_dps": null,
+  "bias_instability_deg_h": null,
+  "bias_tau_s": null,
+  "rate_walk_dps_rts": null
+ },
+ "acc": {
+  "white_g_rthz": [
+   7e-05,
+   7e-05,
+   7e-05
+  ],
+  "bias_instability_g": null,
+  "bias_tau_s": null
+ }
+}

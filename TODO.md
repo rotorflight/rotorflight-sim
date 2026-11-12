@@ -59,7 +59,9 @@ independent of the heli) from vibration (per heli, scaled with rpm):
 - [x] **Allan variance on a real flight controller**: 30 min soaks at rest (MSP_RAW_IMU at
       200 Hz) of ICM-40608, IIM-42652 and LSM6DSK320X -> `fitting/sensors/`. White noise
       0.0035-0.0055 deg/s/rtHz (datasheet level), bias instability 2-10 deg/h
-- [ ] More chips (ICM-42688-P, BMI270, ICM-42605, MPU6000), several-hour soaks for the rate
+- [x] More chips: ICM42688P, ICM42605, BMI270, MPU6000 from their datasheets' noise
+      densities (`"measured": false`, white noise only - no bias terms without a soak)
+- [ ] Soaks of those chips (bias instability, rate walk), several-hour soaks for the rate
       random walk, and the temperature drift over a warm-up from power-on
 - [x] Script `fitting/scripts/allan.py`: overlapping Allan deviation from a log, fit of the
       noise terms, plot; results stored per chip
@@ -241,7 +243,12 @@ The heli used to snap level on the ground, and touchdown zeroed its velocity.
       missing: on 40 deg the heli slides before take-off (mu 0.6)
 - [ ] Skid sizes and inertias from real helis (now fractions of
       the rotor radius)
-- [ ] Ground resonance (stretch, needs a fuselage/hub mode)
+- [x] Ground resonance: a blade lead-lag mode (`lag_nu`, `lag_zeta`, `lag_mass`, `blades`;
+      off by default) moves the rotor's centre of mass in the disk plane and couples with the
+      body on its skids. Four blades with little lag damping whirl up where the regressive
+      lag frequency meets the stiff skid-contact modes (15-25 Hz on the Blade 360 model);
+      lag damping 0.3 or flight cures it; two blades (one lag degree of freedom) stay stable
+- [ ] Lag frequencies and dampings of real heads (grip bolts, dampers), and a ground check
 
 ## 7. Wind and turbulence
 
@@ -278,8 +285,12 @@ The current disturbance is a random moment on the body, with `turb_hz` tuned per
 
 ## 9. Actuators and power
 
-- [ ] ESC response model (the M7R's analog ESC: R^2 0.73 in the volts form); ESC telemetry
-      models beyond HobbyWing V4
+- [x] ESC response: the throttle reaches the motor behind a first-order lag (`esc_tau`).
+      The M7R's analog ESC: 65 ms, fitted with its rotor law (`m7r_fit.py`): R^2 0.73 ->
+      0.87 in the volts form; the M7R hover holds its headspeed within 0.3 % (0.6 %)
+- [x] ESC telemetry beyond HobbyWing V4: BLHeli32 / KISS frames (`--esc blheli32`)
+- [ ] The programmable ESCs (OpenYGE, HobbyWing V5, Scorpion, FlyRotor, XDFly/OMP/ZTW) fed
+      from the model: rotorflight-firmware#601's emulators, once it is merged
 - [x] Servos: speed limit, deadband and lag per servo type on each pulse before the swash
       decode (`heli/servos.py`, `--servos ideal|digital|fast|analog`; CI flies digital)
 - [ ] Stratos tail motor in forward flight at 3300 rpm: the replay case `stratos_3300`
@@ -287,8 +298,11 @@ The current disturbance is a random moment on the body, with `turb_hz` tuned per
       The tail was fitted in hover at 3600 rpm; its thrust is linear in throttle and
       independent of the pack voltage (a motor's ~ (throttle x V)^2). The case judges the
       tail against the sim baseline until this is fitted
-- [ ] Servo load (stall torque against the feathering moment), types from measured servos.
-      A loaded tail servo slows and saturates on fast reversals, where a wag starts (11)
+- [x] Servo load (`--servo-load`, `--tail-servo-load`): the blades' feathering moment as a
+      fraction of stall torque at full throw and nominal rpm, x rpm^2 x deflection; the servo
+      slows against it (DC motor line), speeds up with it and is pushed back beyond stall
+- [ ] Servo types and loads from measured servos and blades (a loaded tail servo slows and
+      saturates on fast reversals, where a wag starts (11))
 - [x] A tail servo type of its own (`--tail-servo`): `--servos` set every servo alike,
       while tail servos are often slower and carry more load (11)
 - [x] Pack: LiPo discharge curve (open-circuit voltage per cell against state of charge)
@@ -296,7 +310,10 @@ The current disturbance is a random moment on the body, with `turb_hz` tuned per
 - [x] A pack fitted from logged Vbat/Ibat (`fit_pack.py`, the `pack` stage of `train.py`):
       capacity and internal resistance against the LiPo curve, one starting charge per log,
       leave-one-log-out errors; the capacity only where a log drew a quarter of the pack
-- [ ] Pack temperature (resistance and capacity)
+- [x] Pack temperature (`--set pack_temp=C`, the air and the pack's start): resistance
+      ~x2 per 20 C below 25 C, usable capacity -0.6 %/C below it, warming with I^2 R
+      (LiPo heat capacity, 15 min cooling). Off by default
+- [ ] Pack temperature constants from logged packs (ESC/pack temperature telemetry)
 
 ## 10. Engineering
 
@@ -345,4 +362,8 @@ the first-order gain at 5-10 Hz and ~60 deg more lag at 12 Hz.
       ~5 Hz for 6 s after the switch (below 20 deg/s). CI job `profile-switch` merges
       rotorflight-firmware#591 onto the SITL and flies the M7R downshift in hover: with
       `gov_profile_blend = OFF` it must fail on the wag, with `ON` pass
+- [x] Collective blend (`gov_profile_blend_collective` of #591): the scenario's rate
+      profiles fly the log's collective curves (114 / 122); with the stick held the check
+      fails on a collective step without the blend (+7 % at once), passes with it (ramps
+      with the PID blend's progress). CI runs both
 - [ ] The upshift, and forward flight once 4 has it

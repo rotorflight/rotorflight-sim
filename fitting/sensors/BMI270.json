@@ -1,0 +1,27 @@
+{
+ "chip": "BMI270",
+ "source": "Bosch BMI270 datasheet BST-BMI270-DS000: gyro 0.007 dps/rtHz (performance mode), accel 160 ug/rtHz",
+ "measured": false,
+ "note": "Typical datasheet noise density, the same on all axes; no soak: bias instability, its tau and rate walk are unknown (null = none). Replace with an allan.py fit of a soak when one exists.",
+ "lsb_per_dps": 16.4,
+ "gyro": {
+  "white_dps_rthz": [
+   0.007,
+   0.007,
+   0.007
+  ],
+  "bias_instability_dps": null,
+  "bias_instability_deg_h": null,
+  "bias_tau_s": null,
+  "rate_walk_dps_rts": null
+ },
+ "acc": {
+  "white_g_rthz": [
+   0.00016,
+   0.00016,
+   0.00016
+  ],
+  "bias_instability_g": null,
+  "bias_tau_s": null
+ }
+}
