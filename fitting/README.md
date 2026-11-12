@@ -369,8 +369,9 @@ yaw tracking 11.3 against 9.6 deg/s) and was dropped by `train.py --elf`; withou
 - Packs: Nimbus 6S 3.1 Ah, 26 mOhm; Stratos 700 12S 26.9 mOhm (its capacity, 6.4 +- 1.3 Ah,
   misses the 25 % gate). The Stratos 200's (0.55 Ah, 105 mOhm) predicts its held-out
   flight worse than the preset's and is kept out.
-- The Stratos 200's newest log is another setup (Foxeer F722, 4.6, 5000 rpm) and trains
-  separately once it has company; the preset's own setup (Nexus XR, 4.7) was trained.
+- The log with the craft name Stratos200 on a Foxeer F722 (4.6, 5000 rpm) is another heli,
+  not the Bo105 Stratos 200: it has its own heli file (`helis/foxeer_f722`) and trains
+  once its size and pack are known. The Stratos 200 (Nexus XR, 4.7) was trained.
   The Protos folder holds two setups too: its June 1-3 logs carry the craft name "Devil
   505" on 4.5 with collective range +-1008 (the Devil 505's is +-1250) - the flight
   controller moved over - and the June 22 logs (4.6, +-1083) were trained.
