@@ -3,7 +3,19 @@
   "model": "m7r",
   "governor": 1500,
   "hold_alt": 10,
-  "window": [30, 100],
-  "real": {"throttle": 51.0, "yaw_mix": -21.4},
-  "tolerance": {"airborne": 0.85, "resets": 12, "throttle": 5, "yaw_mix": 5}
+  "window": [
+    30,
+    100
+  ],
+  "real": {
+    "throttle": 51.0,
+    "yaw_mix": -21.4,
+    "vbat": 45.55
+  },
+  "tolerance": {
+    "airborne": 0.85,
+    "resets": 12,
+    "throttle": 5,
+    "yaw_mix": 5
+  }
 }

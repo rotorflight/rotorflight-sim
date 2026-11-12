@@ -42,10 +42,11 @@ tail type. New sizes should come from parameters, not from a fitting campaign.
 - [x] `--model` takes a preset name or a parameter file (JSON: base preset, constructor
       args, class constants; `heli_model.load_model`)
 - [x] CI runs hover, governor and rescue checks per size class, not only the Blade 360:
-      the M7R preset (700) and the trained 380, 500, Nimbus and 700 helis (the scripted
-      pilots fly relative to each model's hover collective). The Stratos (200, motorized
-      tail) yaws away on the default gains: its checks fly with its CLI dump
-      (rotorflight-sim#13)
+      the M7R preset (700) on the bridge's defaults, the trained 380, 500, Nimbus and 700
+      helis, and the Stratos (200, motorized tail) with its CLI dump
+      (`heli/replays/stratos_3300/dump.txt`; on the defaults it yaws away). The pilots'
+      collective and the rescue collectives go in proportion to each model's hover
+      collective (the Blade 360's ratios), full throttle stick under the governor
 
 ## 2. Gyro noise and vibration
 
@@ -281,6 +282,11 @@ The current disturbance is a random moment on the body, with `turb_hz` tuned per
       models beyond HobbyWing V4
 - [x] Servos: speed limit, deadband and lag per servo type on each pulse before the swash
       decode (`heli/servos.py`, `--servos ideal|digital|fast|analog`; CI flies digital)
+- [ ] Stratos tail motor in forward flight at 3300 rpm: the replay case `stratos_3300`
+      holds the tail with 19.3 % (motor volts at 14.6 V) where the real heli used 25.6 %.
+      The tail was fitted in hover at 3600 rpm; its thrust is linear in throttle and
+      independent of the pack voltage (a motor's ~ (throttle x V)^2). The case judges the
+      tail against the sim baseline until this is fitted
 - [ ] Servo load (stall torque against the feathering moment), types from measured servos.
       A loaded tail servo slows and saturates on fast reversals, where a wag starts (11)
 - [x] A tail servo type of its own (`--tail-servo`): `--servos` set every servo alike,
