@@ -24,6 +24,25 @@ Only the Python standard library is used.
 
 import math
 
+
+class _Stream:
+    """A non-blocking socket that keeps what a short send() left over, so a frame is never
+    cut: the rest goes out before the next frame."""
+
+    def __init__(self, sock):
+        self.sock = sock
+        self.pending = b''
+
+    def write(self, frame):
+        self.pending += frame
+        try:
+            n = self.sock.send(self.pending)
+            self.pending = self.pending[n:]
+        except (BlockingIOError, OSError):
+            pass
+        if len(self.pending) > 4096:          # nobody reads: drop whole old data, keep the newest
+            self.pending = self.pending[-len(frame):]
+
 V_NUM, V_DEN = 2, 25          # 0.008 V per count: 32.7 V full scale
 I_NUM, I_DEN = 1, 20          # 0.05 A per count: 204 A full scale
 NTC_GAMMA, NTC_DELTA = 0.00025316455696, 0.00296226896087
@@ -42,7 +61,7 @@ def clamp12(x):
 
 class Hw4Esc:
     def __init__(self, sock):
-        self.sock = sock
+        self.out = _Stream(sock)
         self.count = 0
         self.infos = 0
         self.temp_fet = 30.0
@@ -69,10 +88,7 @@ class Hw4Esc:
             frame = self.info_frame()
         else:
             frame = self.data_frame(throttle, erpm, volts, amps)
-        try:
-            self.sock.send(frame)
-        except (BlockingIOError, OSError):
-            pass
+        self.out.write(frame)
 
 
 def crc8_kiss(data):
@@ -89,7 +105,7 @@ class Blh32Esc:
     """BLHeli32 / KISS telemetry: one 10-byte frame per send."""
 
     def __init__(self, sock):
-        self.sock = sock
+        self.out = _Stream(sock)
         self.temp = 30.0
         self.mah = 0.0
 
@@ -102,7 +118,4 @@ class Blh32Esc:
     def send(self, dt, throttle, erpm, volts, amps):
         self.temp += (30.0 + 0.25 * amps - self.temp) * dt / 60.0
         self.mah += amps * dt / 3.6
-        try:
-            self.sock.send(self.frame(erpm, volts, amps))
-        except (BlockingIOError, OSError):
-            pass
+        self.out.write(self.frame(erpm, volts, amps))

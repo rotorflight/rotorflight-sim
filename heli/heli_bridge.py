@@ -1023,15 +1023,23 @@ def check_flight(rows, timeouts, steps, governor, vib_rms=None, slope=None, swit
     ]
     if switch:
         amp, f = tail_wag(switch[1])
+        sampled = len(switch[1]) >= int(0.9 * WAG_SPAN / 0.001)
         checks.append(('profile switch: no tail wag, yaw rate oscillation above 5 Hz below %.0f deg/s '
-                       'for %.0f s after the switch at %.1f s' % (WAG_MAX, WAG_SPAN, switch[0]), amp < WAG_MAX,
-                       '%.1f deg/s at %.1f Hz' % (amp, f)))
+                       'for %.0f s after the switch at %.1f s' % (WAG_MAX, WAG_SPAN, switch[0]),
+                       sampled and amp < WAG_MAX,
+                       '%.1f deg/s at %.1f Hz' % (amp, f) if sampled
+                       else 'only %d samples: the flight ends before the window' % len(switch[1])))
         def med(lo, hi):
             v = sorted(c for dt_, c in switch[2] if lo <= dt_ <= hi)
-            return v[len(v) // 2] if v else 0.0
-        step = abs(med(0.05, COLL_SPAN) - med(-COLL_SPAN, -0.05))
-        checks.append(('profile switch: no collective step, below %.3f across the switch (stick held)'
-                       % COLL_STEP_MAX, step < COLL_STEP_MAX, '%.4f' % step))
+            return v[len(v) // 2] if v else None
+        before, after = med(-COLL_SPAN, -0.05), med(0.05, COLL_SPAN)
+        if before is None or after is None:
+            checks.append(('profile switch: no collective step, below %.3f across the switch (stick held)'
+                           % COLL_STEP_MAX, False, 'no collective samples on both sides of the switch'))
+        else:
+            step = abs(after - before)
+            checks.append(('profile switch: no collective step, below %.3f across the switch (stick held)'
+                           % COLL_STEP_MAX, step < COLL_STEP_MAX, '%.4f' % step))
     elif governor:
         dev = max(abs(v - governor) for v in span(20, 33, RPM)) / governor
         checks.append(('governor: headspeed within 3 %% of %d rpm, 20-33 s' % governor, dev < 0.03,

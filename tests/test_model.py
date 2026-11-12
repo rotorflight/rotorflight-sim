@@ -640,6 +640,26 @@ class PowerAndActuators(unittest.TestCase):
         with self.assertRaises(SystemExit):
             Servos('ideal', load=0.5)                                # an ideal servo has no motor
 
+    def test_esc_stream_keeps_a_short_write(self):
+        from esc import Blh32Esc
+
+        class Short:
+            def __init__(self):
+                self.got = b''
+
+            def send(self, data):
+                n = min(4, len(data))          # a short write: 4 bytes at a time
+                self.got += data[:n]
+                return n
+        sock = Short()
+        esc = Blh32Esc(sock)
+        for _ in range(5):
+            esc.send(0.02, 0.5, 100000, 48.0, 20.0)
+        for _ in range(20):
+            esc.out.write(b'')                 # drain
+        self.assertEqual(len(sock.got), 50)    # five whole frames, none cut
+        self.assertEqual(esc.out.pending, b'')
+
     def test_blheli32_frame(self):
         from esc import Blh32Esc, crc8_kiss
         self.assertEqual(crc8_kiss(b'123456789'), 0xF4)              # CRC-8 (poly 0x07) check value
@@ -685,6 +705,20 @@ class GroundResonance(unittest.TestCase):
 
     def test_off_by_default(self):
         self.assertEqual(Heli.lag_nu, 0.0)
+
+    def test_gravity_does_not_excite_it(self):
+        """Rolled 90 deg in free air with the rotor at zero thrust: gravity pulls rotor and
+        hub alike, so the lag mode stays at rest (it was driven by the kinematic
+        acceleration, gravity included)."""
+        h = Heli()
+        h.blades, h.lag_nu, h.lag_zeta = 4, 0.4, 0.01
+        h.reset()
+        h.ground = h.on_ground = False
+        h.pos = [0.0, 0.0, -100.0]
+        h.q = (math.cos(math.pi / 4), math.sin(math.pi / 4), 0.0, 0.0)
+        h.w = h.nominal_w
+        h.step(DT, 0.65, 0, 0, 0, 0.0)
+        self.assertLess(abs(h.lag[1]), 1e-6)
 
 
 class SensorModel(unittest.TestCase):

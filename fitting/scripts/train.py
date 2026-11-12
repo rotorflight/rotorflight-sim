@@ -68,6 +68,18 @@ VALIDATE_EVERY = 4  # one log in four is held out
 MIN_AIR_S = 20.0    # a log shorter than this in the air does not count as a flight
 
 
+def starting_esc_tau(heli, folder, group):
+    """The ESC lag (esc_tau) of the model training starts from - its model.json for this
+    setup, else the prior. The rotor law is fitted and scored behind it, and no stage
+    changes it, so every candidate's motor_fit goes with the lag it was fitted for."""
+    path = os.path.join(folder, 'model.json')
+    if os.path.exists(path):
+        m = json.load(open(path))
+        if (m.get('provenance') or {}).get('group') == group:
+            return float((m.get('attrs') or {}).get('esc_tau', 0.0) or 0.0)
+    prior, _ = mp.prior(heli, None)
+    return float(prior['attrs'].get('esc_tau', 0.0) or 0.0)
+
 def role_for(entry):
     h = entry.get('sha256') or hashlib.sha256(decoded_name(entry).encode()).hexdigest()
     key = hashlib.sha256((h + decoded_name(entry)).encode()).hexdigest()
@@ -183,7 +195,10 @@ def train(heli_path, group=None, folds=8, dry=False, elf=None, say=print):
     logs = fit_heli.load_logs(fit_names)
     if not logs:
         raise SystemExit('no logs to fit')
-    prep = fit_heli.prepare(logs)
+    esc_tau = starting_esc_tau(heli, folder, group)
+    if esc_tau:
+        say('rotor law fitted and scored behind the ESC lag of the starting model, %.3f s' % esc_tau)
+    prep = fit_heli.prepare(logs, esc_tau=esc_tau)
 
     # ---- fit with uncertainty -----------------------------------------------------------
     full = fit_heli.fit(prep, verbose=False)
@@ -224,7 +239,7 @@ def train(heli_path, group=None, folds=8, dry=False, elf=None, say=print):
 
     # ---- held-out logs ----------------------------------------------------------------
     vlogs = fit_heli.load_logs(val_names)
-    meas = holdout.measured(fit_heli.prepare(vlogs)) if vlogs else None
+    meas = holdout.measured(fit_heli.prepare(vlogs, esc_tau=esc_tau)) if vlogs else None
     score = (lambda p: holdout.score(p, meas)) if meas else (lambda p: {s: (None, 'no held-out logs') for s in mp.STAGES})
 
     # ---- proposals, stage by stage ------------------------------------------------------

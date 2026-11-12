@@ -642,11 +642,12 @@ class Heli:
                 fb = earth_to_body(self.q, fe)
                 fx, fy, fz = fx + fb[0], fy + fb[1], fz + fb[2]
         if self.lag_nu > 0 and self.w > 1.0:
-            # hub acceleration in the disk plane (body x, y): the centre of gravity's plus
-            # the body's angular acceleration about it, the hub h above it
+            # hub acceleration in the disk plane (body x, y) relative to free fall - gravity
+            # pulls the rotor and the hub alike: the specific force at the centre of gravity
+            # (rotor, drag and the ground's push) plus the body's angular acceleration
+            # about it, the hub h above it
             h = self.hub_height - self.cg_height
-            ab = earth_to_body(self.q, accel_e)
-            a_hub = complex(ab[0] - h * q_dot, ab[1] + h * p_dot)
+            a_hub = complex(fx - h * q_dot, fy + h * p_dot)
             F = self.lag_step(dt, a_hub)
             kx, ky = self.gyration[0], self.gyration[1]
             p_dot += h * F.imag / (kx * kx)
