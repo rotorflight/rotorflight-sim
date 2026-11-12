@@ -148,6 +148,9 @@ class Heli:
     thrust_inflow = (3.0 / (0.35 * 0.44), 0.65 * 0.44 / 1.5)
     # optional fitted rotor law (A, B, k0, k1, n): dw/dt = A u V - B w - w^2 (k0 + k1 |c|^n)
     motor_fit = None
+    # ESC response: the motor gets the throttle behind a first-order lag of esc_tau s (0 =
+    # at once). The M7R's analog ESC: 65 ms, fitted with its rotor law (m7r_fit.py)
+    esc_tau = 0.0
     # main rotor torque reaction on yaw, rad/s^2 at hover (motorized tails); scales with drag
     torque_yaw = 0.0
     motor_poles = 2
@@ -162,6 +165,17 @@ class Heli:
     tail_lag = 0.0
     yaw_mode_hz = 0.0
     yaw_mode_zeta = 0.3
+    # blade lead-lag (ground resonance): lag_nu, the lag mode's frequency per rotor speed
+    # (soft in-plane < 1; 0 = off, the rigid rotor of before), lag_zeta its damping (the
+    # dampers in the blade grips), lag_mass the share of the heli's mass that moves with
+    # it (the rotor's in-plane centre of mass offset per lag), blades 2 or more. The rotor's
+    # centre of mass whirls in the disk plane and pushes the hub; the body rocking on its
+    # skids pushes back - with the regressive lag frequency w (1 - lag_nu) near a body
+    # mode on the ground and too little lag damping the two feed each other
+    lag_nu = 0.0
+    lag_zeta = 0.05
+    lag_mass = 0.05
+    blades = 2
     servo_tau = 0.0
     turb = 0.0            # rad/s^2 std of random roll/pitch moments (0 = calm)
     turb_hz = 20.0        # their bandwidth (first-order)
@@ -197,7 +211,7 @@ class Heli:
     flat_plate = 0.015
 
     def __init__(self, nominal_rpm=2100.0, gear_ratio=10.0, hover_throttle=0.65, load_fraction=0.85,
-                 pack_cells=6, pack_ah=2.2, pack_r=0.02, hover_power_w=400.0,
+                 pack_cells=6, pack_ah=2.2, pack_r=0.02, hover_power_w=400.0, pack_temp=None,
                  cyclic_scale=0.5, yaw_scale=1.45, coll_scale=1.0, coll_offset=0.0,
                  sign_roll=1.0, sign_pitch=1.0, sign_yaw=1.0):
         self.nominal_w = nominal_rpm * 2 * math.pi / 60   # rotor, rad/s
@@ -224,6 +238,14 @@ class Heli:
         self.shaft_hover = self.k_d * self.nominal_w ** 3 * drag_shape(self.coll_hover)
         self.hover_power = hover_power_w
         self.used_ah = 0.0
+        # pack temperature (pack_temp: the air and the pack's start, deg C; None = 25 C and
+        # no thermal model, as before): its resistance and usable capacity follow it, and
+        # the pack warms with its I^2 R. A LiPo of ~150 Wh/kg at ~1 kJ/kg/K, cooled to the
+        # air with a 15 min time constant
+        self.pack_ambient = pack_temp
+        self.pack_temp = 25.0 if pack_temp is None else float(pack_temp)
+        self.pack_heat_cap = 1000.0 * pack_cells * 3.7 * pack_ah / 150.0      # J/K
+        self.pack_cooling = self.pack_heat_cap / 900.0                        # W/K
         if self.motor_fit:
             A, B, k0, k1, n = self.motor_fit
             self.drag_shape = lambda c: k0 + k1 * abs(c) ** n
@@ -272,6 +294,9 @@ class Heli:
         self.n = 0.0                      # rotor thrust, g (along -z body)
         self.vi = 0.0                     # induced velocity, m/s
         self.tail_state = 0.0             # tail moment behind tail_lag, rad/s^2
+        self.esc_u = 0.0                  # throttle behind the ESC's lag (esc_tau)
+        self.lag = [0j, 0j]               # lag mode: offset and its rate, rotating frame
+        self.lag_psi = 0.0                # rotor azimuth for the lag mode, rad
         self.yaw_mode = [0.0, 0.0]        # tail moment through the yaw mode, and its rate
         self.on_ground = True
         self.air_time = 0.0
@@ -280,15 +305,25 @@ class Heli:
         self.vbat = self.pack_voltage(0.0)
         self.ibat = 0.0
 
+    def pack_resistance(self, soc):
+        """Internal resistance: rises towards empty (x2.5 at 0 %) and in the cold, ~x2 per
+        20 C below 25 C (an Arrhenius-like exp(0.035 (25 - T)); 25 C above that, as the
+        fitted packs were flown warm)."""
+        r = self.pack_r * (1.0 + 1.5 * (1.0 - soc) ** 4)
+        return r * math.exp(0.035 * max(0.0, 25.0 - self.pack_temp))
+
+    def pack_capacity(self):
+        """Usable capacity, Ah: ~0.6 % less per degree below 25 C (-12 % at 5 C)."""
+        return self.pack_ah * max(0.5, 1.0 - 0.006 * max(0.0, 25.0 - self.pack_temp))
+
     def pack_voltage(self, current):
         """Open-circuit voltage from a LiPo discharge curve (per cell against state of
-        charge), less the internal resistance, which rises towards empty (x2.5 at 0 %)."""
-        soc = max(0.0, 1.0 - self.used_ah / self.pack_ah)
+        charge), less the internal resistance (pack_resistance)."""
+        soc = max(0.0, 1.0 - self.used_ah / self.pack_capacity())
         x = soc * (len(LIPO_OCV) - 1)
         i = min(int(x), len(LIPO_OCV) - 2)
         v_cell = LIPO_OCV[i] + (LIPO_OCV[i + 1] - LIPO_OCV[i]) * (x - i)
-        r = self.pack_r * (1.0 + 1.5 * (1.0 - soc) ** 4)
-        return self.cells * v_cell - current * r
+        return self.cells * v_cell - current * self.pack_resistance(soc)
 
     @property
     def rotor_rpm(self):
@@ -452,8 +487,39 @@ class Heli:
             n_cmd = x
         return n_cmd
 
+    def lag_step(self, dt, a_hub):
+        """Advance the lag mode by dt under the hub acceleration a_hub (body x + i y, m/s^2);
+        returns the in-plane force of the rotor on the hub per unit body mass (x + i y).
+        Rotating frame, rotor speed w, lag frequency nu w: the rotor's centre-of-mass offset
+        z_r obeys z_r'' + 2 zeta nu w z_r' + (nu w)^2 z_r = -a_hub (rotating); in the fixed
+        frame z = z_r e^(i psi), and the hub feels -lag_mass z''. Two blades: one degree of
+        freedom, the offset across the blade axis (z_r = i s); three or more: the isotropic
+        (Coleman) whirl, z_r complex."""
+        W = self.w
+        wl = self.lag_nu * W
+        rot = complex(math.cos(self.lag_psi), math.sin(self.lag_psi))
+        a_r = a_hub / rot
+        z, zd = self.lag
+        if self.blades >= 3:
+            zdd = -2 * self.lag_zeta * wl * zd - wl * wl * z - a_r
+        else:
+            s, sd = z.imag, zd.imag
+            sdd = -2 * self.lag_zeta * wl * sd - wl * wl * s - a_r.imag
+            zdd = 1j * sdd
+        acc_fixed = (zdd + 2j * W * zd - W * W * z) * rot
+        zd += zdd * dt
+        z += zd * dt
+        if self.blades < 3:
+            z, zd = 1j * z.imag, 1j * zd.imag
+        self.lag = [z, zd]
+        self.lag_psi = (self.lag_psi + W * dt) % (2 * math.pi)
+        return -self.lag_mass * acc_fixed
+
     def step(self, dt, throttle, roll, pitch, yaw, collective):
         throttle = max(0.0, min(1.0, throttle))
+        if self.esc_tau > 0:
+            self.esc_u += (throttle - self.esc_u) * min(1.0, dt / self.esc_tau)
+            throttle = self.esc_u
         ctrl_x = self.sign_roll * self.cyclic_scale * roll
         ctrl_y = self.sign_pitch * self.cyclic_scale * pitch
         if self.servo_tau > 0:
@@ -502,6 +568,10 @@ class Heli:
         self.ibat = power / max(self.vbat, 1.0)
         self.vbat = self.pack_voltage(self.ibat)
         self.used_ah += self.ibat * dt / 3600
+        if self.pack_ambient is not None:
+            soc = max(0.0, 1.0 - self.used_ah / self.pack_capacity())
+            heat = self.ibat ** 2 * self.pack_resistance(soc) - self.pack_cooling * (self.pack_temp - self.pack_ambient)
+            self.pack_temp += heat * dt / self.pack_heat_cap
 
         p, q_, r = self.rates
 
@@ -571,6 +641,19 @@ class Heli:
                 # the accelerometer feels the ground's push too
                 fb = earth_to_body(self.q, fe)
                 fx, fy, fz = fx + fb[0], fy + fb[1], fz + fb[2]
+        if self.lag_nu > 0 and self.w > 1.0:
+            # hub acceleration in the disk plane (body x, y): the centre of gravity's plus
+            # the body's angular acceleration about it, the hub h above it
+            h = self.hub_height - self.cg_height
+            ab = earth_to_body(self.q, accel_e)
+            a_hub = complex(ab[0] - h * q_dot, ab[1] + h * p_dot)
+            F = self.lag_step(dt, a_hub)
+            kx, ky = self.gyration[0], self.gyration[1]
+            p_dot += h * F.imag / (kx * kx)
+            q_dot += -h * F.real / (ky * ky)
+            fe_l = body_to_earth(self.q, (F.real, F.imag, 0.0))
+            accel_e = [accel_e[i] + fe_l[i] for i in range(3)]
+            fx, fy = fx + F.real, fy + F.imag
         if touching and not self.on_ground and self.air_time >= 0.3:
             # touched down after flying (a bounce off the skids does not count)
             self.touchdown_speed = self.vel[2]

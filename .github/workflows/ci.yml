@@ -208,6 +208,18 @@ jobs:
           echo "::error::the downshift without the blend did not fail on the tail wag alone"; exit 1
         fi
 
+    - name: The same downshift without the collective blend steps the collective
+      run: |
+        # the rate profiles' collective curves differ (114 / 122): with the stick held the
+        # collective must step without gov_profile_blend_collective, and only that may fail
+        rc=0
+        python3 heli/heli_bridge.py firmware/obj/main/rotorflight_SITL.elf --model m7r --governor 2000 --profile-switch 21 --cli-file heli/scenarios/m7r_586.txt --cli "set gov_profile_blend = ON" --cli "set gov_profile_blend_collective = OFF" --check > coll_off.log 2>&1 || rc=$?
+        cat coll_off.log
+        if [ "$rc" -eq 0 ] || ! grep -q '^FAIL profile switch: no collective step' coll_off.log \
+           || grep '^FAIL' coll_off.log | grep -vq 'profile switch: no collective step'; then
+          echo "::error::the downshift without the collective blend did not fail on the collective step alone"; exit 1
+        fi
+
   windows:
 
     runs-on: windows-latest

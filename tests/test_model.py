@@ -596,6 +596,97 @@ class TailDynamics(unittest.TestCase):
         self.assertLess(phase, -45.0)          # the lag the first-order yaw axis was missing
 
 
+class PowerAndActuators(unittest.TestCase):
+    """ESC lag, pack temperature, servo load and the BLHeli32 telemetry frame."""
+
+    def test_esc_lag(self):
+        heli = M7R()
+        heli.reset()
+        self.assertAlmostEqual(heli.esc_tau, 0.065)
+        heli.step(DT, 0.0, 0, 0, 0, 0)
+        n = int(heli.esc_tau / DT)
+        for _ in range(n):
+            heli.step(DT, 1.0, 0, 0, 0, 0)
+        self.assertAlmostEqual(heli.esc_u, 1 - math.exp(-1), delta=0.01)   # one time constant
+        base = Heli()
+        base.reset()
+        base.step(DT, 0.5, 0, 0, 0, 0)
+        self.assertEqual(base.esc_u, 0.0)                                   # off by default
+
+    def test_pack_temperature(self):
+        warm, cold = M7R(), M7R(pack_temp=0.0)
+        self.assertAlmostEqual(warm.pack_voltage(40.0), M7R(pack_temp=25.0).pack_voltage(40.0))
+        self.assertLess(cold.pack_voltage(40.0), warm.pack_voltage(40.0) - 1.0)    # sags in the cold
+        self.assertLess(cold.pack_capacity(), warm.pack_capacity())
+        t0 = cold.pack_temp
+        cold.reset()
+        cold.w = cold.nominal_w
+        for _ in range(int(5.0 / DT)):
+            cold.step(DT, 0.8, 0, 0, 0, 0.3)
+        self.assertGreater(cold.pack_temp, t0)                                     # I^2 R warms it
+        self.assertEqual(warm.pack_temp, 25.0)                                     # no model: fixed
+
+    def test_servo_load(self):
+        def reach(load, rr=1.0):
+            s = Servo(*TYPES['digital'], load=load)
+            s.step(DT, 1500.0, rr)
+            for _ in range(int(0.3 / DT)):
+                p = s.step(DT, 2000.0, rr)
+            return p
+        self.assertAlmostEqual(reach(0.0), 2000.0, delta=1.0)
+        self.assertAlmostEqual(reach(0.9), 2000.0, delta=1.0)        # slower, still gets there
+        self.assertAlmostEqual(reach(1.5), 1500 + 500 / 1.5, delta=5.0)   # stalls where L = 1
+        self.assertAlmostEqual(reach(1.5, rr=0.5), 2000.0, delta=1.0)     # half the load at lower rpm
+        with self.assertRaises(SystemExit):
+            Servos('ideal', load=0.5)                                # an ideal servo has no motor
+
+    def test_blheli32_frame(self):
+        from esc import Blh32Esc, crc8_kiss
+        self.assertEqual(crc8_kiss(b'123456789'), 0xF4)              # CRC-8 (poly 0x07) check value
+        f = Blh32Esc(None).frame(123400, 48.5, 31.25)
+        self.assertEqual(len(f), 10)
+        self.assertEqual(int.from_bytes(f[1:3], 'big'), 4850)        # 10 mV
+        self.assertEqual(int.from_bytes(f[3:5], 'big'), 3125)        # 10 mA
+        self.assertEqual(int.from_bytes(f[7:9], 'big'), 1234)        # eRPM / 100
+        self.assertEqual(f[9], crc8_kiss(f[:9]))
+
+
+class GroundResonance(unittest.TestCase):
+    """The lag mode (lag_nu) on the skids: a four-blade rotor whose regressive lag frequency
+    meets the stiff skid-contact modes (~20 Hz on the Blade 360 model) whirls up with little
+    lag damping, not with dampers, not in the air; off by default."""
+
+    @staticmethod
+    def lag_after(nu, zeta, blades=4, ground=True, seconds=1.0):
+        h = Heli()
+        h.blades, h.lag_zeta = blades, zeta
+        h.reset()
+        h.w = h.nominal_w
+        if ground:
+            for _ in range(int(0.3 / DT)):
+                h.step(DT, 0.65, 0, 0, 0, -0.3)
+        else:
+            h.ground = h.on_ground = False
+            h.pos = [0.0, 0.0, -100.0]
+        h.lag_nu = nu
+        h.lag = [0.002j, 0j]
+        for _ in range(int(seconds / DT)):
+            h.step(DT, 0.65, 0, 0, 0, -0.3 if ground else h.coll_hover)
+        return abs(h.lag[0])
+
+    def test_whirls_up_on_the_ground(self):
+        self.assertGreater(self.lag_after(0.4, 0.01), 10 * 0.002)
+
+    def test_lag_dampers_cure_it(self):
+        self.assertLess(self.lag_after(0.4, 0.3), 0.002)
+
+    def test_not_in_the_air(self):
+        self.assertLess(self.lag_after(0.4, 0.01, ground=False), 0.002)
+
+    def test_off_by_default(self):
+        self.assertEqual(Heli.lag_nu, 0.0)
+
+
 class SensorModel(unittest.TestCase):
 
     def rms(self, s, w, n=20000):

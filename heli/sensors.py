@@ -9,7 +9,9 @@ carries what a real heli's gyro sees:
   acc  = true specific force + chip noise
 
 Chip noise (per axis, from an Allan deviation fit of a flight controller at rest,
-`fitting/scripts/allan.py` -> `fitting/sensors/<chip>.json`):
+`fitting/scripts/allan.py` -> `fitting/sensors/<chip>.json`; chips without a soak -
+ICM42688P, ICM42605, BMI270, MPU6000 - carry their datasheet's white noise density alone,
+"measured": false):
   white noise      density N (deg/s/rtHz): N / sqrt(dt) per sample
   bias             a first-order Gauss-Markov process with the bias instability B as its
                    std and the tau of the Allan minimum as its time constant
@@ -115,14 +117,16 @@ class Sensors:
             self.rpm_ref = float(self.vib['rpm_ref'])
             self.floor = [a * D2R * vib_scale for a in self.vib.get('floor_asd_dps_rthz', [0, 0, 0])]
         if self.chip:
+            # a datasheet chip (no soak) has white noise only: its bias terms are null
+            per_axis = lambda v, d: [d if x is None else x for x in (v or [None] * 3)]
             g = self.chip['gyro']
             self.g_white = [n * D2R for n in g['white_dps_rthz']]
-            self.g_bias = [b * D2R for b in g['bias_instability_dps']]
-            self.g_tau = [max(1.0, t) for t in g['bias_tau_s']]
-            self.g_walk = [(k or 0.0) * D2R for k in g['rate_walk_dps_rts']]
+            self.g_bias = [b * D2R for b in per_axis(g.get('bias_instability_dps'), 0.0)]
+            self.g_tau = [max(1.0, t) for t in per_axis(g.get('bias_tau_s'), 1.0)]
+            self.g_walk = [k * D2R for k in per_axis(g.get('rate_walk_dps_rts'), 0.0)]
             a = self.chip['acc']
             white = list(a['white_g_rthz'])
-            bias = list(a['bias_instability_g'])
+            bias = per_axis(a.get('bias_instability_g'), 0.0)
             # the soak's 1 g axis sits on one count (no dither): take the other axes' median
             lo = sorted(white)[1]
             for i in range(3):
@@ -131,7 +135,7 @@ class Sensors:
                     bias[i] = sorted(b for j, b in enumerate(bias) if j != i)[0]
             self.a_white = [w * G for w in white]
             self.a_bias = [b * G for b in bias]
-            self.a_tau = [max(1.0, t) for t in a['bias_tau_s']]
+            self.a_tau = [max(1.0, t) for t in per_axis(a.get('bias_tau_s'), 1.0)]
             # start inside the bias distribution, as a powered-up FC would
             self.gyro_bias = [self.rng.gauss(0, s) for s in self.g_bias]
             self.acc_bias = [self.rng.gauss(0, s) for s in self.a_bias]
@@ -139,8 +143,9 @@ class Sensors:
     def describe(self):
         out = []
         if self.chip:
-            out.append('gyro chip %s: white %s deg/s/rtHz, bias %s deg/h' % (
-                self.chip['chip'], self.chip['gyro']['white_dps_rthz'], self.chip['gyro']['bias_instability_deg_h']))
+            out.append('gyro chip %s%s: white %s deg/s/rtHz, bias %s deg/h' % (
+                self.chip['chip'], '' if self.chip.get('measured', True) else ' (datasheet)',
+                self.chip['gyro']['white_dps_rthz'], self.chip['gyro'].get('bias_instability_deg_h') or '-'))
         if self.vib:
             out.append('vibration %s at %d rpm x%.2f: %d harmonics, floor %s deg/s/rtHz' % (
                 self.vib['heli'], self.rpm_ref, self.vib_scale, len(self.harm), self.vib.get('floor_asd_dps_rthz')))

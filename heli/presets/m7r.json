@@ -4,8 +4,9 @@
  "notes": [
   "A 700-class heli with a servo tail (OMP M7R, 12S, analog ESC under the governor),",
   "fitted from one 333 s sport flight (Rotorflight 4.6, 1500/1800/2000 rpm profiles):",
-  "  rotor law      dw/dt = A u V - B w - w^2 (k0 + k1 c^2) (R^2 0.73 in the volts form;",
-  "                 the analog ESC adds a throttle response of its own)",
+  "  rotor law      dw/dt = A u_esc V - B w - w^2 (k0 + k1 c^2), u_esc the throttle behind",
+  "                 the analog ESC's 65 ms first-order lag (esc_tau): R^2 0.87 in the",
+  "                 volts form (0.73 without the lag), m7r_fit.py",
   "  rate gains     roll 6.8, pitch 5.7 rad/s per mixer input (0.3-4 Hz, coherence",
   "                 0.9+, setpoint as instrument)",
   "                 at 1500/1800/2000 rpm roll 5.1/6.7/7.9 (~rpm^1.5), pitch 5.8/5.9/6.3",
@@ -45,10 +46,10 @@
  ],
  "attrs": {
   "motor_fit": [
-   3.05,
-   0.3667,
-   0.0004907,
-   0.0005248,
+   4.102,
+   0.4871,
+   0.0007038,
+   0.0006363,
    2.0
   ],
   "motor_poles": 10,
@@ -65,7 +66,8 @@
   "Nr": -2.0,
   "tail_lag": 0.006,
   "yaw_mode_hz": 16.4,
-  "yaw_mode_zeta": 0.23
+  "yaw_mode_zeta": 0.23,
+  "esc_tau": 0.065
  },
  "args": {
   "rate_gain_roll": 6.8,

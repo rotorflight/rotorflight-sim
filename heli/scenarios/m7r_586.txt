@@ -42,3 +42,12 @@ set yaw_ccw_stop_gain = 80
 set gov_p_gain = 40
 set gov_headspeed = 1500
 profile 0
+# rate profiles as flown: the collective curve differs (setpoint per stick x0.93 on the
+# 2000 rpm profile, m7r_profiles.py) - gov_profile_blend_collective blends it
+rateprofile 0
+set rates_type = ROTORFLIGHT
+set collective_rc_rate = 114
+rateprofile 1
+set rates_type = ROTORFLIGHT
+set collective_rc_rate = 122
+rateprofile 0
