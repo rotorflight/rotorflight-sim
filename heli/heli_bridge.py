@@ -38,6 +38,17 @@ from wind import Wind                 # noqa: E402
 from servos import Servos, TYPES as SERVO_TYPES   # noqa: E402
 
 DT = 250e-6
+# SITL_INSTANCE=k (inherited by the SITL started here): the SITL moves all its default
+# ports by 10 * k - TCP UARTs, FDM in, outputs out - and so does this bridge, so several
+# flights can run side by side (rotorflight-firmware src/utils/sitl/run-parallel.py).
+PORT_OFFSET = 10 * int(os.environ.get('SITL_INSTANCE') or 0)
+FDM_PORT = 9003 + PORT_OFFSET
+OUTPUT_PORT = 9002 + PORT_OFFSET
+
+
+def uart_port(n):
+    return 5760 + PORT_OFFSET + n
+
 MSP_SET_RAW_RC = 200
 MSP_ACC_CALIBRATION = 205
 MSP_MOTOR_TELEMETRY = 139
@@ -588,7 +599,7 @@ def main():
     # first start writes defaults; then configure over the CLI (save reboots)
     subprocess.run([elf], cwd=rundir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
     proc, log = start_sitl(elf, rundir, 'config', False)
-    wait_for(os.path.join(rundir, 'config.log'), 'bind port 5761', 15)
+    wait_for(os.path.join(rundir, 'config.log'), 'bind port %d for UART1\n' % uart_port(1), 15)
     commands = load_dump(a.dump) if a.dump else ['set motor_poles = %d' % heli.motor_poles]
     if heli.tail_motor and not a.dump:
         commands += ['set tail_rotor_mode = MOTORIZED']
@@ -630,7 +641,7 @@ def main():
     if a.cli_file:
         a.cli = [ln.strip() for ln in open(a.cli_file) if ln.strip() and not ln.startswith('#')] + a.cli
     t_cli = time.time()
-    out_cli = cli(5761, commands + a.cli + ['save'])
+    out_cli = cli(uart_port(1), commands + a.cli + ['save'])
     bad = cli.rejected
     print('CLI: %d commands in %.0f s%s' % (len(commands) + len(a.cli) + 1, time.time() - t_cli,
                                             (', %d rejected:' % len(bad)) if bad else ''))
@@ -639,21 +650,21 @@ def main():
     proc.wait(15); log.close()
 
     out = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    out.bind(('127.0.0.1', 9002)); out.settimeout(0.05)
+    out.bind(('127.0.0.1', OUTPUT_PORT)); out.settimeout(0.05)
     fdm = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     proc, log = start_sitl(elf, rundir, 'fly', True)
     rows = []
     timeouts, steps = 0, 1
     try:
-        wait_for(os.path.join(rundir, 'fly.log'), 'bind port 5761', 15)
-        msp = socket.create_connection(('127.0.0.1', 5761), timeout=3)
+        wait_for(os.path.join(rundir, 'fly.log'), 'bind port %d for UART1\n' % uart_port(1), 15)
+        msp = socket.create_connection(('127.0.0.1', uart_port(1)), timeout=3)
         # before the first FDM packet the firmware still runs on host time and answers
         swash = Swash.from_msp(lambda cmd: msp_request(msp, cmd))
         print(swash.describe())
         msp.setblocking(False)
         esc = None
         if a.esc != 'none':
-            esc_sock = socket.create_connection(('127.0.0.1', 5763), timeout=3)
+            esc_sock = socket.create_connection(('127.0.0.1', uart_port(3)), timeout=3)
             esc_sock.setblocking(False)
             esc = {'hw4': Hw4Esc, 'blheli32': Blh32Esc}[a.esc](esc_sock)
         esc_every = int(0.02 / DT)
@@ -758,7 +769,7 @@ def main():
                               heli.motor_rpm * heli.motor_poles / 2,
                               (heli.tail_rpm * 6 if heli.tail_motor else 0), 0, 0,
                               pressure, 3.3, 40.0, 8.0, 5.0, heli.vbat, heli.ibat)
-            fdm.sendto(pkt, ('127.0.0.1', 9003))
+            fdm.sendto(pkt, ('127.0.0.1', FDM_PORT))
             try:
                 d, _ = out.recvfrom(256)
                 if len(d) >= 68:
