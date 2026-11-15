@@ -89,6 +89,19 @@ def sharp_inputs(log):
     return count
 
 
+def gps_check(gps):
+    """GPS frames: a fix for at least 10 s ('gps'), and the seconds at 2 m/s or more with it."""
+    if len(gps.data) < 2:
+        return {'gps': False, 'gps_moving_s': 0.0}       # one frame: no duration to measure
+    fix = gps['GPS_numSat'] >= 6
+    # the frames are not evenly spaced: each counts for the time to the next one (the last for
+    # the median interval), at most 2 s, so a gap in the frames does not count
+    dt = np.diff(np.asarray(gps['time'], dtype=float)) / 1e6
+    gdt = np.minimum(np.append(dt, np.median(dt)), 2.0)
+    return {'gps': bool(gdt[fix].sum() >= 10.0),
+            'gps_moving_s': round(float(gdt[fix & (gps['GPS_speed_mps'] >= 2.0)].sum()), 1)}
+
+
 def check(log):
     fs = 1.0 / log.dt
     has = lambda n: n in log.N
@@ -104,10 +117,7 @@ def check(log):
     # more with it (forward flight for the speed derivatives)
     gps = getattr(log, 'gps', None)
     if gps is not None and len(gps.data):
-        fix = gps['GPS_numSat'] >= 6
-        gdt = float(np.median(np.diff(gps['time']))) / 1e6
-        r['gps'] = bool(fix.sum() * gdt >= 10.0)
-        r['gps_moving_s'] = round(float((fix & (gps['GPS_speed_mps'] >= 2.0)).sum() * gdt), 1)
+        r.update(gps_check(gps))
     else:
         r['gps'] = any(n.lower().startswith('gps') for n in log.N)
     lab, alt, ige = segment(log)
