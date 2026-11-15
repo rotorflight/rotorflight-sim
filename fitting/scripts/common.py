@@ -78,6 +78,13 @@ class Log:
             self.events.append((e.get('time'), e.get('type'), vals))
         self.t = (self.c('time') - self.c('time')[0]) / 1e6
         self.dt = float(np.median(np.diff(self.t)))
+        # GPS frames (bbl.js writes them beside the log; older decoders do not): a bblog Log
+        # with GPS_numSat, GPS_north_m, GPS_east_m, GPS_altitude_m, GPS_speed_mps,
+        # GPS_course_deg and time on the main clock - gps_t() puts it on self.t's zero
+        self.gps = getattr(lg, 'gps', None)
+
+    def gps_t(self):
+        return None if self.gps is None else (self.gps['time'] - self.c('time')[0]) / 1e6
 
     def c(self, n):
         return self.a[:, self.N.index(n)].astype(float)

@@ -18,7 +18,9 @@ logging, what to fly, and what to send.
 - **Voltage and current**: Vbat and Ibat in the log (the rotor law fits motor volts).
 - **Baro**: the flight controller's barometer, so `altitude` and `vario` are logged - the
   segmentation finds hover by them.
-- **GPS** (optional): GPS speed in the log for the forward-flight derivatives.
+- **GPS** (optional): GPS speed in the log for the forward-flight derivatives. The decoder keeps
+  ground speed, course and the position relative to the GPS home; absolute coordinates are not
+  written unless asked for.
 - **CLI dump**: `diff all` (or `dump all`) from the same day as the flight.
 
 ## Manoeuvre card

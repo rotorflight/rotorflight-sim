@@ -97,6 +97,32 @@
       "sha256": "89c54a28ee5445a6506f1736b78efd1b9b17c929d01c35c31921852847b2225c",
       "consent": "private",
       "role": "fit"
+    },
+    {
+      "file": "Stratos_200_20260815_151442.0",
+      "source": "Stratos_200_20260815_151442.bbl",
+      "sha256": "fcc809298381fa96887124149ecde3356ea3378cd4d6998a0c04f341903363a2",
+      "consent": "private",
+      "group": "c0f26245",
+      "start": "2026-08-15T15:14:43.144+00:00",
+      "headspeed": [
+        4000
+      ],
+      "intake": {
+        "rate_hz": 500,
+        "gyroRAW": true,
+        "power": true,
+        "baro": true,
+        "air_s": 461.0,
+        "hover_s": {
+          "4000": 99.9
+        },
+        "sharp_inputs": 3,
+        "autorotation_s": 0.0,
+        "gps": true,
+        "gps_moving_s": 73.0
+      },
+      "notes": "Nexus X with a FrSky ADV GPS Plus (FBUS) and an MicroAir MTF-02P lidar: position hold tests, normal flying, descents through the lidar/GPS-baro handover. Its CLI dump: bbl/Stratos200/Stratos_200_20260815_151442_cli.txt (not in the repo). GPS ground speed decodes in cm/s."
     }
   ],
   "groups": {
@@ -106,6 +132,14 @@
       "board": "RDMS NEXUS_XR",
       "tail": "motor",
       "collective": "-1083,1083",
+      "esc": "6/1"
+    },
+    "c0f26245": {
+      "craft": "Stratos 200",
+      "firmware": "4.7",
+      "board": "RDMS NEXUS_X",
+      "tail": "motor",
+      "collective": "-1167,1167",
       "esc": "6/1"
     }
   }

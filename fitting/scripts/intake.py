@@ -100,7 +100,16 @@ def check(log):
     r['baro'] = bool(has_baro(log))
     r['airborne'] = any(typ in (52, 'AIRBORNE_STATE') for _, typ, _ in log.events)
     r['gains'] = 'rollPID' in log.hdr
-    r['gps'] = any(n.lower().startswith('gps') for n in log.N)
+    # GPS: a fix (6+ satellites) for at least 10 s, and how long the heli moved at 2 m/s or
+    # more with it (forward flight for the speed derivatives)
+    gps = getattr(log, 'gps', None)
+    if gps is not None and len(gps.data):
+        fix = gps['GPS_numSat'] >= 6
+        gdt = float(np.median(np.diff(gps['time']))) / 1e6
+        r['gps'] = bool(fix.sum() * gdt >= 10.0)
+        r['gps_moving_s'] = round(float((fix & (gps['GPS_speed_mps'] >= 2.0)).sum() * gdt), 1)
+    else:
+        r['gps'] = any(n.lower().startswith('gps') for n in log.N)
     lab, alt, ige = segment(log)
     tg = np.round(targets(log) / 100) * 100
     oge = lab['hover'] & ~ige
@@ -177,9 +186,10 @@ def main():
             seen[fp] = name
             r = check(log)
             print('  %s: %.0f s airborne, %d Hz, headspeeds %s, hover (out of ground effect) %s s, '
-                  '%d sharp inputs, autorotation %.0f s'
+                  '%d sharp inputs, autorotation %.0f s%s'
                   % (name, r['air_s'], r['rate_hz'], r['headspeeds'] or '-', r['hover_s'] or '-',
-                     r['sharp_inputs'], r['autorotation_s']))
+                     r['sharp_inputs'], r['autorotation_s'],
+                     ', GPS: %.0f s at 2 m/s or more' % r['gps_moving_s'] if 'gps_moving_s' in r else ''))
             for line in advice(r):
                 print('    - ' + line)
             if r['air_s'] < 5:
@@ -193,7 +203,8 @@ def main():
             added.append({'file': name, 'source': os.path.basename(bbl), 'sha256': digest, 'consent': 'private',
                           'group': gid, 'start': info.get('log_start', ''), 'headspeed': r['headspeeds'],
                           'intake': {k: r[k] for k in ('rate_hz', 'gyroRAW', 'power', 'baro', 'air_s', 'hover_s',
-                                                       'sharp_inputs', 'autorotation_s')}})
+                                                       'sharp_inputs', 'autorotation_s', 'gps', 'gps_moving_s')
+                                     if k in r}})
     if added and not dry:
         heli['logs'] += added
         save(heli, heli_path)

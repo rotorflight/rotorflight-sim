@@ -23,12 +23,11 @@ permissions:
   contents: read
 
 env:
-  # The lockstep SITL is in rotorflight/rotorflight-firmware#596; switch to
-  # rotorflight/rotorflight-firmware master once it is merged.
-  FIRMWARE_REPO: ${{ inputs.firmware_repo || 'NightHawk32/rotorflight-firmware' }}
-  FIRMWARE_REF: ${{ inputs.firmware_ref || 'feature/sitl-build' }}
-  # The profile gain blend (gov_profile_blend) is rotorflight/rotorflight-firmware#591, merged
-  # onto the SITL for the profile-switch job; drop the merge once both are in master.
+  # The lockstep SITL (rotorflight/rotorflight-firmware#596) is in firmware master
+  FIRMWARE_REPO: ${{ inputs.firmware_repo || 'rotorflight/rotorflight-firmware' }}
+  FIRMWARE_REF: ${{ inputs.firmware_ref || 'master' }}
+  # The profile gain blend (gov_profile_blend) is rotorflight/rotorflight-firmware#591 (on
+  # firmware master), merged in for the profile-switch job; drop the merge once it is merged.
   BLEND_REPO: NightHawk32/rotorflight-firmware
   BLEND_REF: feature/profile-gain-blend
 
