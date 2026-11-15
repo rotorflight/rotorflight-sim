@@ -203,8 +203,14 @@ forward flight cannot be tested.
 - [ ] Flapback, dihedral (Lv, Mu), weathervane (Nv), tail drag
 - [ ] Tail effectiveness and yaw damping against forward speed (the tail wag of 11 started
       in fast forward flight)
-- [ ] Fit them from logs with GPS speed (blackbox GPS fields) - add a GPS-logged flight to
-      the manoeuvre card
+- [x] GPS in the pipeline: bbl.js (blackbox-decode skill) writes the GPS frames beside a
+      log (position from home, ground speed, course; no absolute coordinates by default),
+      `common.Log.gps`, and the intake counts GPS-tracked forward flight. First log: the
+      Stratos 200 on a Nexus X with a FrSky ADV GPS Plus (461 s airborne, 73 s at 2 m/s or
+      more, 10 Hz GPS)
+- [ ] Fit the speed derivatives from it: ground speed and course against attitude, without
+      air data the wind is a nuisance parameter per log (fly passes both ways)
+- [ ] A GPS-logged flight on the manoeuvre card (straight passes, slow/medium/fast)
 - [ ] Replays without `--hold-alt` hold height in cruise; a forward-flight and a piro check
 
 ## 5. Autorotation
