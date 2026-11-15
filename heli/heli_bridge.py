@@ -350,6 +350,13 @@ def check_autorotation(rows, timeouts, steps, pilot, heli):
     rpm = span(tc + 3.0, t_end, RPM)
     sink = span(tc + 4.0, t_end, CLIMB)
     motor = span(tc + 2.5, t_end, THR)        # after the governor's spooldown ramp
+    spun = max((r[RPM] for r in rows), default=0.0)
+    if spun < 0.5 * pilot.target or not (rpm and sink and motor and span(tc, tc + 0.1, ALT)):
+        # nothing to judge: the rotor never came up (a SITL that sent no outputs) or the
+        # flight ended within 4 s of the cut - a failure with its reason, not a traceback
+        print('FAIL autorotation: no flight to judge (rotor peak %.0f rpm, %d samples from 4 s after the cut '
+              'at %.1f s)' % (spun, len(sink), tc))
+        return False
     checks = [
         ('height for the test: above 25 m at the cut', span(tc, tc + 0.1, ALT)[0] > 25,
          '%.1f m' % span(tc, tc + 0.1, ALT)[0]),
@@ -375,6 +382,9 @@ def check_autorotation(rows, timeouts, steps, pilot, heli):
             # (BAILOUT) and hold the headspeed under the punch
             back = next((r[0] - tb for r in rows if r[0] >= tb and r[THR] > 0.4), None)
             rpm_b = span(tb, tb + 5.0, RPM)
+            if not rpm_b or not span(tb + 2.0, tb + 5.0, CLIMB):
+                print('FAIL bailout: the flight ended within 5 s of the bailout at %.1f s' % tb)
+                return False
             low = min(span(tb, tb + 8.0, ALT))
             checks += [
                 ('bailout: motor back above 40 % within 2 s', back is not None and back < 2.0,
